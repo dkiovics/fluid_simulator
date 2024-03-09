@@ -17,10 +17,10 @@ struct Light {
 
 struct Lights {
 	std::vector<Light> lights;
-	std::shared_ptr<RenderEngine> engine;
+	std::shared_ptr<renderer::RenderEngine> engine;
 	std::vector<unsigned int> shaderProgramIds;
 
-	Lights(std::shared_ptr<RenderEngine> engine, std::vector<unsigned int> shaderProgramIds) : engine(engine), shaderProgramIds(shaderProgramIds) { }
+	Lights(std::shared_ptr<renderer::RenderEngine> engine, std::vector<unsigned int> shaderProgramIds) : engine(engine), shaderProgramIds(shaderProgramIds) { }
 
 	void setUniforms() {
 		for (auto shaderProgram : shaderProgramIds) {

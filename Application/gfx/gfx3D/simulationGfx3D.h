@@ -14,7 +14,7 @@
 
 class SimulationGfx3D : public GfxInterface {
 private:
-	std::shared_ptr<RenderEngine> engine;
+	std::shared_ptr<renderer::RenderEngine> engine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager;
 
 	std::unique_ptr<Camera3D> camera;
@@ -85,7 +85,7 @@ private:
 	void addObstacle(std::shared_ptr<Geometry> obstacleGfx, std::unique_ptr<genericfsim::manager::Obstacle> obstacle, glm::dvec3 size);
 
 public:
-	SimulationGfx3D(std::shared_ptr<RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager, 
+	SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager, 
 						glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
 	
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) override;

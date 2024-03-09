@@ -1,7 +1,7 @@
 #include "geometry.h"
 
 
-Geometry::Geometry(int instanceCount, std::vector<glm::vec3>& position, std::vector<glm::vec4>& color, std::shared_ptr<RenderEngine> engine)
+Geometry::Geometry(int instanceCount, std::vector<glm::vec3>& position, std::vector<glm::vec4>& color, std::shared_ptr<renderer::RenderEngine> engine)
 				: position(position), color(color), engine(engine), instanceCount(instanceCount) {
 	if (instanceCount != position.size() || instanceCount != color.size())
 		throw std::logic_error("Inconsistent geometry input array sizes");

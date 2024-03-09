@@ -11,7 +11,7 @@
 
 class SimulationGfx2D : public GfxInterface {
 private:
-	std::shared_ptr<RenderEngine> engine;
+	std::shared_ptr<renderer::RenderEngine> engine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> simulator;
 	const int maxParticleNum;
 
@@ -157,7 +157,7 @@ private:
 
 public:
 
-	SimulationGfx2D(std::shared_ptr<RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulator, int maxParticleNum)
+	SimulationGfx2D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulator, int maxParticleNum)
 		: engine(engine), simulator(simulator), maxParticleNum(maxParticleNum) {
 		prevParticleColor = particleColor;
 		std::vector<glm::vec3> positions(maxParticleNum);

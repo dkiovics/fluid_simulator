@@ -10,7 +10,7 @@ constexpr auto PI = 3.14159265359f;
 
 class Geometry {
 public:
-	Geometry(int instanceCount, std::vector<glm::vec3>& position, std::vector<glm::vec4>& color, std::shared_ptr<RenderEngine> engine);
+	Geometry(int instanceCount, std::vector<glm::vec3>& position, std::vector<glm::vec4>& color, std::shared_ptr<renderer::RenderEngine> engine);
 
 	Geometry(const Geometry&) = delete;
 	Geometry(Geometry&&) = delete;
@@ -35,7 +35,7 @@ public:
 	virtual ~Geometry();
 
 public:
-	const std::shared_ptr<RenderEngine> engine;
+	const std::shared_ptr<renderer::RenderEngine> engine;
 
 private:
 	std::vector<glm::vec3> position;

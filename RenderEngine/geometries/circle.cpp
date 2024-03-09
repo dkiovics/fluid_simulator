@@ -1,7 +1,7 @@
 #include "circle.h"
 
 
-Circle::Circle(int instanceCount, std::vector<glm::vec3> position, std::vector<glm::vec4> color, std::shared_ptr<RenderEngine> engine, float radius, int vertexNum) 
+Circle::Circle(int instanceCount, std::vector<glm::vec3> position, std::vector<glm::vec4> color, std::shared_ptr<renderer::RenderEngine> engine, float radius, int vertexNum) 
     : radius(radius), vertexNum(vertexNum), Geometry(instanceCount, position, color, engine) { 
     initGeometry();
 }

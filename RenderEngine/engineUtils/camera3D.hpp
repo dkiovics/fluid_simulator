@@ -22,12 +22,12 @@ private:
     float yaw;
     glm::mat4 viewMatrix;
     glm::mat4 projectionMatrix;
-    std::shared_ptr<RenderEngine> engine;
+    std::shared_ptr<renderer::RenderEngine> engine;
 
 public:
     std::vector<unsigned int> shaderProgramIds;
 
-    Camera3D(std::shared_ptr<RenderEngine> engine, std::vector<unsigned int> shaderProgramIds, const glm::vec3& position, float fov, float aspectRatio)
+    Camera3D(std::shared_ptr<renderer::RenderEngine> engine, std::vector<unsigned int> shaderProgramIds, const glm::vec3& position, float fov, float aspectRatio)
         : engine(engine), shaderProgramIds(shaderProgramIds), position(position), fov(fov), pitch(0.0f), yaw(0.0f), aspectRatio(aspectRatio) {
         updateViewMatrix();
         updateProjectionMatrix();

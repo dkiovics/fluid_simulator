@@ -1,6 +1,6 @@
 #include "rectangle.h"
 
-Rectangle::Rectangle(int instanceCount, std::vector<glm::vec3> position, std::vector<glm::vec4> color, std::shared_ptr<RenderEngine> engine, float a, float b, float c)
+Rectangle::Rectangle(int instanceCount, std::vector<glm::vec3> position, std::vector<glm::vec4> color, std::shared_ptr<renderer::RenderEngine> engine, float a, float b, float c)
 	: a(a / 2), b(b / 2), c(c / 2), Geometry(instanceCount, position, color, engine) {
 	initGeometry();
 }

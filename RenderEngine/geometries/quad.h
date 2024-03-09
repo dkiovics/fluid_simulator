@@ -5,7 +5,7 @@
 
 class Quad : public Geometry {
 public:
-	Quad(int instanceCount, std::vector<glm::vec3> position, std::vector<glm::vec4> color, std::shared_ptr<RenderEngine> engine, float a, float b);
+	Quad(int instanceCount, std::vector<glm::vec3> position, std::vector<glm::vec4> color, std::shared_ptr<renderer::RenderEngine> engine, float a, float b);
 
 protected:
 	virtual InputGeometryArray generateGeometry() const;

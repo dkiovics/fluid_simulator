@@ -12,11 +12,14 @@
 #include "engineGeometry.h"
 #include "callback.hpp"
 
+namespace renderer
+{
 
-class RenderEngine {
+class RenderEngine
+{
 private:
 	static std::unordered_map<GLFWwindow*, RenderEngine*> engineWindowPairs;
-	
+
 	static RenderEngine* getEngine(GLFWwindow* window);
 
 	static void framebufferSizeChangedCallback(GLFWwindow* window, int width, int height);
@@ -101,7 +104,8 @@ private:
 	unsigned int screenWidth;
 	unsigned int screenHeight;
 
-	struct InternalGeometryArray {
+	struct InternalGeometryArray
+	{
 		unsigned int vaoId, vboId, indexId, posId, colorId;
 		bool hasIndexes = false;
 		int arraySize;
@@ -109,7 +113,8 @@ private:
 		int renderVertexNum;
 	};
 
-	struct RenderTargetTexture {
+	struct RenderTargetTexture
+	{
 		bool autoResize;
 		int width;
 		int height;
@@ -129,3 +134,5 @@ private:
 
 	void removeInternalGeometry(InternalGeometryArray& geometry);
 };
+
+} // namespace renderer

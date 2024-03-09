@@ -14,10 +14,10 @@ class TransparentBox {
 private:
 	std::vector<std::unique_ptr<Object3D>> boxSides;
 	const Camera3D& camera;
-	std::shared_ptr<RenderEngine> engine;
+	std::shared_ptr<renderer::RenderEngine> engine;
 
 public:
-	TransparentBox(const Camera3D& camera, std::shared_ptr<RenderEngine> engine, const glm::vec4& color, unsigned int gpuProgram) : camera(camera), engine(engine) {
+	TransparentBox(const Camera3D& camera, std::shared_ptr<renderer::RenderEngine> engine, const glm::vec4& color, unsigned int gpuProgram) : camera(camera), engine(engine) {
 		std::shared_ptr<Quad> side = std::make_shared<Quad>(1, std::vector<glm::vec3>{ glm::vec3(0, 0, 0) }, std::vector<glm::vec4>{ color }, engine, 1, 1);
 		for (int p = 0; p < 6; p++) {
 			boxSides.push_back(std::make_unique<Object3D>(side, gpuProgram, glm::mat4(1.0f), glm::vec3(1.2, 1.2, 1.2), 10));

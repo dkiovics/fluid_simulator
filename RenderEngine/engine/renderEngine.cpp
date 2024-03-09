@@ -8,9 +8,12 @@
 #include <stb_image.h>
 
 
+using namespace renderer;
+
 std::unordered_map<GLFWwindow*, RenderEngine*> RenderEngine::engineWindowPairs;
 
-void RenderEngine::framebufferSizeChangedCallback(GLFWwindow* window, int width, int height) {
+void RenderEngine::framebufferSizeChangedCallback(GLFWwindow* window, int width, int height)
+{
 	auto tmp = getEngine(window);
 	if (!tmp)
 		return;
@@ -20,8 +23,10 @@ void RenderEngine::framebufferSizeChangedCallback(GLFWwindow* window, int width,
 	glViewport(0, 0, width, height);
 	engine.screenWidth = width;
 	engine.screenHeight = height;
-	for (auto& t : engine.renderTargetTextures) {
-		if (t.second.autoResize) {
+	for (auto& t : engine.renderTargetTextures)
+	{
+		if (t.second.autoResize)
+		{
 			glDeleteTextures(1, &t.second.textureId);
 			glDeleteRenderbuffers(1, &t.second.rbo);
 			t.second.width = width;
@@ -47,38 +52,44 @@ void RenderEngine::framebufferSizeChangedCallback(GLFWwindow* window, int width,
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void RenderEngine::mouseCallbackFun(GLFWwindow* window, double x, double y) {
+void RenderEngine::mouseCallbackFun(GLFWwindow* window, double x, double y)
+{
 	auto tmp = getEngine(window);
 	if (tmp)
 		tmp->mouseCallback.triggerCallback(x, y);
 }
 
-void RenderEngine::scrollCallbackFun(GLFWwindow* window, double xOffset, double yOffset) {
+void RenderEngine::scrollCallbackFun(GLFWwindow* window, double xOffset, double yOffset)
+{
 	auto tmp = getEngine(window);
 	if (tmp)
 		tmp->scrollCallback.triggerCallback(xOffset, yOffset);
 }
 
-void RenderEngine::mouseButtonCallbackFun(GLFWwindow* window, int button, int action, int mods) {
+void RenderEngine::mouseButtonCallbackFun(GLFWwindow* window, int button, int action, int mods)
+{
 	auto tmp = getEngine(window);
 	if (tmp)
 		tmp->mouseButtonCallback.triggerCallback(button, action, mods);
 }
 
-void RenderEngine::keyCallbackFun(GLFWwindow* window, int key, int scancode, int action, int mode) {
+void RenderEngine::keyCallbackFun(GLFWwindow* window, int key, int scancode, int action, int mode)
+{
 	auto tmp = getEngine(window);
 	if (tmp)
 		tmp->keyCallback.triggerCallback(key, scancode, action, mode);
 }
 
-RenderEngine* RenderEngine::getEngine(GLFWwindow* window) {
+RenderEngine* RenderEngine::getEngine(GLFWwindow* window)
+{
 	auto pair = engineWindowPairs.find(window);
 	if (pair == engineWindowPairs.end())
 		return nullptr;
 	return pair->second;
 }
 
-RenderEngine::RenderEngine(int screenWidth, int screenHeight, std::string name) : screenWidth(screenWidth), screenHeight(screenHeight) {
+RenderEngine::RenderEngine(int screenWidth, int screenHeight, std::string name) : screenWidth(screenWidth), screenHeight(screenHeight)
+{
 	window = glfwCreateWindow(screenWidth, screenHeight, name.c_str(), NULL, NULL);
 	if (window == NULL)
 		throw std::runtime_error("Failed to create window");
@@ -95,17 +106,22 @@ RenderEngine::RenderEngine(int screenWidth, int screenHeight, std::string name) 
 	glDisable(GL_CULL_FACE);
 }
 
-RenderEngine::~RenderEngine() {
-	for (auto& p : internalGeometryArrayMap) {
+RenderEngine::~RenderEngine()
+{
+	for (auto& p : internalGeometryArrayMap)
+	{
 		removeInternalGeometry(p.second);
 	}
-	for (auto p : shaderPrograms) {
+	for (auto p : shaderPrograms)
+	{
 		glDeleteProgram(p);
 	}
-	for(auto p : textures) {
+	for (auto p : textures)
+	{
 		glDeleteTextures(1, &p);
 	}
-	for (auto& p : renderTargetTextures) {
+	for (auto& p : renderTargetTextures)
+	{
 		glDeleteTextures(1, &p.second.textureId);
 		glDeleteRenderbuffers(1, &p.second.rbo);
 		glDeleteFramebuffers(1, &p.second.fbo);
@@ -117,7 +133,8 @@ RenderEngine::~RenderEngine() {
 #endif
 }
 
-unsigned int RenderEngine::createGPUProgram(std::string vertexShaderName, std::string fragmentShaderName) {
+unsigned int RenderEngine::createGPUProgram(std::string vertexShaderName, std::string fragmentShaderName)
+{
 	std::ifstream vertexShaderFile(vertexShaderName);
 	if (!vertexShaderFile)
 		throw std::runtime_error("Vertex shader not found");
@@ -131,7 +148,8 @@ unsigned int RenderEngine::createGPUProgram(std::string vertexShaderName, std::s
 	int success;
 	char infoLog[512];
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
+	if (!success)
+	{
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
 		throw std::runtime_error(std::string("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n") + infoLog);
 	}
@@ -147,17 +165,19 @@ unsigned int RenderEngine::createGPUProgram(std::string vertexShaderName, std::s
 	glShaderSource(fragmentShader, 1, &tmp, NULL);
 	glCompileShader(fragmentShader);
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
+	if (!success)
+	{
 		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
 		throw std::runtime_error(std::string("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n") + infoLog);
 	}
-	
+
 	unsigned int shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
 	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if (!success) {
+	if (!success)
+	{
 		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
 		throw std::runtime_error(std::string("ERROR::SHADER::PROGRAM::LINKING_FAILED\n") + infoLog);
 	}
@@ -167,7 +187,8 @@ unsigned int RenderEngine::createGPUProgram(std::string vertexShaderName, std::s
 
 	activateGPUProgram(shaderProgram);
 
-	for (int p = 0; p < 10; p++) {
+	for (int p = 0; p < 10; p++)
+	{
 		int id = glGetUniformLocation(shaderProgram, (std::string("texture") + std::to_string(p)).c_str());
 		if (id != -1)
 			glUniform1i(id, p);
@@ -176,14 +197,16 @@ unsigned int RenderEngine::createGPUProgram(std::string vertexShaderName, std::s
 	return shaderProgram;
 }
 
-void RenderEngine::deleteGPUProgram(unsigned int id) {
+void RenderEngine::deleteGPUProgram(unsigned int id)
+{
 	auto tmp = shaderPrograms.find(id);
-	if(tmp == shaderPrograms.end())
+	if (tmp == shaderPrograms.end())
 		throw std::runtime_error("Deletable GPU program not found");
 	glDeleteProgram(id);
 }
 
-void RenderEngine::activateGPUProgram(unsigned int program) {
+void RenderEngine::activateGPUProgram(unsigned int program)
+{
 	if (activeProgram == program)
 		return;
 	if (shaderPrograms.find(program) == shaderPrograms.end())
@@ -192,7 +215,8 @@ void RenderEngine::activateGPUProgram(unsigned int program) {
 	activeProgram = program;
 }
 
-void RenderEngine::drawGeometryArray(unsigned int geometry, int num) const {
+void RenderEngine::drawGeometryArray(unsigned int geometry, int num) const
+{
 	auto result = internalGeometryArrayMap.find(geometry);
 	if (result == internalGeometryArrayMap.end())
 		throw std::runtime_error("Geometry not found");
@@ -200,68 +224,79 @@ void RenderEngine::drawGeometryArray(unsigned int geometry, int num) const {
 	glBindVertexArray(tmp.vaoId);
 	if (num == -1)
 		num = tmp.arraySize;
-	if(tmp.hasIndexes)
+	if (tmp.hasIndexes)
 		glDrawElementsInstanced(tmp.renderAs, tmp.renderVertexNum, GL_UNSIGNED_INT, 0, num);
 	else
 		glDrawArraysInstanced(tmp.renderAs, 0, tmp.renderVertexNum, num);
 }
 
-void RenderEngine::renderWireframeOnly(bool enable) {
-	if(enable)
+void RenderEngine::renderWireframeOnly(bool enable)
+{
+	if (enable)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	else
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-static int uniformWarning(int program, const char* name) {
+static int uniformWarning(int program, const char* name)
+{
 	int location = glGetUniformLocation(program, name);
 	if (location == -1)
 		std::cout << "WARNING: could not find uniform named " << name << std::endl;
 	return location;
 }
 
-void RenderEngine::setUniformInt(unsigned int program, std::string name, int value) {
+void RenderEngine::setUniformInt(unsigned int program, std::string name, int value)
+{
 	activateGPUProgram(program);
 	glUniform1i(uniformWarning(program, name.c_str()), value);
 }
 
-void RenderEngine::setUniformFloat(unsigned int program, std::string name, float value) {
+void RenderEngine::setUniformFloat(unsigned int program, std::string name, float value)
+{
 	activateGPUProgram(program);
 	glUniform1f(uniformWarning(program, name.c_str()), value);
 }
 
-void RenderEngine::setUniformVec2(unsigned int program, std::string name, glm::vec2 value) {
+void RenderEngine::setUniformVec2(unsigned int program, std::string name, glm::vec2 value)
+{
 	activateGPUProgram(program);
 	glUniform2fv(uniformWarning(program, name.c_str()), 1, &value[0]);
 }
 
-void RenderEngine::setUniformVec3(unsigned int program, std::string name, glm::vec3 value) {
+void RenderEngine::setUniformVec3(unsigned int program, std::string name, glm::vec3 value)
+{
 	activateGPUProgram(program);
 	glUniform3fv(uniformWarning(program, name.c_str()), 1, &value[0]);
 }
 
-void RenderEngine::setUniformVec4(unsigned int program, std::string name, glm::vec4 value) {
+void RenderEngine::setUniformVec4(unsigned int program, std::string name, glm::vec4 value)
+{
 	activateGPUProgram(program);
 	glUniform4fv(uniformWarning(program, name.c_str()), 1, &value[0]);
 }
 
-void RenderEngine::setUniformMat4(unsigned int program, std::string name, glm::mat4 value) {
+void RenderEngine::setUniformMat4(unsigned int program, std::string name, glm::mat4 value)
+{
 	activateGPUProgram(program);
 	glUniformMatrix4fv(uniformWarning(program, name.c_str()), 1, GL_FALSE, &value[0][0]);
 }
 
-void RenderEngine::setUniformSampler(unsigned int program, std::string name, int value) {
+void RenderEngine::setUniformSampler(unsigned int program, std::string name, int value)
+{
 	activateGPUProgram(program);
 	glUniform1i(uniformWarning(program, name.c_str()), value);
 }
 
-void RenderEngine::clearViewport(const glm::vec4& color, int bufferBits) {
+void RenderEngine::clearViewport(const glm::vec4& color, int bufferBits)
+{
 	glfwMakeContextCurrent(window);
 	glClearColor(color.x, color.y, color.z, color.w);
 	glClear(bufferBits);
 }
 
-unsigned int RenderEngine::createGeometryArray(InputGeometryArray& input) {
+unsigned int RenderEngine::createGeometryArray(InputGeometryArray& input)
+{
 	if (input.arraySize != input.ambientColor.size() || input.arraySize != input.position.size())
 		throw std::runtime_error("Failed to create geometry array: inconsistent array size");
 
@@ -286,7 +321,8 @@ unsigned int RenderEngine::createGeometryArray(InputGeometryArray& input) {
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture));
 
-	if (internalGeometry.hasIndexes = input.hasIndexes) {
+	if (internalGeometry.hasIndexes = input.hasIndexes)
+	{
 		glGenBuffers(1, &internalGeometry.indexId);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, internalGeometry.indexId);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, input.indexes.size() * sizeof(unsigned int), input.indexes.data(), GL_STATIC_DRAW);
@@ -311,12 +347,13 @@ unsigned int RenderEngine::createGeometryArray(InputGeometryArray& input) {
 	return geometryIdCounter;
 }
 
-void RenderEngine::updatePosition(unsigned int geometryId, std::vector<glm::vec3>& position, int num) {
+void RenderEngine::updatePosition(unsigned int geometryId, std::vector<glm::vec3>& position, int num)
+{
 	auto result = internalGeometryArrayMap.find(geometryId);
 	if (result == internalGeometryArrayMap.end())
 		throw std::runtime_error("Geometry not found");
 	auto& tmp = result->second;
-	if(tmp.arraySize != position.size())
+	if (tmp.arraySize != position.size())
 		throw std::runtime_error("Geometry input update position array size is incorrect");
 	if (num == -1)
 		num = position.size();
@@ -325,7 +362,8 @@ void RenderEngine::updatePosition(unsigned int geometryId, std::vector<glm::vec3
 	glBufferSubData(GL_ARRAY_BUFFER, 0, num * sizeof(glm::vec3), position.data());
 }
 
-void RenderEngine::updateColor(unsigned int geometryId, std::vector<glm::vec4>& color, int num) {
+void RenderEngine::updateColor(unsigned int geometryId, std::vector<glm::vec4>& color, int num)
+{
 	auto result = internalGeometryArrayMap.find(geometryId);
 	if (result == internalGeometryArrayMap.end())
 		throw std::runtime_error("Geometry not found");
@@ -339,23 +377,28 @@ void RenderEngine::updateColor(unsigned int geometryId, std::vector<glm::vec4>& 
 	glBufferSubData(GL_ARRAY_BUFFER, 0, num * sizeof(glm::vec4), color.data());
 }
 
-void RenderEngine::removeGeometryArray(unsigned int geometry) {
+void RenderEngine::removeGeometryArray(unsigned int geometry)
+{
 	auto result = internalGeometryArrayMap.find(geometry);
-	if (result != internalGeometryArrayMap.end()) {
+	if (result != internalGeometryArrayMap.end())
+	{
 		removeInternalGeometry(result->second);
 		internalGeometryArrayMap.erase(geometry);
 	}
 }
 
-unsigned int RenderEngine::loadTexture(std::string name, int minSampler, int magSampler, bool repeatingTiles) {
+unsigned int RenderEngine::loadTexture(std::string name, int minSampler, int magSampler, bool repeatingTiles)
+{
 	unsigned int texture;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	if (repeatingTiles) {
+	if (repeatingTiles)
+	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	}
-	else {
+	else
+	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
@@ -363,9 +406,10 @@ unsigned int RenderEngine::loadTexture(std::string name, int minSampler, int mag
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magSampler);
 
 	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true); 
+	stbi_set_flip_vertically_on_load(true);
 	unsigned char* data = stbi_load(name.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
-	if (data) {
+	if (data)
+	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
@@ -376,16 +420,19 @@ unsigned int RenderEngine::loadTexture(std::string name, int minSampler, int mag
 	return texture;
 }
 
-unsigned int RenderEngine::createRenderTargetTexture(int width, int height) {
+unsigned int RenderEngine::createRenderTargetTexture(int width, int height)
+{
 	RenderTargetTexture t;
 	glGenFramebuffers(1, &t.fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
-	if (width > 0 && height > 0) {
+	if (width > 0 && height > 0)
+	{
 		t.autoResize = false;
 		t.width = width;
 		t.height = height;
 	}
-	else {
+	else
+	{
 		t.autoResize = true;
 		t.width = getScreenWidth();
 		t.height = getScreenHeight();
@@ -413,69 +460,86 @@ unsigned int RenderEngine::createRenderTargetTexture(int width, int height) {
 	return renderTargetIdCounter;
 }
 
-void RenderEngine::bindTexture(unsigned int sampler, unsigned int texture) {
+void RenderEngine::bindTexture(unsigned int sampler, unsigned int texture)
+{
 	glActiveTexture(GL_TEXTURE0 + sampler);
 	glBindTexture(GL_TEXTURE_2D, texture);
 }
 
-void RenderEngine::bindRenderTargetTexture(unsigned int sampler, unsigned int id) {
+void RenderEngine::bindRenderTargetTexture(unsigned int sampler, unsigned int id)
+{
 	auto t = renderTargetTextures.find(id);
-	if (t != renderTargetTextures.end()) {
+	if (t != renderTargetTextures.end())
+	{
 		glActiveTexture(GL_TEXTURE0 + sampler);
 		glBindTexture(GL_TEXTURE_2D, t->second.textureId);
 	}
 }
 
-void RenderEngine::deleteTexture(unsigned int id) {
+void RenderEngine::deleteTexture(unsigned int id)
+{
 	auto t = textures.find(id);
-	if (t != textures.end()) {
+	if (t != textures.end())
+	{
 		glDeleteTextures(1, &id);
 		textures.erase(id);
 	}
 }
 
-void RenderEngine::deleteRenderTargetTexture(unsigned int id) {
+void RenderEngine::deleteRenderTargetTexture(unsigned int id)
+{
 	auto t = renderTargetTextures.find(id);
-	if (t != renderTargetTextures.end()) {
+	if (t != renderTargetTextures.end())
+	{
 		glDeleteTextures(1, &t->second.textureId);
 		glDeleteRenderbuffers(1, &t->second.rbo);
 		glDeleteFramebuffers(1, &t->second.fbo);
 	}
 }
 
-void RenderEngine::makeWindowContextcurrent() {
+void RenderEngine::makeWindowContextcurrent()
+{
 	glfwMakeContextCurrent(window);
 }
 
-void RenderEngine::setViewport(int x, int y, int width, int height) {
+void RenderEngine::setViewport(int x, int y, int width, int height)
+{
 	glViewport(x, y, width, height);
 }
 
-void RenderEngine::bindFramebuffer(unsigned int renderTargetTextureId) {
-	if (renderTargetTextureId == -1) {
+void RenderEngine::bindFramebuffer(unsigned int renderTargetTextureId)
+{
+	if (renderTargetTextureId == -1)
+	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
-	else {
+	else
+	{
 		auto t = renderTargetTextures.find(renderTargetTextureId);
-		if (t != renderTargetTextures.end()) {
+		if (t != renderTargetTextures.end())
+		{
 			glBindFramebuffer(GL_FRAMEBUFFER, t->second.fbo);
 		}
 	}
 }
 
-unsigned int RenderEngine::getScreenWidth() const {
+unsigned int RenderEngine::getScreenWidth() const
+{
 	return screenWidth;
 }
 
-unsigned int RenderEngine::getScreenHeight() const {
+unsigned int RenderEngine::getScreenHeight() const
+{
 	return screenHeight;
 }
 
-GLFWwindow* RenderEngine::getWindow() const {
+GLFWwindow* RenderEngine::getWindow() const
+{
 	return window;
 }
 
-void RenderEngine::removeInternalGeometry(InternalGeometryArray& geometry) {
+void RenderEngine::removeInternalGeometry(InternalGeometryArray& geometry)
+{
 	glDeleteVertexArrays(1, &geometry.vaoId);
 	glDeleteBuffers(1, &geometry.vboId);
 	if (geometry.hasIndexes)

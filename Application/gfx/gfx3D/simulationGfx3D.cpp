@@ -167,7 +167,7 @@ void SimulationGfx3D::initGridLines() {
 	}
 }
 
-SimulationGfx3D::SimulationGfx3D(std::shared_ptr<RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 									glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum)
 										: engine(engine), simulationManager(simulationManager) {
 	this->screenStart = screenStart;

@@ -20,7 +20,7 @@ void startSimulatorGui() {
     const int initialScreenHeight = 1300;
     const float aspectRatio = 16.0f / 9.0f;
 
-    std::shared_ptr<RenderEngine> engine(new RenderEngine(initialScreenWidth, initialScreenHeight, "Fluid Simulator"));
+    std::shared_ptr<renderer::RenderEngine> engine(new renderer::RenderEngine(initialScreenWidth, initialScreenHeight, "Fluid Simulator"));
     GLFWwindow* window = engine->getWindow();
     glfwMakeContextCurrent(window);
     //glfwSwapInterval(1);
