@@ -21,31 +21,10 @@
     <ClInclude Include="engineUtils\camera3D.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="geometries\circle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="engine\engineGeometry.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="geometries\geometry.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="engineUtils\lights.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="engineUtils\object3D.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="geometries\quad.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="geometries\rectangle.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="engine\renderEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="geometries\sphere.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glad\glad.h">
@@ -54,27 +33,45 @@
     <ClInclude Include="glad\khrplatform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="engine\shaderProgram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engine\texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="geometries\geometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="geometries\basicGeometries.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engineUtils\object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engineUtils\camera2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engine\uniforms.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="geometries\circle.cpp">
+    <ClCompile Include="engine\renderEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="glad\glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="engine\shaderProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="engine\texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="geometries\geometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="geometries\quad.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="geometries\rectangle.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="engine\renderEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="geometries\sphere.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="glad\glad.c">
+    <ClCompile Include="geometries\basicGeometries.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

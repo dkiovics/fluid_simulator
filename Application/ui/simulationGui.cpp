@@ -128,9 +128,9 @@ void startSimulatorGui() {
 
         const int screenWidth = engine->getScreenWidth();
         const int screenHeight = engine->getScreenHeight();
-        const glm::ivec2 simStart = glm::ivec2(0, 0);
         const float tmpWidth = std::min(float(screenWidth), (screenHeight - 150) * aspectRatio);
         const glm::ivec2 simSize = glm::ivec2(tmpWidth, tmpWidth / aspectRatio);
+        const glm::ivec2 simStart = glm::ivec2(0, screenHeight - simSize.y);
         simulatorRenderer->screenSize = simSize;
         simulatorRenderer->screenStart = simStart;
 
@@ -146,6 +146,7 @@ void startSimulatorGui() {
         if (stepSimulation)
             simulationManager->stepSimulation();
 
+        engine->setViewport(0, 0, simSize.x, simSize.y);
         simulatorRenderer->handleTimePassed(dt);
         simulatorRenderer->render();
 
@@ -343,8 +344,8 @@ void startSimulatorGui() {
                 if (clicked) {
                     glm::vec2 click = renderer2D->getMouseGridPos();
                     if (selected == 0) {
-                        cellX = click.x;
-                        cellY = click.y;
+                        cellX = click.x / simulationManager->getCellD().x;
+                        cellY = click.y / simulationManager->getCellD().y;
                     }
                     else if (selected == 1) {
                         particleIndex = simulationManager->getParticleIndex(glm::dvec3(click.x, click.y, 1.5));

@@ -10,7 +10,16 @@ public:
 	bool gridlinesEnabled = false;
 	glm::vec3 gridLineColor = glm::vec3(0.4, 0.0, 0.0);
 	glm::vec3 particleColor = glm::vec3(0.0, 0.4, 0.95);
+
+	/**
+	 * \brief The start of the screen in pixels, (0,0) is the top left corner.
+	 * Must be kept in sync with the actual window size.
+	 */
 	glm::ivec2 screenStart = glm::ivec2(0, 0);
+	/**
+	 * \brief The size of the screen in pixels.
+	 * Must be kept in sync with the actual window size.
+	 */
 	glm::ivec2 screenSize = glm::ivec2(1000, 1000);
 
 	glm::vec3 particleSpeedColor = glm::vec3(0.4, 0.93, 0.88);
