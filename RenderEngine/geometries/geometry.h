@@ -9,6 +9,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include "../glad/glad.h"
+#include <spdlog/spdlog.h>
 
 constexpr auto PI = 3.14159265359f;
 
@@ -91,6 +92,8 @@ protected:
 		vboSizes.insert(std::make_pair(vboId, vboData));
 		unbindVao();
 		return vboId;
+
+		spdlog::debug("VBO created with id: {} for geometry with id: {}", vboId, vaoId);
 	}
 
 	/**
@@ -236,6 +239,8 @@ protected:
 		}
 		geometry->unbindVao();
 		return vboId;
+
+		spdlog::debug("Per instance VBO created with id: {}", vboId);
 	}
 };
 

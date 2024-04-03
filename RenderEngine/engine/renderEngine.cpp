@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 
 using namespace renderer;
@@ -107,9 +108,7 @@ RenderEngine::~RenderEngine()
 {
 	glfwMakeContextCurrent(window);
 	glfwDestroyWindow(window);
-#ifdef _DEBUG
-	std::cout << "RenderEngine destructor called" << std::endl;
-#endif
+	spdlog::info("RenderEngine destroyed");
 }
 
 void RenderEngine::activateGPUProgram(unsigned int program)

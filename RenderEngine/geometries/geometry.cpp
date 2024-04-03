@@ -1,10 +1,12 @@
 #include "geometry.h"
+#include <spdlog/spdlog.h>
 
 using namespace renderer;
 
 renderer::Geometry::Geometry(GLenum drawType, int vertexNum) : drawType(drawType), vertexNum(vertexNum)
 {
 	glGenVertexArrays(1, &vaoId);
+	spdlog::debug("Geometry created with id: {}", vaoId);
 }
 
 void renderer::Geometry::bindVao() const
@@ -45,6 +47,7 @@ void renderer::Geometry::createIndexBuffer(const std::vector<unsigned int>& indi
 	unbindVao();
 	indexBufferId = vboId;
 	vertexNum = indices.size();
+	spdlog::debug("Index buffer created with id: {} for geometry with id: {}", vboId, vaoId);
 }
 
 void renderer::Geometry::draw() const
@@ -73,6 +76,7 @@ renderer::Geometry::~Geometry()
 		glDeleteBuffers(1, &indexBufferId.value());
 	}
 	glDeleteVertexArrays(1, &vaoId);
+	spdlog::debug("Geometry deleted with id: {}", vaoId);
 }
 
 void renderer::BasicGeometryArray::updateActiveInstanceParams()

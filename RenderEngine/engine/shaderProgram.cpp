@@ -3,6 +3,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "shaderProgram.h"
 #include "renderEngine.h"
+#include <spdlog/spdlog.h>
 
 using namespace renderer;
 
@@ -12,7 +13,7 @@ static inline int uniformWarning(int program, const char* name)
 {
 	int location = glGetUniformLocation(program, name);
 	if (location == -1 && showWarnings)
-		std::cout << "WARNING: could not find uniform named " << name << std::endl;
+		spdlog::warn("Uniform {} not found in program {}", name, program);
 	return location;
 }
 
@@ -104,6 +105,7 @@ void renderer::ShaderProgram::activate() const
 renderer::ShaderProgram::~ShaderProgram()
 {
 	glDeleteProgram(programId);
+	spdlog::debug("Shader program deleted with id: {}", programId);
 }
 
 renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName, std::shared_ptr<RenderEngine> engine)
@@ -157,4 +159,5 @@ renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, cons
 	}
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
+	spdlog::debug("Vertex name: {}, fragment name: {}, shader program created successfully with id: {}", vertexShaderName, fragmentShaderName, programId);
 }

@@ -1,6 +1,7 @@
 #include "texture.h"
 
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -32,6 +33,8 @@ renderer::Texture::Texture()
 	glActiveTexture(GL_TEXTURE0 + texSampler);
 	glGenTextures(1, &textureId);
 	glBindTexture(GL_TEXTURE_2D, textureId);
+
+	spdlog::debug("Texture created with id: {}", textureId);
 }
 
 GLuint renderer::Texture::getTextureId() const
@@ -50,6 +53,7 @@ renderer::Texture::~Texture()
 	std::scoped_lock lock(availableTexSamplersMutex);
 	auto context = glfwGetCurrentContext();
 	availableTexSamplersPerContext[context].insert(texSampler);
+	spdlog::debug("Texture deleted with id: {}", textureId);
 }
 
 renderer::ColorTexture::ColorTexture(const std::string& textureFileName, GLint minSampler, GLint magSampler, bool tiling) : Texture()
@@ -78,6 +82,8 @@ renderer::ColorTexture::ColorTexture(const std::string& textureFileName, GLint m
 	else
 		throw std::runtime_error("Failed to read image file: " + textureFileName);
 	stbi_image_free(data);
+
+	spdlog::debug("Color texture created for file: {}", textureFileName);
 }
 
 renderer::RenderTargetTexture::RenderTargetTexture(int width, int height, GLint minSampler, GLint magSampler,
