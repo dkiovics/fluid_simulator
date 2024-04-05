@@ -47,6 +47,12 @@ GLuint renderer::Texture::getTexSampler() const
 	return texSampler;
 }
 
+void renderer::Texture::generateMipmaps() const
+{
+	bindTexture();
+	glGenerateMipmap(GL_TEXTURE_2D);
+}
+
 renderer::Texture::~Texture()
 {
 	glDeleteTextures(1, &textureId);
@@ -54,6 +60,12 @@ renderer::Texture::~Texture()
 	auto context = glfwGetCurrentContext();
 	availableTexSamplersPerContext[context].insert(texSampler);
 	spdlog::debug("Texture deleted with id: {}", textureId);
+}
+
+void renderer::Texture::bindTexture() const
+{
+	glActiveTexture(GL_TEXTURE0 + texSampler);
+	glBindTexture(GL_TEXTURE_2D, textureId);
 }
 
 renderer::ColorTexture::ColorTexture(const std::string& textureFileName, GLint minSampler, GLint magSampler, bool tiling) : Texture()
@@ -87,7 +99,9 @@ renderer::ColorTexture::ColorTexture(const std::string& textureFileName, GLint m
 }
 
 renderer::RenderTargetTexture::RenderTargetTexture(int width, int height, GLint minSampler, GLint magSampler,
-	GLint internalFormat, GLint format, GLint dataType) : Texture()
+	GLint internalFormat, GLint format, GLint dataType) 
+	: Texture(), minSampler(minSampler), magSampler(magSampler), size(width, height),
+	internalFormat(internalFormat), format(format), dataType(dataType)
 {
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, dataType, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minSampler);
@@ -95,14 +109,19 @@ renderer::RenderTargetTexture::RenderTargetTexture(int width, int height, GLint 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	spdlog::debug("Render target texture created");
 }
 
-renderer::RenderTargetTexture::RenderTargetTexture(GLint internalFormat, GLint format, GLint dataType) : Texture()
+void renderer::RenderTargetTexture::resizeTexture(int width, int height)
 {
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, 0, 0, 0, format, dataType, NULL);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	if(size.x == width && size.y == height)
+		return;
+	bindTexture();
+	size = glm::ivec2(width, height);
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, dataType, NULL);
+}
+
+glm::ivec2 renderer::RenderTargetTexture::getSize() const
+{
+	return size;
 }

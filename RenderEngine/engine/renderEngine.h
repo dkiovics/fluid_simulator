@@ -36,6 +36,12 @@ private:
 	static void keyCallbackFun(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 public:
+	/**
+	* \brief Returns the instance of the RenderEngine class that is associated with the current thread context
+	* \return The instance of the RenderEngine class
+	*/
+	static RenderEngine& getInstance();
+
 	RenderEngine(int screenWidth, int screenHeight, std::string name);
 
 	~RenderEngine();
@@ -81,10 +87,7 @@ public:
 	 */
 	void setViewport(int x, int y, int width, int height);
 
-	/*
-	* If no params are provided, default framebuffer is binded
-	*/
-	void bindFramebuffer(unsigned int renderTargetTextureId = -1);
+	void bindDefaultFramebuffer();
 
 	unsigned int getScreenWidth() const;
 	unsigned int getScreenHeight() const;
@@ -100,6 +103,7 @@ public:
 	Callback<double, double> scrollCallback;
 	Callback<int, int, int> mouseButtonCallback;
 	Callback<int, int, int, int> keyCallback;
+	Callback<int, int> framebufferSizeCallback;
 
 private:
 	GLFWwindow* window;

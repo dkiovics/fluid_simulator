@@ -17,10 +17,9 @@ void RenderEngine::framebufferSizeChangedCallback(GLFWwindow* window, int width,
 		return;
 	RenderEngine& engine = *tmp;
 
-	glfwMakeContextCurrent(window);
-	glViewport(0, 0, width, height);
 	engine.screenWidth = width;
 	engine.screenHeight = height;
+	engine.framebufferSizeCallback.triggerCallback(width, height);
 	/*for (auto& t : engine.renderTargetTextures)
 	{
 		if (t.second.autoResize)
@@ -46,8 +45,8 @@ void RenderEngine::framebufferSizeChangedCallback(GLFWwindow* window, int width,
 			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 				throw std::runtime_error("Failed to resize framebuffer");
 		}
-	}*/
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 }
 
 void RenderEngine::mouseCallbackFun(GLFWwindow* window, double x, double y)
@@ -84,6 +83,12 @@ RenderEngine* RenderEngine::getEngine(GLFWwindow* window)
 	if (pair == engineWindowPairs.end())
 		return nullptr;
 	return pair->second;
+}
+
+RenderEngine& renderer::RenderEngine::getInstance()
+{
+	GLFWwindow* window = glfwGetCurrentContext();
+	return *RenderEngine::getEngine(window);
 }
 
 RenderEngine::RenderEngine(int screenWidth, int screenHeight, std::string name) : screenWidth(screenWidth), screenHeight(screenHeight)
@@ -152,20 +157,9 @@ void RenderEngine::setViewport(int x, int y, int width, int height)
 	glViewport(x, y, width, height);
 }
 
-void RenderEngine::bindFramebuffer(unsigned int renderTargetTextureId)
+void renderer::RenderEngine::bindDefaultFramebuffer()
 {
-	if (renderTargetTextureId == -1)
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-	else
-	{
-		/*auto t = renderTargetTextures.find(renderTargetTextureId);
-		if (t != renderTargetTextures.end())
-		{
-			glBindFramebuffer(GL_FRAMEBUFFER, t->second.fbo);
-		}*/
-	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 unsigned int RenderEngine::getScreenWidth() const

@@ -6,6 +6,7 @@
 #include <set>
 #include <map>
 #include <mutex>
+#include "renderEngine.h"
 
 namespace renderer
 {
@@ -32,6 +33,8 @@ public:
 	 */
 	GLuint getTexSampler() const;
 
+	void generateMipmaps() const;
+
 	virtual ~Texture();
 
 protected:
@@ -39,6 +42,11 @@ protected:
 	 * Mock function to make the class abstract.
 	 */
 	virtual void pureVirtual() = 0;
+
+	/**
+	* \brief Binds the texture to the current context.
+	*/
+	void bindTexture() const;
 
 private:
 	static std::map<GLFWwindow*, std::set<GLint>> availableTexSamplersPerContext;
@@ -89,20 +97,23 @@ public:
 	RenderTargetTexture(int width, int height, GLint minSampler = GL_NEAREST, GLint magSampler = GL_NEAREST, 
 		GLint internalFormat = GL_RGBA32F, GLint format = GL_RGBA, GLint dataType = GL_FLOAT);
 
-	/**
-	 * \brief Creates a new auto resizeable texture (with the same size as the viewport).
-	 * 
-	 * \param internalFormat - the internal format of the texture. Possible values are GL_RGBA32F, GL_RGBA32I, GL_RGBA32UI etc.
-	 * \param format - the format of the texture. Possible values are GL_RGBA, GL_RGB, GL_RED, GL_RG etc.
-	 * \param dataType - the data type of the texture. Possible values are GL_FLOAT, GL_INT, GL_UNSIGNED_INT etc.
-	 */
-	RenderTargetTexture(GLint internalFormat = GL_RGBA32F, GLint format = GL_RGBA, GLint dataType = GL_FLOAT);
+	void resizeTexture(int width, int height);
+
+	glm::ivec2 getSize() const;
 
 protected:
 	/**
 	 * Mock override function to make the class instantiable.
 	 */
 	virtual void pureVirtual() override {}
+
+private:
+	glm::ivec2 size;
+	const GLint minSampler;
+	const GLint magSampler;
+	const GLint internalFormat;
+	const GLint format;
+	const GLint dataType;
 };
 
 } // namespace renderer

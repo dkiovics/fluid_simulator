@@ -9,7 +9,7 @@
 #include <engine/renderEngine.h>
 #include <engine/texture.h>
 #include <engine/shaderProgram.h>
-#include <engine/shaderProgram.h>
+#include <engine/framebuffer.h>
 #include "manager/simulationManager.h"
 #include "../gfxInterface.hpp"
 #include <vector>
@@ -52,6 +52,11 @@ private:
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramTextured;
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTextured;
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTexturedArray;
+
+	std::shared_ptr<renderer::ShaderProgram> testShaderProgram;
+	std::shared_ptr<renderer::Square> testSquare;
+	std::shared_ptr<renderer::RenderTargetTexture> testTexture;
+	std::shared_ptr<renderer::Framebuffer> testFramebuffer;
 
 	int mouseCallbackId;
 	int mouseButtonCallbackId;

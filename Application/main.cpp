@@ -21,9 +21,13 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	
 	spdlog::info("Starting application...");
+
+#ifndef _DEBUG
 	try
 	{
+#endif
 		startSimulatorGui();
+#ifndef _DEBUG
 	}
 	catch (const std::exception& e)
 	{
@@ -33,6 +37,7 @@ int main() {
 	{
 		spdlog::error("An unknown error occurred.");
 	}
+#endif
 
 	spdlog::info("Terminating application...");
 	glfwTerminate();

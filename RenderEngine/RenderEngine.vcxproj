@@ -152,6 +152,7 @@
   <ItemGroup>
     <ClInclude Include="engineUtils\camera2D.hpp" />
     <ClInclude Include="engineUtils\object.h" />
+    <ClInclude Include="engine\framebuffer.h" />
     <ClInclude Include="engine\uniforms.hpp" />
     <ClInclude Include="engine\callback.hpp" />
     <ClInclude Include="engine\shaderProgram.h" />
@@ -165,6 +166,7 @@
     <ClInclude Include="engine\renderEngine.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="engine\framebuffer.cpp" />
     <ClCompile Include="engine\shaderProgram.cpp" />
     <ClCompile Include="engine\texture.cpp" />
     <ClCompile Include="geometries\basicGeometries.cpp" />

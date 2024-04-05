@@ -190,7 +190,8 @@ void SimulationGfx3D::initGridLines()
 
 SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 									glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum)
-										: engine(engine), simulationManager(simulationManager) {
+										: engine(engine), simulationManager(simulationManager) 
+{
 	this->screenStart = screenStart;
 	this->screenSize = screenSize;
 	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vs", "shaders/3D_object_textured.fs", engine);
@@ -240,6 +241,13 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 	prevGridlineColor = gridLineColor;
 	prevCellD = simulationManager->getCellD();
 	initGridLines();
+
+	testShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/quad.fs", engine);
+	testSquare = std::make_shared<renderer::Square>();
+	testTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y);
+	(*testShaderProgram)["colorTexture"] = *testTexture;
+	std::vector<std::shared_ptr<renderer::RenderTargetTexture>> textures = { testTexture };
+	testFramebuffer = std::make_shared<renderer::Framebuffer>(textures);
 }
 
 void SimulationGfx3D::setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) {
@@ -420,12 +428,17 @@ void SimulationGfx3D::drawGridLines() {
 }
 
 void SimulationGfx3D::render() {
+	testFramebuffer->setSize(glm::ivec2(screenSize.x, screenSize.y));
+
+	testFramebuffer->bind();
+
 	glm::dvec3 dim = simulationManager->getDimensions();
 	glm::vec3 size = glm::vec3(dim.x, dim.y, dim.z);
 	glm::vec3 center = size * 0.5f;
 	modelRotationPoint = center;
 
 	engine->enableDepthTest(true);
+	engine->setViewport(0, 0, screenSize.x, screenSize.y);
 	engine->clearViewport(glm::vec4(0.1, 0, 0, 0), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	camera->setAspectRatio(float(screenSize.x) / screenSize.y);
@@ -446,6 +459,14 @@ void SimulationGfx3D::render() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	transparentBox->draw(center, size);
 	glDisable(GL_BLEND);
+
+	engine->bindDefaultFramebuffer();
+	engine->setViewport(screenStart.x, 0, screenSize.x, screenSize.y);
+	engine->clearViewport(glm::vec4(0.1, 0, 0, 0), GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	testShaderProgram->activate();
+	engine->enableDepthTest(false);
+	testSquare->draw();
+	engine->enableDepthTest(true);
 }
 
 SimulationGfx3D::~SimulationGfx3D() {
