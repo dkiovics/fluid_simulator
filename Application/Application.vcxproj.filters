@@ -107,5 +107,8 @@
     <ClInclude Include="ui\simParamsAdvanced.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ui\param.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

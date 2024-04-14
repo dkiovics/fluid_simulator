@@ -2,15 +2,13 @@
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <vector>
 #include "manager/simulationManager.h"
+#include "../ui/param.hpp"
 
 
-class GfxInterface {
+class GfxInterface : public ParamLineCollection {
 public:
-	bool gridlinesEnabled = false;
-	glm::vec3 gridLineColor = glm::vec3(0.4, 0.0, 0.0);
-	glm::vec3 particleColor = glm::vec3(0.0, 0.4, 0.95);
-
 	/**
 	 * \brief The start of the screen in pixels, (0,0) is the top left corner.
 	 * Must be kept in sync with the actual window size.
@@ -21,13 +19,6 @@ public:
 	 * Must be kept in sync with the actual window size.
 	 */
 	glm::ivec2 screenSize = glm::ivec2(1000, 1000);
-
-	glm::vec3 particleSpeedColor = glm::vec3(0.4, 0.93, 0.88);
-	float maxParticleSpeed = 36.0f;
-	bool particleSpeedColorEnabled = true;
-
-	bool renderFluidSurface = false;
-	float fluidSurfaceSmoothing = 1.2f;
 
 	virtual void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) = 0;
 
@@ -40,4 +31,20 @@ public:
 	virtual void removeObstacle() { }
 
 	virtual ~GfxInterface() = default;
+
+protected:
+	ParamBool gridlinesEnabled = ParamBool("Gridlines", false);
+	ParamColor gridLineColor = ParamColor("Gridline color", glm::vec3(0.4f, 0.0f, 0.0f));
+	ParamColor particleColor = ParamColor("Particle color", glm::vec3(0.0, 0.4, 0.95));
+	ParamColor particleSpeedColor = ParamColor("Particle speed color", glm::vec3(0.4, 0.93, 0.88));
+
+	ParamFloat maxParticleSpeed = ParamFloat("Max particle speed", 36.0f, 1.0f, 200.0f);
+	ParamBool particleSpeedColorEnabled = ParamBool("Particle speed color", true);
+
+	GfxInterface()
+	{
+		addParamLine(ParamLine({ &gridlinesEnabled, &gridLineColor }));
+		addParamLine(ParamLine({ &particleSpeedColorEnabled, &maxParticleSpeed }));
+		addParamLine(ParamLine({ &particleColor, &particleSpeedColor }));
+	}
 };

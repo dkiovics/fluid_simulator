@@ -10,6 +10,7 @@
 #include "../gfx/gfx3D/simulationGfx3D.h"
 #include "../gfx/gfxInterface.hpp"
 #include "manager/simulationManager.h"
+#include "simParamsAdvanced.h"
 #include <chrono>
 
 using namespace genericfsim::manager;
@@ -17,7 +18,7 @@ using CellType = genericfsim::macgrid::MacGridCell::CellType;
 
 void startSimulatorGui() {
     const int initialScreenWidth = 1800;
-    const int initialScreenHeight = 1300;
+    const int initialScreenHeight = 1200;
     const float aspectRatio = 16.0f / 9.0f;
 
     std::shared_ptr<renderer::RenderEngine> engine(new renderer::RenderEngine(initialScreenWidth, initialScreenHeight, "Fluid Simulator"));
@@ -102,7 +103,7 @@ void startSimulatorGui() {
     bool autodt = true;
     float simdt = 0.02f;
 
-    int selected = 2;
+    int inspectionMode = 2;
     int cellX = 0;
     int cellY = 0;
     int particleIndex = 0;
@@ -114,10 +115,9 @@ void startSimulatorGui() {
     float particleSpawnRate = 1600.0f;
     float particleSpawnSpeed = 4.0f;
 
-    int selectedMode = static_cast<int>(config->simulatorConfig.transferType);
-    int selectedGridSolver = static_cast<int>(config->gridSolverType);
-
     bool statisticsWindow = false;
+    bool advancedSimParamsWindow = false;
+    bool fluidGfxWindow = false;
 
     bool fpsCapTo60 = true;
 
@@ -176,8 +176,6 @@ void startSimulatorGui() {
             ImGui::SameLine(0, 30);
             ImGui::Checkbox("Auto dt", &autodt);
             ImGui::SameLine(0, 30);
-            ImGui::Checkbox("Stop particles", &config->simulatorConfig.stopParticles);
-            ImGui::SameLine(0, 30);
             ImGui::Checkbox("FPS cap to 60", &fpsCapTo60);
 
             {
@@ -189,8 +187,6 @@ void startSimulatorGui() {
                         config = &config2D;
                     else
                         config = &config3D;
-                    selectedMode = static_cast<int>(config->simulatorConfig.transferType);
-                    selectedGridSolver = static_cast<int>(config->gridSolverType);
                     simulationManager = std::make_shared<SimulationManager>(simulation2D ? dimensions2D : dimensions3D, *config, particleNum, simulation2D);
                     simulationManager->startSimulation();
                     newSimManager = true;
@@ -210,77 +206,24 @@ void startSimulatorGui() {
             
             ImGui::SetNextItemWidth(screenWidth * 0.45f);
             ImGui::SliderFloat("dt", &simdt, 0.001f, 0.1f);
-            ImGui::RadioButton("PIC", &selectedMode, static_cast<int>(P2G2PType::PIC));
-            ImGui::SameLine();
-            ImGui::RadioButton("FLIP", &selectedMode, static_cast<int>(P2G2PType::FLIP));
-            ImGui::SameLine();
-            ImGui::RadioButton("APIC", &selectedMode, static_cast<int>(P2G2PType::APIC));
-            config->simulatorConfig.transferType = static_cast<P2G2PType>(selectedMode);
-            ImGui::SameLine();
-            ImGui::Checkbox("Statistics", &statisticsWindow);
-            ImGui::SameLine();
-            ImGui::Checkbox("Top is solid", &config->isTopOfContainerSolid);
-            ImGui::SameLine();
-            ImGui::RadioButton("Bridson solver", &selectedGridSolver, static_cast<int>(SimulationConfig::GridSolverType::BRIDSON));
-            ImGui::SameLine();
-            ImGui::RadioButton("Basic solver", &selectedGridSolver, static_cast<int>(SimulationConfig::GridSolverType::BASIC));
-            config->gridSolverType = static_cast<SimulationConfig::GridSolverType>(selectedGridSolver);
-
-            if (config->gridSolverType == SimulationConfig::GridSolverType::BRIDSON) {
-                ImGui::SetNextItemWidth(screenWidth * 0.18f);
-                ImGui::SliderFloat("density", &config->fluidDensity, 0.1f, 30.0f);
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(screenWidth * 0.18f);
-                ImGui::SliderFloat("solver tolerance", &config->residualTolerance, 1e-8f, 1e-4f, "%e");
-            }
 
             double simTime = simulationManager->getLastFrameTime();
             ImGui::Text("Rendering: %.1f FPS  Simulation: %.3lfs (%.1lf FPS)", io.Framerate, simTime, 1.0 / simTime);
 
-            ImGui::Checkbox("Particle speed visualizations", &simulatorRenderer->particleSpeedColorEnabled);
-            ImGui::SameLine();
-            ImGui::ColorEdit3("Color", (float*)&simulatorRenderer->particleColor, ImGuiColorEditFlags_NoInputs);
-            if(simulatorRenderer->particleSpeedColorEnabled) {
-				ImGui::SameLine();
-                ImGui::ColorEdit3("Speed color", (float*)&simulatorRenderer->particleSpeedColor, ImGuiColorEditFlags_NoInputs);
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(screenWidth * 0.2f);
-				ImGui::SliderFloat("Max speed", &simulatorRenderer->maxParticleSpeed, 0.2f, 100.0f);
-            }
-            else {
-                ImGui::SameLine(0, 30);
-            }
-            ImGui::ColorEdit3("Gridline color", (float*)&simulatorRenderer->gridLineColor, ImGuiColorEditFlags_NoInputs);
-            ImGui::SameLine();
-            ImGui::Checkbox("Enable gridlines", &simulatorRenderer->gridlinesEnabled);
-            ImGui::Checkbox("Enable fluid surface", &simulatorRenderer->renderFluidSurface);
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(screenWidth * 0.30f);
-            ImGui::SliderFloat("Smoothing", &simulatorRenderer->fluidSurfaceSmoothing, 0.1f, 5.0f);
-
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderFloat("Grid resolution", &config->gridResolution, 0.6, 10);
-            ImGui::Text("Gridsize x: %d  y: %d  z: %d", simulationManager->getGridSize().x, simulationManager->getGridSize().y, simulationManager->getGridSize().z);
             ImGui::SetNextItemWidth(screenWidth * 0.40f);
             ImGui::SliderInt("Particle count", &particleNum, 1, 100000);
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderFloat("Particle radius", &config->particleRadius, 0.04f, 1.0f);
+
+            ImGui::Checkbox("Statistics", &statisticsWindow);
+            ImGui::SameLine();
+            ImGui::Checkbox("Advanced sim params", &advancedSimParamsWindow);
+            ImGui::SameLine();
+            ImGui::Checkbox("Fluid renderer settings", &fluidGfxWindow);
             ImGui::EndGroup();
 
             ImGui::SameLine(0, 30);
 
             //Simulator control group
             ImGui::BeginGroup();
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderInt("N", &config->incompressibilityIterationCount, 1, 600);
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderFloat("Average P", &config->averagePressure, 0.01f, 20.0f);
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderFloat("Pressure k", &config->pressureK, 0.5f, 10.0f);
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderFloat("G", &config->simulatorConfig.gravity, -0.01f, -1000.0f);
-            ImGui::SetNextItemWidth(screenWidth * 0.40f);
-            ImGui::SliderFloat("Flip", &config->simulatorConfig.flipRatio, 0.0f, 1.0f);
 
             ImGui::Text("Obstacle:  ");
             ImGui::SameLine();
@@ -334,39 +277,33 @@ void startSimulatorGui() {
                 ImGui::SameLine();
             }
 
-            ImGui::Checkbox("Gravity", &config->simulatorConfig.gravityEnabled);
-            ImGui::SameLine(0, 30);
-            ImGui::Checkbox("Push apart", &config->simulatorConfig.pushApartEnabled);
-            ImGui::SameLine(0, 30);
-            ImGui::Checkbox("Pressure", &config->pressureEnabled);
-
             if (SimulationGfx2D* renderer2D = dynamic_cast<SimulationGfx2D*>(simulatorRenderer.get())) {
                 ImGui::SameLine(0, 30);
-                ImGui::RadioButton("Cell", &selected, 0);
+                ImGui::RadioButton("Cell", &inspectionMode, 0);
                 ImGui::SameLine();
-                ImGui::RadioButton("Particle", &selected, 1);
+                ImGui::RadioButton("Particle", &inspectionMode, 1);
                 ImGui::SameLine();
-                ImGui::RadioButton("None", &selected, 2);
+                ImGui::RadioButton("None", &inspectionMode, 2);
 
                 if (clicked) {
                     glm::vec2 click = renderer2D->getMouseGridPos();
-                    if (selected == 0) {
+                    if (inspectionMode == 0) {
                         cellX = click.x / simulationManager->getCellD().x;
                         cellY = click.y / simulationManager->getCellD().y;
                     }
-                    else if (selected == 1) {
+                    else if (inspectionMode == 1) {
                         particleIndex = simulationManager->getParticleIndex(glm::dvec3(click.x, click.y, 1.5));
                     }
                     clicked = false;
                 }
 
-                if (selected == 0) {
+                if (inspectionMode == 0) {
                     auto& cell = simulationManager->getCellAt(cellX, cellY, 1);
                     ImGui::Text("Cell x: %d  y: %d  type: %s  v.x: %.3lf v.y: %.3lf v.z: %.3lf v2.x: %.3lf v2.y: %.3lf v2.z: %.3lf  p: %.3lf", cellX, cellY,
                         (cell.type == CellType::SOLID ? "solid" : (cell.type == CellType::WATER ? "water" : "air  ")), cell.faces[0].v.load(), cell.faces[1].v.load(), cell.faces[2].v.load(), 
                         cell.faces[0].v2, cell.faces[1].v2, cell.faces[2].v2, cell.avgPNum.load());
                 }
-                if (selected == 1) {
+                if (inspectionMode == 1) {
                     auto& particle = simulationManager->getParticleData(particleIndex);
                     ImGui::Text("Particle index: %d  pos.x: %.3lf pos.y: %.3lf  v.x: %.3lf v.y: %.3lf", particleIndex, particle.pos.x, particle.pos.y, particle.v.x, particle.v.y);
                 }
@@ -388,13 +325,25 @@ void startSimulatorGui() {
                 ImGui::End();
             }
 
+            if (advancedSimParamsWindow)
+            {
+				showSimParamsAdvanced(*config, screenWidth, *simulationManager);
+			}
+
+            if (fluidGfxWindow)
+            {
+				ImGui::Begin("Renderer settings");
+                simulatorRenderer->show(screenWidth);
+				ImGui::End();
+			}
+
             if (newSim) {
                 simulationManager->restartSimulation();
             }
             else {
                 if(prevParticleNum != particleNum)
                     simulationManager->setParticleNum(particleNum);
-                simulationManager->setCalculateParticleSpeeds(simulatorRenderer->particleSpeedColorEnabled);
+                simulationManager->setCalculateParticleSpeeds(true);
                 simulationManager->setConfig(*config);
             }
         }

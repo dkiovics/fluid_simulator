@@ -58,22 +58,22 @@ private:
 		auto particles = simulator->getParticleGfxData();
 		int particleNum = particles.size();
 		particlesGfx->drawable->setActiveInstanceNum(particleNum);
-		if (!particleSpeedColorEnabled && (particleColor != prevParticleColor || particleSpeedColorWasEnabled)) {
+		if (!particleSpeedColorEnabled.value && (particleColor.value != prevParticleColor || particleSpeedColorWasEnabled)) {
 			particleSpeedColorWasEnabled = false;
 			for (int p = 0; p < particleNum; p++) {
-				particlesGfx->drawable->setColor(p, glm::vec4(particleColor, 1.0));
+				particlesGfx->drawable->setColor(p, glm::vec4(particleColor.value, 1.0));
 			}
 		}
-		const float maxSpeedInv = 1.0f / maxParticleSpeed;
+		const float maxSpeedInv = 1.0f / maxParticleSpeed.value;
 		for (int p = 0; p < particleNum; p++) {
 			particlesGfx->drawable->setOffset(p, glm::vec4(particles[p].pos.x, particles[p].pos.y, 1, 0));
-			if (particleSpeedColorEnabled) {
+			if (particleSpeedColorEnabled.value) {
 				float s = std::min(particles[p].v * maxSpeedInv, 1.0f);
 				s = std::pow(s, 0.3f);
-				particlesGfx->drawable->setColor(p, glm::vec4((particleColor * (1.0f - s)) + (particleSpeedColor * s), 1));
+				particlesGfx->drawable->setColor(p, glm::vec4((particleColor.value * (1.0f - s)) + (particleSpeedColor.value * s), 1));
 			}
 		}
-		if (particleSpeedColorEnabled) {
+		if (particleSpeedColorEnabled.value) {
 			particleSpeedColorWasEnabled = true;
 		}
 	}
@@ -150,11 +150,11 @@ public:
 
 	SimulationGfx2D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulator, int maxParticleNum)
 		: engine(engine), simulator(simulator), maxParticleNum(maxParticleNum) {
-		prevParticleColor = particleColor;
+		prevParticleColor = particleColor.value;
 		std::vector<glm::vec4> positions(maxParticleNum);
 		std::vector<glm::vec4> colors(maxParticleNum);
 		for (auto& c : colors) {
-			c = glm::vec4(particleColor, 1.0);
+			c = glm::vec4(particleColor.value, 1.0);
 		}
 
 		auto dimensions = simulator->getDimensions();
@@ -210,10 +210,10 @@ public:
 		for (auto& o : obstacleGfxObjects) {
 			o->draw();
 		}
-		if (gridlinesEnabled) {
+		if (gridlinesEnabled.value) {
 			engine->renderWireframeOnly(true);
 			gridlinesGfx->shaderProgram = basicArrayProgramSingleColor;
-			gridlinesGfx->diffuseColor = glm::vec4(gridLineColor, 1);
+			gridlinesGfx->diffuseColor = glm::vec4(gridLineColor.value, 1);
 			gridlinesGfx->draw();
 			gridlinesGfx->shaderProgram = basicArrayProgram;
 			engine->renderWireframeOnly(false);

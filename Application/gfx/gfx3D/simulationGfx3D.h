@@ -79,6 +79,8 @@ private:
 	bool isRightButtonDown = false;
 	bool mouseValid = false;
 
+	ParamBool fluidSurfaceEnabled = ParamBool("Fluid surface", false);
+
 	float cameraDistance = 60;
 	const float minCameraDistance = 1;
 	const float maxCameraDIstance = 200;
@@ -122,6 +124,8 @@ public:
 	void addParticleSink(glm::vec3 color, float r);
 
 	void removeObstacle() override;
+
+	void show(int screenWidth) override;
 
 	~SimulationGfx3D() override;
 

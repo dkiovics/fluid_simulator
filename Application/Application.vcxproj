@@ -173,6 +173,7 @@
     <ClInclude Include="gfx\gfx3D\simulationGfx3D.h" />
     <ClInclude Include="gfx\gfx3D\transparentBox.hpp" />
     <ClInclude Include="gfx\gfxInterface.hpp" />
+    <ClInclude Include="ui\param.hpp" />
     <ClInclude Include="ui\simParamsAdvanced.h" />
     <ClInclude Include="ui\simulationGui.h" />
     <ClInclude Include="imgui\imconfig.h" />

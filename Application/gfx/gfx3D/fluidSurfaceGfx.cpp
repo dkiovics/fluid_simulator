@@ -42,6 +42,9 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	lights->addProgram({ shadedDepthShader });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
+
+	addParamLine(ParamLine({ &smoothingSize, &particleColor }));
+	addParamLine(ParamLine({ &particleSpeedColorEnabled, &particleSpeedColor, &maxParticleSpeed }));
 }
 
 void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer)
@@ -68,7 +71,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 	gaussianBlurShader->activate();
 	(*gaussianBlurShader)["depthTexture"] = *depthTexture;
 	(*gaussianBlurShader)["axis"] = 0;
-	(*gaussianBlurShader)["smoothingKernelSize"] = smoothingSize;
+	(*gaussianBlurShader)["smoothingKernelSize"] = smoothingSize.value;
 	square->draw();
 	
 	depthFramebuffer->bind();
@@ -78,7 +81,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 	square->draw();
 
 	renderTargetFramebuffer->bind();
-	shadedSquareObject->diffuseColor = glm::vec4(particleColor, 1.0f);
+	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
 	shadedSquareObject->draw();
 
 	engine->bindDefaultFramebuffer();
@@ -93,7 +96,7 @@ void FluidSurfaceGfx::updateParticleColorsAndPositions()
 {
 	auto particles = simulationManager->getParticleGfxData();
 	const int particleNum = particles.size();
-	const float maxSpeedInv = 1.0f / maxParticleSpeed;
+	const float maxSpeedInv = 1.0f / maxParticleSpeed.value;
 	auto squareArray = squareArrayObject->drawable;
 	squareArray->setActiveInstanceNum(particleNum);
 
@@ -101,25 +104,26 @@ void FluidSurfaceGfx::updateParticleColorsAndPositions()
 	for (int p = 0; p < particleNum; p++)
 	{
 		squareArray->setOffset(p, glm::vec4(particles[p].pos, 0));
-		if (particleSpeedColorEnabled)
+		if (particleSpeedColorEnabled.value)
 		{
 			float s = std::min(particles[p].v * maxSpeedInv, 1.0f);
 			s = std::pow(s, 0.3f);
-			squareArray->setColor(p, glm::vec4((particleColor * (1.0f - s)) + (particleSpeedColor * s), 1));
+			squareArray->setColor(p, glm::vec4((particleColor.value * (1.0f - s)) + (particleSpeedColor.value * s), 1));
 		}
 	}
-	if (particleSpeedColorEnabled)
+	if (particleSpeedColorEnabled.value)
 	{
 		particleSpeedColorWasEnabled = true;
 	}
-	if (!particleSpeedColorEnabled && (particleSpeedColorWasEnabled || prevColor != particleColor || particleNum != prevParticleNum))
+	if (!particleSpeedColorEnabled.value && 
+		(particleSpeedColorWasEnabled || prevColor != particleColor.value || particleNum != prevParticleNum))
 	{
 		prevParticleNum = particleNum;
 		particleSpeedColorWasEnabled = false;
-		prevColor = particleColor;
+		prevColor = particleColor.value;
 		for (int p = 0; p < particleNum; p++)
 		{
-			squareArray->setColor(p, glm::vec4(particleColor, 1));
+			squareArray->setColor(p, glm::vec4(particleColor.value, 1));
 		}
 	}
 	squareArray->updateActiveInstanceParams();

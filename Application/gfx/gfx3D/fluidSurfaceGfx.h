@@ -11,8 +11,9 @@
 #include <engine/texture.h>
 #include <engineUtils/object.h>
 #include "manager/simulationManager.h"
+#include "../../ui/param.hpp"
 
-class FluidSurfaceGfx
+class FluidSurfaceGfx : public ParamLineCollection
 {
 public:
 	FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
@@ -22,11 +23,11 @@ public:
 
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager);
 
-	float maxParticleSpeed = 1.0f;
-	float smoothingSize = 1.2f;
-	bool particleSpeedColorEnabled = false;
-	glm::vec3 particleColor = glm::vec3(0.0f, 0.0f, 1.0f);
-	glm::vec3 particleSpeedColor = glm::vec3(1.0f, 0.0f, 0.0f);
+	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 1.2f, 0.01f, 6.0f);
+	ParamColor particleColor = ParamColor("Particle color", glm::vec3(0.0, 0.4, 0.95));
+	ParamColor particleSpeedColor = ParamColor("Particle speed color", glm::vec3(0.4, 0.93, 0.88));
+	ParamFloat maxParticleSpeed = ParamFloat("Max particle speed", 36.0f, 1.0f, 200.0f);
+	ParamBool particleSpeedColorEnabled = ParamBool("Speed color", false);
 
 private:
 	void updateParticleColorsAndPositions();

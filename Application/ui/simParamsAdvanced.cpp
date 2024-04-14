@@ -5,34 +5,56 @@
 #include "../imgui/imgui_impl_opengl3.h"
 
 
-//void showSimParamsAdvanced(genericfsim::manager::SimulationConfig& config)
-//{
-//	ImGui::Text("Advanced Simulation Parameters");
-//	ImGui::Separator();
-//	ImGui::Checkbox("Gravity Enabled", &config.simulatorConfig.gravityEnabled);
-//	ImGui::SliderFloat("Gravity", &config.simulatorConfig.gravity, 0.0f, 1000.0f);
-//	ImGui::Checkbox("Push Particles Apart Enabled", &config.pushParticlesApartEnabled);
-//	ImGui::Checkbox("Push Apart Enabled", &config.pushApartEnabled);
-//	ImGui::Checkbox("Particle Spawning Enabled", &config.particleSpawningEnabled);
-//	ImGui::Checkbox("Particle Despawning Enabled", &config.particleDespawningEnabled);
-//	ImGui::Checkbox("Stop Particles", &config.stopParticles);
-//	ImGui::Separator();
-//	ImGui::Text("Particle-Grid-Particle Transfer Type");
-//	ImGui::RadioButton("PIC", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::PIC);
-//	ImGui::SameLine();
-//	ImGui::RadioButton("FLIP", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::FLIP);
-//	ImGui::SameLine();
-//	ImGui::RadioButton("APIC", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::APIC);
-//	ImGui::SliderFloat("FLIP Ratio", &config.flipRatio, 0.0f, 1.0f);
-//	ImGui::Separator();
-//	ImGui::Text("Particle-Grid-Particle Transfer Type");
-//	ImGui::RadioButton("PIC", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::PIC);
-//	ImGui::SameLine();
-//	ImGui::RadioButton("FLIP", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::FLIP);
-//	ImGui::SameLine();
-//	ImGui::RadioButton("APIC", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::APIC);
-//	ImGui::SliderFloat("FLIP Ratio", &config.flipRatio, 0.0f, 1.0f);
-//	ImGui::Separator();
-//	ImGui::Text("Particle-Grid-Particle Transfer Type");
-//	ImGui::RadioButton("PIC", (int*)&config.transferType, (int)genericfsim::simulator::Simulator::P2G2PType::)
-//}
+using namespace genericfsim::manager;
+using namespace genericfsim::simulator;
+
+void showSimParamsAdvanced(genericfsim::manager::SimulationConfig& config, int screenWidth, SimulationManager& simulationManager)
+{
+	ImGui::Begin("Advanced simulation parameters");
+	ImGui::Separator();
+	ImGui::RadioButton("PIC", (int*)&config.simulatorConfig.transferType, (int)Simulator::P2G2PType::PIC);
+	ImGui::SameLine();
+	ImGui::RadioButton("FLIP", (int*)&config.simulatorConfig.transferType, (int)Simulator::P2G2PType::FLIP);
+	ImGui::SameLine();
+	ImGui::RadioButton("APIC", (int*)&config.simulatorConfig.transferType, (int)Simulator::P2G2PType::APIC);
+	ImGui::SameLine();
+	ImGui::Checkbox("Stop particles", &config.simulatorConfig.stopParticles);
+	ImGui::SameLine();
+	ImGui::Checkbox("Top is solid", &config.isTopOfContainerSolid);
+	ImGui::RadioButton("Bridson solver", (int*)&config.gridSolverType, static_cast<int>(SimulationConfig::GridSolverType::BRIDSON));
+	ImGui::SameLine();
+	ImGui::RadioButton("Basic solver", (int*)&config.gridSolverType, static_cast<int>(SimulationConfig::GridSolverType::BASIC));
+	if (config.gridSolverType == SimulationConfig::GridSolverType::BRIDSON)
+	{
+		ImGui::SetNextItemWidth(screenWidth * 0.18f);
+		ImGui::SliderFloat("density", &config.fluidDensity, 0.1f, 30.0f);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(screenWidth * 0.18f);
+		ImGui::SliderFloat("solver tolerance", &config.residualTolerance, 1e-8f, 1e-4f, "%e");
+	}
+
+	ImGui::Checkbox("Gravity", &config.simulatorConfig.gravityEnabled);
+	ImGui::SameLine(0, 30);
+	ImGui::Checkbox("Push apart", &config.simulatorConfig.pushApartEnabled);
+	ImGui::SameLine(0, 30);
+	ImGui::Checkbox("Pressure", &config.pressureEnabled);
+
+	ImGui::Separator();
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderFloat("Grid resolution", &config.gridResolution, 0.6, 10);
+	ImGui::Text("Gridsize x: %d  y: %d  z: %d", simulationManager.getGridSize().x, simulationManager.getGridSize().y, simulationManager.getGridSize().z);
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderFloat("Particle radius", &config.particleRadius, 0.04f, 1.0f);
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderInt("N", &config.incompressibilityIterationCount, 1, 600);
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderFloat("Average P", &config.averagePressure, 0.01f, 20.0f);
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderFloat("Pressure k", &config.pressureK, 0.5f, 10.0f);
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderFloat("G", &config.simulatorConfig.gravity, -0.01f, -1000.0f);
+	ImGui::SetNextItemWidth(screenWidth * 0.40f);
+	ImGui::SliderFloat("Flip", &config.simulatorConfig.flipRatio, 0.0f, 1.0f);
+
+	ImGui::End();
+}

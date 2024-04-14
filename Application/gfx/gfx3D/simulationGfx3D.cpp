@@ -118,33 +118,34 @@ void SimulationGfx3D::drawParticles()
 	auto particles = simulationManager->getParticleGfxData();
 	auto& geometry = *(ballsGfx->drawable);
 	const int particleNum = particles.size();
-	const float maxSpeedInv = 1.0f / maxParticleSpeed;
+	const float maxSpeedInv = 1.0f / maxParticleSpeed.value;
 	geometry.setActiveInstanceNum(particleNum);
 
 #pragma omp parallel for
 	for (int p = 0; p < particleNum; p++)
 	{
 		geometry.setOffset(p, glm::vec4(particles[p].pos, 0));
-		if (particleSpeedColorEnabled)
+		if (particleSpeedColorEnabled.value)
 		{
 			float s = std::min(particles[p].v * maxSpeedInv, 1.0f);
 			s = std::pow(s, 0.3f);
-			geometry.setColor(p, glm::vec4((particleColor * (1.0f - s)) + (particleSpeedColor * s), 1));
+			geometry.setColor(p, glm::vec4((particleColor.value * (1.0f - s)) + (particleSpeedColor.value * s), 1));
 		}
 	}
-	if (particleSpeedColorEnabled)
+	if (particleSpeedColorEnabled.value)
 	{
 		particleSpeedColorWasEnabled = true;
 	}
 
-	if (!particleSpeedColorEnabled && (particleSpeedColorWasEnabled || prevColor != particleColor || particleNum != prevParticleNum))
+	if (!particleSpeedColorEnabled.value && 
+		(particleSpeedColorWasEnabled || prevColor != particleColor.value || particleNum != prevParticleNum))
 	{
 		prevParticleNum = particleNum;
 		particleSpeedColorWasEnabled = false;
-		prevColor = particleColor;
+		prevColor = particleColor.value;
 		for (int p = 0; p < particleNum; p++)
 		{
-			geometry.setColor(p, glm::vec4(particleColor, 1));
+			geometry.setColor(p, glm::vec4(particleColor.value, 1));
 		}
 	}
 
@@ -170,7 +171,7 @@ void SimulationGfx3D::initGridLines()
 			for (int z = 1; z < gridSize.z; z++)
 			{
 				linesXPos.push_back(glm::vec4(dimensions.x * 0.5, y * cellD.y, z * cellD.z, 0));
-				color.push_back(glm::vec4(gridLineColor, 1));
+				color.push_back(glm::vec4(gridLineColor.value, 1));
 			}
 		}
 		std::shared_ptr<renderer::Cube> linesGeometry = std::make_shared<renderer::Cube>();
@@ -191,7 +192,7 @@ void SimulationGfx3D::initGridLines()
 			for (int z = 1; z < gridSize.z; z++)
 			{
 				linesYPos.push_back(glm::vec4(x * cellD.x, dimensions.y * 0.5, z * cellD.z, 0));
-				color.push_back(glm::vec4(gridLineColor, 1));
+				color.push_back(glm::vec4(gridLineColor.value, 1));
 			}
 		}
 		std::shared_ptr<renderer::Cube> linesGeometry = std::make_shared<renderer::Cube>();
@@ -212,7 +213,7 @@ void SimulationGfx3D::initGridLines()
 			for (int y = 1; y < gridSize.y; y++)
 			{
 				linesZPos.push_back(glm::vec4(x * cellD.x, y * cellD.y, dimensions.z * 0.5, 0));
-				color.push_back(glm::vec4(gridLineColor, 1));
+				color.push_back(glm::vec4(gridLineColor.value, 1));
 			}
 		}
 		std::shared_ptr<renderer::Cube> linesGeometry = std::make_shared<renderer::Cube>();
@@ -277,7 +278,7 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 	ballsGfx->shininess = 80;
 	ballsGfx->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
 
-	prevGridlineColor = gridLineColor;
+	prevGridlineColor = gridLineColor.value;
 	prevCellD = simulationManager->getCellD();
 	initGridLines();
 
@@ -289,6 +290,8 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 	testFramebuffer = std::make_shared<renderer::Framebuffer>(textures);
 
 	fluidSurfaceGfx = std::make_unique<FluidSurfaceGfx>(engine, simulationManager, camera, lights, maxParticleNum);
+
+	addParamLine(ParamLine({ &fluidSurfaceEnabled }));
 }
 
 void SimulationGfx3D::setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager)
@@ -385,6 +388,15 @@ void SimulationGfx3D::removeObstacle()
 	lastSelectedObstacle = -1;
 }
 
+void SimulationGfx3D::show(int screenWidth)
+{
+	ParamLineCollection::show(screenWidth);
+	if (fluidSurfaceEnabled.value)
+	{
+		fluidSurfaceGfx->show(screenWidth);
+	}
+}
+
 static glm::dvec3 findIntersection(const glm::dvec3& planePoint, const glm::dvec3& planeNormal, const glm::dvec3& linePoint, const glm::dvec3& lineDirection)
 {
 	double dotNumerator = glm::dot(planeNormal, (planePoint - linePoint));
@@ -465,25 +477,25 @@ void SimulationGfx3D::drawGridLines()
 		prevCellD = simulationManager->getCellD();
 		initGridLines();
 	}
-	else if (prevGridlineColor != gridLineColor)
+	else if (prevGridlineColor != gridLineColor.value)
 	{
-		prevGridlineColor = gridLineColor;
+		prevGridlineColor = gridLineColor.value;
 		auto linesX = gridLinesXGfx->drawable;
 		for (int i = 0; i < linesX->getActiveInstanceNum(); i++)
 		{
-			linesX->setColor(i, glm::vec4(gridLineColor, 1));
+			linesX->setColor(i, glm::vec4(gridLineColor.value, 1));
 		}
 		linesX->updateActiveInstanceParams();
 		auto linesY = gridLinesYGfx->drawable;
 		for (int i = 0; i < linesY->getActiveInstanceNum(); i++)
 		{
-			linesY->setColor(i, glm::vec4(gridLineColor, 1));
+			linesY->setColor(i, glm::vec4(gridLineColor.value, 1));
 		}
 		linesY->updateActiveInstanceParams();
 		auto linesZ = gridLinesZGfx->drawable;
 		for (int i = 0; i < linesZ->getActiveInstanceNum(); i++)
 		{
-			linesZ->setColor(i, glm::vec4(gridLineColor, 1));
+			linesZ->setColor(i, glm::vec4(gridLineColor.value, 1));
 		}
 		linesZ->updateActiveInstanceParams();
 	}
@@ -515,13 +527,8 @@ void SimulationGfx3D::render()
 	planeGfx->setPosition(glm::vec4(center.x, -0.05f, center.z, 1));
 	planeGfx->draw();
 
-	if (renderFluidSurface)
+	if (fluidSurfaceEnabled.value)
 	{
-		fluidSurfaceGfx->maxParticleSpeed = maxParticleSpeed;
-		fluidSurfaceGfx->particleColor = particleColor;
-		fluidSurfaceGfx->particleSpeedColor = particleSpeedColor;
-		fluidSurfaceGfx->particleSpeedColorEnabled = particleSpeedColorEnabled;
-		fluidSurfaceGfx->smoothingSize = fluidSurfaceSmoothing;
 		fluidSurfaceGfx->render(testFramebuffer);
 		engine->enableDepthTest(true);
 		engine->setViewport(0, 0, screenSize.x, screenSize.y);
@@ -535,7 +542,7 @@ void SimulationGfx3D::render()
 		obstacle->draw();
 	}
 
-	if (gridlinesEnabled)
+	if (gridlinesEnabled.value)
 		drawGridLines();
 
 	glEnable(GL_BLEND);
