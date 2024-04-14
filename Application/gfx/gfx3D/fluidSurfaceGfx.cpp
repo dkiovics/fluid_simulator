@@ -9,6 +9,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	normalShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/normals.fs", engine);
 	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/gaussian.fs", engine);
 	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/shadedDepth.fs", engine);
+	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/bilateral.fs", engine);
 
 	squareArrayObject = std::make_unique<renderer::Object3D<renderer::BasicGeometryArray>>
 		(std::make_shared<renderer::BasicGeometryArray>(std::make_shared<renderer::FlipSquare>()), pointSpritesShader);
@@ -34,17 +35,15 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	(*normalShader)["depthTexture"] = *depthTexture;
 	(*shadedDepthShader)["depthTexture"] = *depthTexture;
 
-	camera->addProgram({ pointSpritesShader });
-	camera->addProgram({ normalShader });
-	camera->addProgram({ gaussianBlurShader });
-	camera->addProgram({ shadedDepthShader });
-	lights->addProgram({ pointSpritesShader });
-	lights->addProgram({ shadedDepthShader });
+	camera->addProgram({ pointSpritesShader, normalShader, gaussianBlurShader, bilateralFilterShader, shadedDepthShader });
+	lights->addProgram({ pointSpritesShader, shadedDepthShader });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
 
-	addParamLine(ParamLine({ &smoothingSize, &particleColor }));
-	addParamLine(ParamLine({ &particleSpeedColorEnabled, &particleSpeedColor, &maxParticleSpeed }));
+	addParamLine(ParamLine({ &particleColor, &particleSpeedColorEnabled, &particleSpeedColor, }));
+	addParamLine(ParamLine({  &maxParticleSpeed }));
+	addParamLine(ParamLine({ &bilateralFilterEnabled, &smoothingSize }));
+	addParamLine(ParamLine({ &blurScale, &blurDepthFalloff }));
 }
 
 void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer)
@@ -68,17 +67,36 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 
 	depthBlurTmpFramebuffer->bind();
 	engine->clearViewport(1.0f);
-	gaussianBlurShader->activate();
-	(*gaussianBlurShader)["depthTexture"] = *depthTexture;
-	(*gaussianBlurShader)["axis"] = 0;
-	(*gaussianBlurShader)["smoothingKernelSize"] = smoothingSize.value;
-	square->draw();
-	
-	depthFramebuffer->bind();
-	engine->clearViewport(1.0f);
-	(*gaussianBlurShader)["depthTexture"] = *depthBlurTmpTexture;
-	(*gaussianBlurShader)["axis"] = 1;
-	square->draw();
+	if (bilateralFilterEnabled.value)
+	{
+		bilateralFilterShader->activate();
+		(*bilateralFilterShader)["depthTexture"] = *depthTexture;
+		(*bilateralFilterShader)["smoothingKernelSize"] = smoothingSize.value;
+		(*bilateralFilterShader)["blurScale"] = blurScale.value;
+		(*bilateralFilterShader)["blurDepthFalloff"] = blurDepthFalloff.value;
+		(*bilateralFilterShader)["axis"] = 0;
+		square->draw();
+
+		depthFramebuffer->bind();
+		engine->clearViewport(1.0f);
+		(*bilateralFilterShader)["depthTexture"] = *depthBlurTmpTexture;
+		(*bilateralFilterShader)["axis"] = 1;
+		square->draw();
+	}
+	else
+	{
+		gaussianBlurShader->activate();
+		(*gaussianBlurShader)["depthTexture"] = *depthTexture;
+		(*gaussianBlurShader)["axis"] = 0;
+		(*gaussianBlurShader)["smoothingKernelSize"] = smoothingSize.value;
+		square->draw();
+
+		depthFramebuffer->bind();
+		engine->clearViewport(1.0f);
+		(*gaussianBlurShader)["depthTexture"] = *depthBlurTmpTexture;
+		(*gaussianBlurShader)["axis"] = 1;
+		square->draw();
+	}
 
 	renderTargetFramebuffer->bind();
 	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
