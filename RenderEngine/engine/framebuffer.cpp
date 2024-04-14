@@ -5,7 +5,7 @@
 using namespace renderer;
 
 renderer::Framebuffer::Framebuffer(
-	std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments, std::shared_ptr<RenderTargetTexture> depthAttachment)
+	std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments, std::shared_ptr<RenderTargetTexture> depthAttachment, bool hasStencil)
 	: colorAttachments(colorAttachments), depthAttachment(depthAttachment)
 {
 	if (!colorAttachments.empty())
@@ -41,7 +41,8 @@ renderer::Framebuffer::Framebuffer(
 		{
 			throw std::runtime_error("Depth attachment must have the same size as the color attachments");
 		}
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthAttachment->getTextureId(), 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, hasStencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT,
+			GL_TEXTURE_2D, depthAttachment->getTextureId(), 0);
 	}
 
 	glDrawBuffers(drawBuffers.size(), drawBuffers.data());
@@ -142,6 +143,11 @@ void renderer::Framebuffer::setSize(glm::ivec2 size)
 	spdlog::debug("Framebuffer resized with id: {}, new size: {}x{}", framebufferId, size.x, size.y);
 
 	this->size = size;
+}
+
+glm::ivec2 renderer::Framebuffer::getSize() const
+{
+	return size;
 }
 
 renderer::Framebuffer::~Framebuffer()

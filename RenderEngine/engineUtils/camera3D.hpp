@@ -17,7 +17,7 @@ class Camera3D : public UniformGatherer, public UniformGathererGlobal
 {
 public:
     Camera3D(const glm::vec3& position, float fov, float aspectRatio)
-        : UniformGatherer("camera.", true, this->position, viewMatrix, projectionMatrix),
+        : UniformGatherer("camera.", true, this->position, viewMatrix, projectionMatrix, projectionMatrixInverse, viewMatrixInverse),
         fov(fov), pitch(0.0f), yaw(0.0f), aspectRatio(aspectRatio)
     {
         this->position = glm::vec4(position, 1);
@@ -100,7 +100,9 @@ private:
     const float minPitch = -88;
     float yaw;
     u_var(viewMatrix, glm::mat4);
+    u_var(viewMatrixInverse, glm::mat4);
     u_var(projectionMatrix, glm::mat4);
+    u_var(projectionMatrixInverse, glm::mat4);
 
     void updateViewMatrix() {
         glm::vec3 front;
@@ -113,11 +115,13 @@ private:
         glm::vec3 up = glm::normalize(glm::cross(right, front));
 
         viewMatrix = glm::lookAt(glm::vec3(*position), glm::vec3(*position) + direction, up);
+        viewMatrixInverse = glm::inverse(*viewMatrix);
         setUniformsForAllPrograms();
     }
 
     void updateProjectionMatrix() {
         projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.5f, 300.0f);
+        projectionMatrixInverse = glm::inverse(*projectionMatrix);
         setUniformsForAllPrograms();
     }
 

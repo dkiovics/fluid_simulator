@@ -16,8 +16,10 @@ public:
 	 * \brief Constructor for the Framebuffer class
 	 * \param colorAttachments - The color attachments of the framebuffer, if empty, the framebuffer will not have any color attachments
 	 * \param depthAttachment - The depth attachment of the framebuffer, if nullptr, the framebuffer will not have a depth attachment
+	 * \param hasStencil - If true, the depthAttachment will be attached as GL_DEPTH_STENCIL_ATTACHMENT
 	 */
-	Framebuffer(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments, std::shared_ptr<RenderTargetTexture> depthAttachment);
+	Framebuffer(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments, 
+		std::shared_ptr<RenderTargetTexture> depthAttachment, bool hasStencil = true);
 
 	/**
 	* \brief Constructor for the Framebuffer class, creates a framebuffer with a renderbuffer GL_DEPTH_STENCIL_ATTACHMENT
@@ -43,6 +45,12 @@ public:
 	 * \param size - The new size of the framebuffer
 	 */
 	void setSize(glm::ivec2 size);
+
+	/**
+	 * \brief Returns the size of the framebuffer
+	 * \return The size of the framebuffer
+	 */
+	glm::ivec2 getSize() const;
 
 private:
 	GLuint framebufferId = 0;

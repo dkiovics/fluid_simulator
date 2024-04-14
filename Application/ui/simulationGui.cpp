@@ -68,20 +68,23 @@ void startSimulatorGui() {
 
     std::shared_ptr<SimulationManager> simulationManager = std::make_shared<SimulationManager>(dimensions3D, *config, particleNum, false);
 
+    bool clicked = false;
+
+    engine->mouseButtonCallback.setPrimaryCallback([&clicked](int button, int action, int mods) 
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.WantCaptureMouse)
+            return false;
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+        {
+            clicked = true;
+        }
+        return true;
+    });
+
     bool renderer2D = false;
     bool simulation2D = false;
     std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 1000000);
-
-    bool clicked = false;
-
-    engine->mouseButtonCallback.onCallback([&clicked](int button, int action, int mods) {
-        ImGuiIO& io = ImGui::GetIO();
-        if (io.WantCaptureMouse)
-            return;
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-            clicked = true;
-        }
-    });
 
     simulationManager->startSimulation();
 
@@ -250,6 +253,10 @@ void startSimulatorGui() {
             ImGui::ColorEdit3("Gridline color", (float*)&simulatorRenderer->gridLineColor, ImGuiColorEditFlags_NoInputs);
             ImGui::SameLine();
             ImGui::Checkbox("Enable gridlines", &simulatorRenderer->gridlinesEnabled);
+            ImGui::Checkbox("Enable fluid surface", &simulatorRenderer->renderFluidSurface);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(screenWidth * 0.30f);
+            ImGui::SliderFloat("Smoothing", &simulatorRenderer->fluidSurfaceSmoothing, 0.1f, 5.0f);
 
             ImGui::SetNextItemWidth(screenWidth * 0.40f);
             ImGui::SliderFloat("Grid resolution", &config->gridResolution, 0.6, 10);

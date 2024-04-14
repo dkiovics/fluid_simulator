@@ -196,7 +196,7 @@ public:
 
 	void render() override {
 		engine->enableDepthTest(false);
-		engine->clearViewport(glm::vec4(0, 0, 0, 0), GL_COLOR_BUFFER_BIT);
+		engine->clearViewport(glm::vec4(0, 0, 0, 0));
 		
 		handleSimSpecChanged();
 		updateParticles();

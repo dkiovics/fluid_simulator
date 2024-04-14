@@ -73,6 +73,49 @@ Square::Square() : Geometry(GL_TRIANGLES)
 	createIndexBuffer(indexes);
 }
 
+FlipSquare::FlipSquare() : Geometry(GL_TRIANGLES)
+{
+	std::vector<BasicVertex> vertexes;
+	std::vector<unsigned int> indexes;
+
+	vertexes.push_back({
+		{-0.5, -0.5, 0, 1},
+		{0, 0, 1, 0},
+		{0, 1}
+		});
+	vertexes.push_back({
+		{-0.5, 0.5, 0, 1},
+		{0, 0, 1, 0},
+		{0, 0}
+		});
+	vertexes.push_back({
+		{0.5, -0.5, 0, 1},
+		{0, 0, 1, 0},
+		{1, 1}
+		});
+	vertexes.push_back({
+		{0.5, 0.5, 0, 1},
+		{0, 0, 1, 0},
+		{1, 0}
+		});
+
+	indexes.push_back(0);
+	indexes.push_back(1);
+	indexes.push_back(2);
+	indexes.push_back(1);
+	indexes.push_back(2);
+	indexes.push_back(3);
+
+	std::vector<ArrayAttribute> attributes = {
+		ArrayAttribute{0, 4, GL_FLOAT, 0},
+		ArrayAttribute{1, 4, GL_FLOAT, sizeof(float) * 4},
+		ArrayAttribute{2, 2, GL_FLOAT, sizeof(float) * 8}
+	};
+
+	createVbo(vertexes, attributes);
+	createIndexBuffer(indexes);
+}
+
 Cube::Cube() : Geometry(GL_TRIANGLES)
 {
 	std::vector<BasicVertex> vertexes;

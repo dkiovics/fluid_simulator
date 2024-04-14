@@ -14,9 +14,11 @@
 #include "../gfxInterface.hpp"
 #include <vector>
 #include "transparentBox.hpp"
+#include "fluidSurfaceGfx.h"
 
 
-class SimulationGfx3D : public GfxInterface {
+class SimulationGfx3D : public GfxInterface
+{
 private:
 	std::shared_ptr<renderer::RenderEngine> engine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager;
@@ -35,7 +37,10 @@ private:
 	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesYGfx;
 	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesZGfx;
 
-	struct Hitbox {
+	std::unique_ptr<FluidSurfaceGfx> fluidSurfaceGfx;
+
+	struct Hitbox
+	{
 		glm::dvec3 center;
 		glm::dvec3 size;
 	};
@@ -48,7 +53,10 @@ private:
 
 	glm::vec3 prevGridlineColor;
 	glm::dvec3 prevCellD;
-	
+
+	glm::ivec2 prevScreenStart;
+	glm::ivec2 prevScreenSize;
+
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramTextured;
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTextured;
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTexturedArray;
@@ -76,11 +84,13 @@ private:
 	const float maxCameraDIstance = 200;
 	glm::vec3 modelRotationPoint = glm::vec3(0, 0, 0);
 	bool inModelRotationMode = false;
-	
+
 	void mouseCallback(double x, double y);
 	void mouseButtonCallback(int button, int action, int mods);
 	void scrollCallback(double xoffset, double yoffset);
 	void keyCallback(int key, int scancode, int action, int mode);
+
+	void handleScreenChanged();
 
 	void selectObstacle();
 	void handleObstacleMovement();
@@ -94,9 +104,9 @@ private:
 	void addObstacle(std::unique_ptr<renderer::Object3D<renderer::Geometry>> obstacleGfx, std::unique_ptr<genericfsim::manager::Obstacle> obstacle, glm::dvec3 size);
 
 public:
-	SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager, 
-						glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
-	
+	SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+		glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
+
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) override;
 
 	void handleTimePassed(double dt) override;

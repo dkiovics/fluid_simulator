@@ -23,6 +23,15 @@ public:
 	Square();
 };
 
+class FlipSquare : public Geometry
+{
+public:
+	/**
+	 * \brief Creates a square with side length of 1 and the center in the origo of the z=0 plane. The texture coordinates are flipped along the y-axis.
+	 */
+	FlipSquare();
+};
+
 class Cube : public Geometry
 {
 public:

@@ -26,6 +26,9 @@ public:
 	float maxParticleSpeed = 36.0f;
 	bool particleSpeedColorEnabled = true;
 
+	bool renderFluidSurface = false;
+	float fluidSurfaceSmoothing = 1.2f;
+
 	virtual void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) = 0;
 
 	virtual void handleTimePassed(double dt) { }

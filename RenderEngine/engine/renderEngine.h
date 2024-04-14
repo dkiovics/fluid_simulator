@@ -65,12 +65,23 @@ public:
 	void enableDepthTest(bool enable);
 
 	/**
-	 * \brief Clear the viewport with a color and buffer bits
-	 * 
+	 * \brief Clear the viewport color and depth buffer with the given values
 	 * \param color - color to clear the viewport with
-	 * \param bufferBits - which buffers to clear (GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_STENCIL_BUFFER_BIT)
+	 * \param depth - depth value to clear the viewport with
 	 */
-	void clearViewport(const glm::vec4& color, int bufferBits);
+	void clearViewport(const glm::vec4& color, const float depth);
+	
+	/**
+	 * \brief Clear the viewport color buffer with the given color
+	 * \param color - color to clear the viewport with
+	 */
+	void clearViewport(const glm::vec4& color);
+
+	/**
+	 * \brief Clear the viewport depth buffer with the given depth value
+	 * \param depth - depth value to clear the viewport with
+	 */
+	void clearViewport(const float depth);
 
 	/**
 	 * \brief Makes the window context current on the calling thread

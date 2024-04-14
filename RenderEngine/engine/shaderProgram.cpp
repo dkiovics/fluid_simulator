@@ -7,7 +7,7 @@
 
 using namespace renderer;
 
-constexpr bool showWarnings = true;
+constexpr bool showWarnings = false;
 
 static inline int uniformWarning(int program, const char* name)
 {

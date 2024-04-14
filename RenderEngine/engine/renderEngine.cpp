@@ -140,11 +140,23 @@ void renderer::RenderEngine::enableDepthTest(bool enable)
 		glDisable(GL_DEPTH_TEST);
 }
 
-void RenderEngine::clearViewport(const glm::vec4& color, int bufferBits)
+void renderer::RenderEngine::clearViewport(const glm::vec4& color, const float depth)
 {
-	glfwMakeContextCurrent(window);
 	glClearColor(color.x, color.y, color.z, color.w);
-	glClear(bufferBits);
+	glClearDepth(depth);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void renderer::RenderEngine::clearViewport(const glm::vec4& color)
+{
+	glClearColor(color.x, color.y, color.z, color.w);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void renderer::RenderEngine::clearViewport(const float depth)
+{
+	glClearDepth(depth);
+	glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void RenderEngine::makeWindowContextcurrent()
