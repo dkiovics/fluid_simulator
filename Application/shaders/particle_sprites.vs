@@ -4,16 +4,18 @@ precision highp float;
 layout (location = 0) in vec4 pos;
 layout (location = 2) in vec2 texCoordIn;
 layout (location = 10) in vec4 instanceOffset;
-layout (location = 11) in vec4 instanceColorIn;
+//layout (location = 11) in vec4 instanceColorIn;
 
 out vec2 texCoord;
 out vec3 eyeSpacePos;
-out vec4 color;
+//out vec4 color;
 out mat3 billboardM;
 
 uniform struct{
     mat4 viewMatrix;
+	mat4 viewMatrixInverse;
 	mat4 projectionMatrix;
+	mat4 projectionMatrixInverse;
     vec4 position;
 } camera;
 
@@ -31,7 +33,7 @@ void main() {
 	
 	gl_Position = camera.projectionMatrix * vec4(eyeSpacePos + vertexPos * particleRadius * 2.0, 1);
 	texCoord = texCoordIn;
-	color = instanceColorIn;
+	//color = instanceColorIn;
 	
 	/*
 	vec4 eyeSpacePosTmp = (camera.viewMatrix * vec4(instanceOffset.xyz, 1));

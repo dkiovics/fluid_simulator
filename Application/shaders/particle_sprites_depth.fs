@@ -4,12 +4,14 @@ precision highp float;
 //out vec4 fragmentColor;
 in vec2 texCoord;
 in vec3 eyeSpacePos;
-in vec4 color;
+//in vec4 color;
 in mat3 billboardM;
 
 uniform struct{
     mat4 viewMatrix;
+	mat4 viewMatrixInverse;
 	mat4 projectionMatrix;
+	mat4 projectionMatrixInverse;
     vec4 position;
 } camera;
 
@@ -25,9 +27,9 @@ void main(void) {
 	}
 	N.z = -sqrt(1.0 - r2);
 	
-	vec3 eyeSpaceNormal = N * billboardM;
+	vec3 eyeSpaceNormal = billboardM * N;
 	
-	vec4 pixelPos = vec4(eyeSpacePos + eyeSpaceNormal*particleRadius, 1.0);
+	vec4 pixelPos = vec4(eyeSpacePos + normalize(eyeSpaceNormal)*particleRadius, 1.0);
 	vec4 clipSpacePos = camera.projectionMatrix * pixelPos;
 	gl_FragDepth = clipSpacePos.z / clipSpacePos.w * 0.5 + 0.5;
 	

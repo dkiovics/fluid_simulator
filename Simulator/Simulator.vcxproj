@@ -155,6 +155,7 @@
     <ClInclude Include="simulator\simulator.h" />
     <ClInclude Include="simulator\util\compTimeForLoop.h" />
     <ClInclude Include="simulator\util\glmExtraOps.h" />
+    <ClInclude Include="simulator\util\interpolation.h" />
     <ClInclude Include="simulator\util\paralellDefine.h" />
     <ClInclude Include="simulator\util\random.h" />
   </ItemGroup>

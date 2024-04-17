@@ -5,17 +5,24 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)
 	: engine(engine), simulationManager(simulationManager), camera(camera), lights(lights)
 {
-	pointSpritesShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites.fs", engine);
+	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_depth.fs", engine);
 	normalShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/normals.fs", engine);
 	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/gaussian.fs", engine);
 	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/shadedDepth.fs", engine);
 	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/bilateral.fs", engine);
+	particleSpritesShadedShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_shaded.fs", engine);
 
-	squareArrayObject = std::make_unique<renderer::Object3D<renderer::BasicGeometryArray>>
-		(std::make_shared<renderer::BasicGeometryArray>(std::make_shared<renderer::FlipSquare>()), pointSpritesShader);
-	squareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
-	squareArrayObject->shininess = 80;
-	squareArrayObject->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
+	surfaceSquareArrayObject = std::make_unique<renderer::Object3D<renderer::BasicPosGeometryArray>>
+		(std::make_shared<renderer::BasicPosGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
+	surfaceSquareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
+	surfaceSquareArrayObject->shininess = 80;
+	surfaceSquareArrayObject->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
+
+	spraySquareArrayObject = std::make_unique<renderer::Object3D<renderer::BasicPosGeometryArray>>
+		(std::make_shared<renderer::BasicPosGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesShadedShader);
+	spraySquareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
+	spraySquareArrayObject->shininess = 80;
+	spraySquareArrayObject->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
 
 	shadedSquareObject = std::make_unique<renderer::Object3D<renderer::Square>>(std::make_shared<renderer::Square>(), shadedDepthShader);
 	shadedSquareObject->shininess = 80;
@@ -35,15 +42,16 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	(*normalShader)["depthTexture"] = *depthTexture;
 	(*shadedDepthShader)["depthTexture"] = *depthTexture;
 
-	camera->addProgram({ pointSpritesShader, normalShader, gaussianBlurShader, bilateralFilterShader, shadedDepthShader });
-	lights->addProgram({ pointSpritesShader, shadedDepthShader });
+	camera->addProgram({ particleSpritesDepthShader, particleSpritesShadedShader, normalShader, 
+		gaussianBlurShader, bilateralFilterShader, shadedDepthShader });
+	lights->addProgram({ particleSpritesDepthShader, particleSpritesShadedShader, shadedDepthShader });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
 
-	addParamLine(ParamLine({ &particleColor, &particleSpeedColorEnabled, &particleSpeedColor, }));
-	addParamLine(ParamLine({  &maxParticleSpeed }));
+	addParamLine(ParamLine({ &particleColor }));
 	addParamLine(ParamLine({ &bilateralFilterEnabled, &smoothingSize }));
 	addParamLine(ParamLine({ &blurScale, &blurDepthFalloff }));
+	addParamLine(ParamLine({ &sprayEnabled, &sprayDensityThreashold }));
 }
 
 void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer)
@@ -56,14 +64,14 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 	}
 
 	updateParticleColorsAndPositions();
-	(*pointSpritesShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
+	(*particleSpritesDepthShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
 
 	depthFramebuffer->bind();
 	engine->setViewport(0, 0, viewportSize.x, viewportSize.y);
 	engine->enableDepthTest(true);
 	engine->clearViewport(1.0f);
 
-	squareArrayObject->draw();
+	surfaceSquareArrayObject->draw();
 
 	depthBlurTmpFramebuffer->bind();
 	engine->clearViewport(1.0f);
@@ -102,6 +110,13 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
 	shadedSquareObject->draw();
 
+	if (sprayEnabled.value)
+	{
+		(*particleSpritesShadedShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
+		spraySquareArrayObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
+		spraySquareArrayObject->draw();
+	}
+
 	engine->bindDefaultFramebuffer();
 }
 
@@ -114,37 +129,44 @@ void FluidSurfaceGfx::updateParticleColorsAndPositions()
 {
 	auto particles = simulationManager->getParticleGfxData();
 	const int particleNum = particles.size();
-	const float maxSpeedInv = 1.0f / maxParticleSpeed.value;
-	auto squareArray = squareArrayObject->drawable;
-	squareArray->setActiveInstanceNum(particleNum);
+	auto surfaceSquareArray = surfaceSquareArrayObject->drawable;
+	auto spraySquareArray = spraySquareArrayObject->drawable;
+	simulationManager->setCalculateParticleDensities(sprayEnabled.value);
+	simulationManager->setCalculateParticleSpeeds(false);
 
-#pragma omp parallel for
-	for (int p = 0; p < particleNum; p++)
+	if (sprayEnabled.value)
 	{
-		squareArray->setOffset(p, glm::vec4(particles[p].pos, 0));
-		if (particleSpeedColorEnabled.value)
-		{
-			float s = std::min(particles[p].v * maxSpeedInv, 1.0f);
-			s = std::pow(s, 0.3f);
-			squareArray->setColor(p, glm::vec4((particleColor.value * (1.0f - s)) + (particleSpeedColor.value * s), 1));
-		}
-	}
-	if (particleSpeedColorEnabled.value)
-	{
-		particleSpeedColorWasEnabled = true;
-	}
-	if (!particleSpeedColorEnabled.value && 
-		(particleSpeedColorWasEnabled || prevColor != particleColor.value || particleNum != prevParticleNum))
-	{
-		prevParticleNum = particleNum;
-		particleSpeedColorWasEnabled = false;
-		prevColor = particleColor.value;
+		int surfaceParticleCount = 0;
+		int sprayParticleCount = 0;
 		for (int p = 0; p < particleNum; p++)
 		{
-			squareArray->setColor(p, glm::vec4(particleColor.value, 1));
+
+			if (particles[p].density < sprayDensityThreashold.value)
+			{
+				spraySquareArray->setOffset(sprayParticleCount, glm::vec4(particles[p].pos, 1.0f));
+				sprayParticleCount++;
+			}
+			else
+			{
+				surfaceSquareArray->setOffset(surfaceParticleCount, glm::vec4(particles[p].pos, 1.0f));
+				surfaceParticleCount++;
+			}
 		}
+		spraySquareArray->setActiveInstanceNum(sprayParticleCount);
+		surfaceSquareArray->setActiveInstanceNum(surfaceParticleCount);
+		spraySquareArray->updateActiveInstanceParams();
+		surfaceSquareArray->updateActiveInstanceParams();
 	}
-	squareArray->updateActiveInstanceParams();
+	else
+	{
+#pragma omp parallel for
+		for (int p = 0; p < particleNum; p++)
+		{
+			surfaceSquareArray->setOffset(p, glm::vec4(particles[p].pos, 1.0f));
+		}
+		surfaceSquareArray->setActiveInstanceNum(particleNum);
+		surfaceSquareArray->updateActiveInstanceParams();
+	}
 }
 
 

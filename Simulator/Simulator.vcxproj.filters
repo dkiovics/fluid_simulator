@@ -54,6 +54,9 @@
     <ClInclude Include="simulator\simulator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="simulator\util\interpolation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="simulator\macGrid\basicMacGrid.cpp">

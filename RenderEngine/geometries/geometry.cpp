@@ -208,6 +208,92 @@ const glm::vec4& renderer::BasicGeometryArray::getOffset(size_t instanceId) cons
 	return positions[instanceId];
 }
 
+void renderer::BasicPosGeometryArray::updateActiveInstanceParams()
+{
+	if (reuploadRequired)
+	{
+		if (instancePosVboId == 0)
+		{
+			std::vector<ArrayAttribute> attributes = { ArrayAttribute{10, 4, GL_FLOAT, NULL} };
+			instancePosVboId = createVboPerInstance(positions, attributes, true);
+		}
+		else
+		{
+			geometry->reUploadVbo(instancePosVboId, positions);
+		}
+	}
+	else
+	{
+		if (positionsNeedUpdate)
+		{
+			geometry->updateVbo(instancePosVboId, positions, instancesToDraw);
+		}
+	}
+	positionsNeedUpdate = false;
+	reuploadRequired = false;
+}
+
+void renderer::BasicPosGeometryArray::setMaxInstanceNum(size_t instanceNum)
+{
+	if (instanceNum != positions.size())
+	{
+		std::vector<glm::vec4> newPositions(instanceNum);
+		for (size_t i = 0; i < positions.size() && i < instanceNum; i++)
+		{
+			newPositions[i] = positions[i];
+		}
+		positions = std::move(newPositions);
+
+		instancesToDraw = instanceNum;
+
+		reuploadRequired = true;
+	}
+}
+
+void renderer::BasicPosGeometryArray::setMaxInstanceNum(size_t instanceNum, std::vector<glm::vec4>&& positions)
+{
+	if (instanceNum != positions.size())
+	{
+		throw std::runtime_error("Instance number is not equal to colors or positions size");
+	}
+	instancesToDraw = instanceNum;
+	reuploadRequired = true;
+	this->positions = std::move(positions);
+}
+
+void renderer::BasicPosGeometryArray::setActiveInstanceNum(size_t instanceNum)
+{
+	if (instanceNum > positions.size())
+	{
+		throw std::runtime_error("Instance number is bigger than max instance number");
+	}
+	if (instanceNum > instancesToDraw)
+	{
+		positionsNeedUpdate = true;
+	}
+	instancesToDraw = instanceNum;
+}
+
+void renderer::BasicPosGeometryArray::setOffset(size_t instanceId, const glm::vec4& offset)
+{
+	if (instanceId >= positions.size())
+	{
+		throw std::runtime_error("Instance number is bigger than max instance number");
+	}
+	positions[instanceId] = offset;
+	if (instancesToDraw > instanceId)
+		positionsNeedUpdate = true;
+}
+
+const glm::vec4& renderer::BasicPosGeometryArray::getOffset(size_t instanceId) const
+{
+	if (instanceId >= positions.size())
+	{
+		throw std::runtime_error("Instance number is bigger than max instance number");
+	}
+	return positions[instanceId];
+}
+
 renderer::GeometryArray::GeometryArray(std::shared_ptr<Geometry> geometry)
 {
 	this->geometry = geometry;

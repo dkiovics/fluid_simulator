@@ -150,6 +150,7 @@ protected:
 
 	friend class GeometryArray;
 	friend class BasicGeometryArray;
+	friend class BasicPosGeometryArray;
 
 	/**
 	 * \brief Binds the VAO of the geometry
@@ -265,7 +266,7 @@ public:
 	void setMaxInstanceNum(size_t instanceNum, std::vector<glm::vec4>&& positions, std::vector<glm::vec4>&& colors);
 	
 	/**
-	 * \brief Updates the colors of the instances
+	 * \brief Updates the positions and colors of the instances
 	 */
 	void updateActiveInstanceParams();
 
@@ -293,6 +294,51 @@ private:
 
 	std::vector<glm::vec4> positions;
 	std::vector<glm::vec4> colors;
+};
+
+class BasicPosGeometryArray : public GeometryArray
+{
+public:
+	using GeometryArray::GeometryArray;
+
+	/**
+	 * \brief Resizes the number of instances, the initial instance number is 0
+	 * \param instanceNum - The new number of instances
+	 */
+	void setMaxInstanceNum(size_t instanceNum);
+
+	/**
+	 * \brief Resizes the number of instances, the number of positions must be equal to the new instance number.
+	 * The initial instance number is 0
+	 * \param instanceNum - The new number of instances
+	 * \param positions - The positions of the instances
+	 */
+	void setMaxInstanceNum(size_t instanceNum, std::vector<glm::vec4>&& positions);
+
+	/**
+	 * \brief Updates the positions of the instances
+	 */
+	void updateActiveInstanceParams();
+
+	/**
+	 * \brief Sets the active instance number, this is the number of instances to draw,
+	 * the active instance number should not exceed the max instance number
+	 * \param instanceNum - The new active instance number
+	 */
+	void setActiveInstanceNum(size_t instanceNum);
+
+	void setOffset(size_t index, const glm::vec4& offset);
+
+	const glm::vec4& getOffset(size_t index) const;
+
+private:
+	GLuint instancePosVboId = 0;
+
+	bool positionsNeedUpdate = false;
+
+	bool reuploadRequired = false;
+
+	std::vector<glm::vec4> positions;
 };
 
 } // namespace renderer

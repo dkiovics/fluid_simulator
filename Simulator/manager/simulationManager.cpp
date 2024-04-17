@@ -1,5 +1,6 @@
 #include "simulationManager.h"
 #include <chrono>
+#include "../simulator/util/interpolation.h"
 
 using namespace genericfsim::manager;
 using namespace genericfsim::macgrid;
@@ -39,6 +40,11 @@ glm::ivec3 SimulationManager::getGridSize() const {
 void SimulationManager::setCalculateParticleSpeeds(bool calculate) {
 	std::unique_lock lock(sharedDataMutex);
 	calculateParticleSpeeds = calculate;
+}
+
+void genericfsim::manager::SimulationManager::setCalculateParticleDensities(bool calculate)
+{
+	calculateParticleDensities = calculate;
 }
 
 std::vector<SimulationManager::ParticleGfxData> SimulationManager::getParticleGfxData() {
@@ -227,6 +233,14 @@ void SimulationManager::simulationThreadWorker() {
 				particleData[index].pos = glm::vec3(p.pos.x, p.pos.y, p.pos.z);
 				if (calculateParticleSpeeds)
 					particleData[index].v = glm::length(p.v);
+				if (calculateParticleDensities)
+				{
+					float density = 0;
+					auto cells = macGrid->getCellsAround(p.pos);
+					for (auto& c : cells)
+						density += trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum;
+					particleData[index].density = density;
+				}
 			});
 
 			particleNum = currentParticleNum = hashedParticles->getParticleNum();
