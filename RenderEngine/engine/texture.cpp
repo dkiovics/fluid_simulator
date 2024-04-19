@@ -24,7 +24,7 @@ renderer::Texture::Texture()
 			availableTexSamplersPerContext[context] = {};
 			int maxTexUnits;
 			glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTexUnits);
-			for (int i = 0; i < maxTexUnits; i++)
+			for (int i = 1; i < maxTexUnits; i++)
 				availableTexSamplersPerContext[context].insert(i);
 		}
 		texSampler = *availableTexSamplersPerContext[context].begin();
@@ -33,6 +33,7 @@ renderer::Texture::Texture()
 	glActiveTexture(GL_TEXTURE0 + texSampler);
 	glGenTextures(1, &textureId);
 	glBindTexture(GL_TEXTURE_2D, textureId);
+	glActiveTexture(GL_TEXTURE0);
 
 	spdlog::debug("Texture created with id: {}", textureId);
 }
@@ -51,6 +52,7 @@ void renderer::Texture::generateMipmaps() const
 {
 	bindTexture();
 	glGenerateMipmap(GL_TEXTURE_2D);
+	unbindTexture();
 }
 
 renderer::Texture::~Texture()
@@ -64,12 +66,17 @@ renderer::Texture::~Texture()
 
 void renderer::Texture::bindTexture() const
 {
-	glActiveTexture(GL_TEXTURE0 + texSampler);
 	glBindTexture(GL_TEXTURE_2D, textureId);
+}
+
+void renderer::Texture::unbindTexture() const
+{
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 renderer::ColorTexture::ColorTexture(const std::string& textureFileName, GLint minSampler, GLint magSampler, bool tiling) : Texture()
 {
+	bindTexture();
 	if (tiling)
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -95,6 +102,8 @@ renderer::ColorTexture::ColorTexture(const std::string& textureFileName, GLint m
 		throw std::runtime_error("Failed to read image file: " + textureFileName);
 	stbi_image_free(data);
 
+	unbindTexture();
+
 	spdlog::debug("Color texture created for file: {}", textureFileName);
 }
 
@@ -103,12 +112,13 @@ renderer::RenderTargetTexture::RenderTargetTexture(int width, int height, GLint 
 	: Texture(), minSampler(minSampler), magSampler(magSampler), size(width, height),
 	internalFormat(internalFormat), format(format), dataType(dataType)
 {
+	bindTexture();
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, dataType, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minSampler);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magSampler);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	unbindTexture();
 	spdlog::debug("Render target texture created");
 }
 
@@ -119,6 +129,7 @@ void renderer::RenderTargetTexture::resizeTexture(int width, int height)
 	bindTexture();
 	size = glm::ivec2(width, height);
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, dataType, NULL);
+	unbindTexture();
 }
 
 glm::ivec2 renderer::RenderTargetTexture::getSize() const

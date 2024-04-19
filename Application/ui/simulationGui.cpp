@@ -85,7 +85,7 @@ void startSimulatorGui() {
 
     bool renderer2D = false;
     bool simulation2D = false;
-    std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 1000000);
+    std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 200000);
 
     simulationManager->startSimulation();
 
@@ -160,7 +160,7 @@ void startSimulatorGui() {
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(screenWidth, screenHeight - simSize.y));
         {
-            ImGui::Begin("FLIP fluid simulator");
+            ImGui::Begin("Hybrid fluid simulator");
 
             //Simulation control group
             ImGui::BeginGroup();
@@ -192,11 +192,11 @@ void startSimulatorGui() {
                     newSimManager = true;
                 }
                 if (renderer2D && dynamic_cast<SimulationGfx2D*>(simulatorRenderer.get()) == nullptr) {
-                    simulatorRenderer = std::make_unique<SimulationGfx2D>(engine, simulationManager, 1000000);
+                    simulatorRenderer = std::make_unique<SimulationGfx2D>(engine, simulationManager, 200000);
                     simulationManager->setObstacles(std::vector<std::unique_ptr<Obstacle>>());
                 }
                 else if (!renderer2D && dynamic_cast<SimulationGfx3D*>(simulatorRenderer.get()) == nullptr) {
-                    simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, simStart, simSize, 1000000);
+                    simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, simStart, simSize, 200000);
                     simulationManager->setObstacles(std::vector<std::unique_ptr<Obstacle>>());
                 }
                 else if (newSimManager) {

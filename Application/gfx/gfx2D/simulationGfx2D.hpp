@@ -267,6 +267,7 @@ public:
 	}
 
 	~SimulationGfx2D() override {
+		spdlog::debug("SimulationGfx2D deleted");
 		engine->mouseCallback.removeCallbackFunction(mouseCallbackNum);
 		engine->mouseButtonCallback.removeCallbackFunction(mouseButtonCallbackNum);
 		engine->scrollCallback.removeCallbackFunction(scrollCallbackNum);

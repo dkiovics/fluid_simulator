@@ -151,6 +151,7 @@ protected:
 	friend class GeometryArray;
 	friend class BasicGeometryArray;
 	friend class BasicPosGeometryArray;
+	friend class ParticleGeometryArray;
 
 	/**
 	 * \brief Binds the VAO of the geometry
@@ -284,15 +285,15 @@ public:
 	const glm::vec4& getOffset(size_t index) const;
 
 private:
-	GLuint instancePosVboId = 0;
+	GLuint instanceOffsetVboId = 0;
 	GLuint instanceColorVboId = 0;
 
 	bool colorsNeedUpdate = false;
-	bool positionsNeedUpdate = false;
+	bool offsetsNeedUpdate = false;
 
 	bool reuploadRequired = false;
 
-	std::vector<glm::vec4> positions;
+	std::vector<glm::vec4> offsets;
 	std::vector<glm::vec4> colors;
 };
 
@@ -332,13 +333,65 @@ public:
 	const glm::vec4& getOffset(size_t index) const;
 
 private:
-	GLuint instancePosVboId = 0;
+	GLuint instanceOffsetVboId = 0;
 
-	bool positionsNeedUpdate = false;
+	bool offsetsNeedUpdate = false;
 
 	bool reuploadRequired = false;
 
-	std::vector<glm::vec4> positions;
+	std::vector<glm::vec4> offsets;
+};
+
+class ParticleGeometryArray : public GeometryArray
+{
+public:
+	using GeometryArray::GeometryArray;
+
+	/**
+	 * \brief Resizes the number of instances, the initial instance number is 0
+	 * \param instanceNum - The new number of instances
+	 */
+	void setMaxInstanceNum(size_t instanceNum);
+
+	/**
+	 * \brief Updates the positions of the instances.
+	 * \brief The offset has a layout id of 10, the id has a layout id of 11, the speed has a layout id of 12
+	 */
+	void updateActiveInstanceParams();
+
+	/**
+	 * \brief Sets the active instance number, this is the number of instances to draw,
+	 * the active instance number should not exceed the max instance number
+	 * \param instanceNum - The new active instance number
+	 */
+	void setActiveInstanceNum(size_t instanceNum);
+
+	void setOffset(size_t index, const glm::vec4& offset);
+
+	const glm::vec4& getOffset(size_t index) const;
+
+	void setId(size_t index, int id);
+
+	int getId(size_t index) const;
+
+	void setSpeed(size_t index, float speed);
+
+	float getSpeed(size_t index) const;
+
+private:
+	GLuint instanceOffsetVboId = 0;
+	GLuint instanceIdVboId = 0;
+	GLuint instanceSpeedVboId = 0;
+
+	bool offsetsNeedUpdate = false;
+	bool idsNeedUpdate = false;
+	bool speedsNeedUpdate = false;
+
+	bool reuploadRequired = false;
+
+	std::vector<glm::vec4> offsets;
+	std::vector<int> ids;
+	std::vector<float> speeds;
 };
 
 } // namespace renderer

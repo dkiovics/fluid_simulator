@@ -286,7 +286,7 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 
 	showShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/quad.fs", engine);
 	showSquare = std::make_shared<renderer::Square>();
-	renderTargetTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y);
+	renderTargetTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
 	(*showShaderProgram)["colorTexture"] = *renderTargetTexture;
 	std::vector<std::shared_ptr<renderer::RenderTargetTexture>> textures = { renderTargetTexture };
 	std::shared_ptr<renderer::RenderTargetTexture> renderTargetDepthTexture = std::make_shared<renderer::RenderTargetTexture>
@@ -564,11 +564,9 @@ void SimulationGfx3D::render()
 
 SimulationGfx3D::~SimulationGfx3D()
 {
+	spdlog::debug("SimulationGfx3D destructor");
 	engine->mouseCallback.removeCallbackFunction(mouseCallbackId);
 	engine->mouseButtonCallback.removeCallbackFunction(mouseButtonCallbackId);
 	engine->scrollCallback.removeCallbackFunction(scrollCallbackId);
 	engine->keyCallback.removeCallbackFunction(keyCallbackId);
-#ifdef _DEBUG
-	std::cout << "SimulationGfx3D destructor called" << std::endl;
-#endif
 }

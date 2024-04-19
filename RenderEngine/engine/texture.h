@@ -48,6 +48,11 @@ protected:
 	*/
 	void bindTexture() const;
 
+	/**
+	* \brief Unbinds the texture from the current context.
+	*/
+	void unbindTexture() const;
+
 private:
 	static std::map<GLFWwindow*, std::set<GLint>> availableTexSamplersPerContext;
 	static std::mutex availableTexSamplersMutex;
