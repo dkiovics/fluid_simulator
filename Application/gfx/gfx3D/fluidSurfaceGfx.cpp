@@ -1,28 +1,24 @@
 #include "fluidSurfaceGfx.h"
 
-FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine, 
-	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager, 
+FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
+	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)
-	: engine(engine), simulationManager(simulationManager), camera(camera), lights(lights)
+	: engine(engine), simulationManager(simulationManager), camera(camera), lights(lights), renderTargetFramebuffer(renderTargetFramebuffer)
 {
 	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_depth.fs", engine);
-	normalShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/normals.fs", engine);
 	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/gaussian.fs", engine);
 	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/shadedDepth.fs", engine);
 	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/bilateral.fs", engine);
-	particleSpritesShadedShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_shaded.fs", engine);
+	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_thickness.fs", engine);
+	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/gaussian_thickness.fs", engine);
 
 	surfaceSquareArrayObject = std::make_unique<renderer::Object3D<renderer::BasicPosGeometryArray>>
 		(std::make_shared<renderer::BasicPosGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
 	surfaceSquareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
-	surfaceSquareArrayObject->shininess = 80;
-	surfaceSquareArrayObject->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
 
 	spraySquareArrayObject = std::make_unique<renderer::Object3D<renderer::BasicPosGeometryArray>>
-		(std::make_shared<renderer::BasicPosGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesShadedShader);
+		(std::make_shared<renderer::BasicPosGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
 	spraySquareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
-	spraySquareArrayObject->shininess = 80;
-	spraySquareArrayObject->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
 
 	shadedSquareObject = std::make_unique<renderer::Object3D<renderer::Square>>(std::make_shared<renderer::Square>(), shadedDepthShader);
 	shadedSquareObject->shininess = 80;
@@ -30,21 +26,35 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 
 	square = std::make_unique<renderer::Square>();
 
-	depthTexture = std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST,
-		GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
-	depthFramebuffer = std::make_unique<renderer::Framebuffer>
-		(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>(), depthTexture);
-	depthBlurTmpTexture = std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST,
-		GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
-	depthBlurTmpFramebuffer = std::make_unique<renderer::Framebuffer>
-		(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>(), depthBlurTmpTexture);
+	{
+		std::shared_ptr<renderer::RenderTargetTexture> depthTexture =
+			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+		depthFramebuffer = std::make_unique<renderer::Framebuffer>
+			(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>(), depthTexture, false);
+		std::shared_ptr<renderer::RenderTargetTexture> depthBlurTmpTexture =
+			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+		depthBlurTmpFramebuffer = std::make_unique<renderer::Framebuffer>
+			(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>(), depthBlurTmpTexture, false);
+	}
 
-	(*normalShader)["depthTexture"] = *depthTexture;
-	(*shadedDepthShader)["depthTexture"] = *depthTexture;
+	{
+		std::shared_ptr<renderer::RenderTargetTexture> fluidThicknessTexture =
+			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32F, GL_RED, GL_FLOAT);
+		std::vector<std::shared_ptr<renderer::RenderTargetTexture>> fluidThicknessTextures = { fluidThicknessTexture };
+		fluidThicknessFramebuffer = std::make_unique<renderer::Framebuffer>
+			(fluidThicknessTextures, renderTargetFramebuffer->getDepthAttachment(), false);
+		std::shared_ptr<renderer::RenderTargetTexture> fluidThicknessBlurTmpTexture =
+			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32F, GL_RED, GL_FLOAT);
+		std::vector<std::shared_ptr<renderer::RenderTargetTexture>> fluidThicknessBlurTmpTextures = { fluidThicknessBlurTmpTexture };
+		fluidThicknessBlurTmpFramebuffer = std::make_unique<renderer::Framebuffer>
+			(fluidThicknessBlurTmpTextures, nullptr, false);
+	}
 
-	camera->addProgram({ particleSpritesDepthShader, particleSpritesShadedShader, normalShader, 
-		gaussianBlurShader, bilateralFilterShader, shadedDepthShader });
-	lights->addProgram({ particleSpritesDepthShader, particleSpritesShadedShader, shadedDepthShader });
+	(*shadedDepthShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
+
+	camera->addProgram({ particleSpritesDepthShader, gaussianBlurShader, 
+		bilateralFilterShader, shadedDepthShader, fluidThicknessShader, fluidThicknessBlurShader });
+	lights->addProgram({ particleSpritesDepthShader, shadedDepthShader, fluidThicknessShader });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
 
@@ -52,19 +62,24 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	addParamLine(ParamLine({ &bilateralFilterEnabled, &smoothingSize }));
 	addParamLine(ParamLine({ &blurScale, &blurDepthFalloff }));
 	addParamLine(ParamLine({ &sprayEnabled, &sprayDensityThreashold }));
+	addParamLine(ParamLine({ &fluidTransparencyEnabled }));
+	addParamLine(ParamLine({ &fluidTransparencyBlurSize, &fluidTransparency }));
 }
 
-void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer)
+void FluidSurfaceGfx::render()
 {
 	glm::ivec2 viewportSize = renderTargetFramebuffer->getSize();
 	if (viewportSize != depthFramebuffer->getSize())
 	{
 		depthFramebuffer->setSize(viewportSize);
 		depthBlurTmpFramebuffer->setSize(viewportSize);
+		fluidThicknessFramebuffer->setSize(viewportSize);
+		fluidThicknessBlurTmpFramebuffer->setSize(viewportSize);
 	}
 
 	updateParticleColorsAndPositions();
 	(*particleSpritesDepthShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
+	(*fluidThicknessShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
 
 	depthFramebuffer->bind();
 	engine->setViewport(0, 0, viewportSize.x, viewportSize.y);
@@ -78,7 +93,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 	if (bilateralFilterEnabled.value)
 	{
 		bilateralFilterShader->activate();
-		(*bilateralFilterShader)["depthTexture"] = *depthTexture;
+		(*bilateralFilterShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 		(*bilateralFilterShader)["smoothingKernelSize"] = smoothingSize.value;
 		(*bilateralFilterShader)["blurScale"] = blurScale.value;
 		(*bilateralFilterShader)["blurDepthFalloff"] = blurDepthFalloff.value;
@@ -87,35 +102,76 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> renderTarget
 
 		depthFramebuffer->bind();
 		engine->clearViewport(1.0f);
-		(*bilateralFilterShader)["depthTexture"] = *depthBlurTmpTexture;
+		(*bilateralFilterShader)["depthTexture"] = *depthBlurTmpFramebuffer->getDepthAttachment();
 		(*bilateralFilterShader)["axis"] = 1;
 		square->draw();
 	}
 	else
 	{
 		gaussianBlurShader->activate();
-		(*gaussianBlurShader)["depthTexture"] = *depthTexture;
+		(*gaussianBlurShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 		(*gaussianBlurShader)["axis"] = 0;
 		(*gaussianBlurShader)["smoothingKernelSize"] = smoothingSize.value;
 		square->draw();
 
 		depthFramebuffer->bind();
 		engine->clearViewport(1.0f);
-		(*gaussianBlurShader)["depthTexture"] = *depthBlurTmpTexture;
+		(*gaussianBlurShader)["depthTexture"] = *depthBlurTmpFramebuffer->getDepthAttachment();
 		(*gaussianBlurShader)["axis"] = 1;
 		square->draw();
 	}
 
-	renderTargetFramebuffer->bind();
-	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
-	shadedSquareObject->draw();
-
 	if (sprayEnabled.value)
 	{
-		(*particleSpritesShadedShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
-		spraySquareArrayObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
+		depthFramebuffer->bind();
 		spraySquareArrayObject->draw();
 	}
+
+	if (fluidTransparencyEnabled.value)
+	{
+		fluidThicknessFramebuffer->bind();
+		fluidThicknessShader->activate();
+		engine->clearViewport(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+		glDepthMask(GL_FALSE);
+		glBlendFunc(GL_ONE, GL_ONE);
+		glEnable(GL_BLEND);
+		surfaceSquareArrayObject->drawable->draw();
+		if(sprayEnabled.value)
+			spraySquareArrayObject->drawable->draw();
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+
+		fluidThicknessBlurShader->activate();
+		fluidThicknessBlurTmpFramebuffer->bind();
+		engine->enableDepthTest(false);
+		engine->clearViewport(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+		(*fluidThicknessBlurShader)["thicknessTexture"] = *fluidThicknessFramebuffer->getColorAttachments()[0];
+		(*fluidThicknessBlurShader)["smoothingKernelSize"] = fluidTransparencyBlurSize.value;
+		(*fluidThicknessBlurShader)["axis"] = 0;
+		(*fluidThicknessBlurShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
+		square->draw();
+
+		fluidThicknessFramebuffer->bind();
+		engine->clearViewport(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+		(*fluidThicknessBlurShader)["thicknessTexture"] = *fluidThicknessBlurTmpFramebuffer->getColorAttachments()[0];
+		(*fluidThicknessBlurShader)["axis"] = 1;
+		square->draw();
+
+		engine->enableDepthTest(true);
+	}
+
+	renderTargetFramebuffer->bind();
+	if (fluidTransparencyEnabled.value)
+	{
+		glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+		glEnable(GL_BLEND);
+	}
+	(*shadedDepthShader)["thicknessTexture"] = *fluidThicknessFramebuffer->getColorAttachments()[0];
+	(*shadedDepthShader)["transparency"] = fluidTransparency.value;
+	(*shadedDepthShader)["transparencyEnabled"] = fluidTransparencyEnabled.value ? 1 : 0;
+	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
+	shadedSquareObject->draw();
+	glDisable(GL_BLEND);
 
 	engine->bindDefaultFramebuffer();
 }

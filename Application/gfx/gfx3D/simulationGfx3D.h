@@ -61,10 +61,10 @@ private:
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTextured;
 	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTexturedArray;
 
-	std::shared_ptr<renderer::ShaderProgram> testShaderProgram;
-	std::shared_ptr<renderer::Square> testSquare;
-	std::shared_ptr<renderer::RenderTargetTexture> testTexture;
-	std::shared_ptr<renderer::Framebuffer> testFramebuffer;
+	std::shared_ptr<renderer::ShaderProgram> showShaderProgram;
+	std::shared_ptr<renderer::Square> showSquare;
+	std::shared_ptr<renderer::RenderTargetTexture> renderTargetTexture;
+	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer;
 
 	int mouseCallbackId;
 	int mouseButtonCallbackId;

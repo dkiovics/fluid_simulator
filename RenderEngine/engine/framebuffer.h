@@ -47,6 +47,18 @@ public:
 	void setSize(glm::ivec2 size);
 
 	/**
+	 * \brief Returns the color attachments of the framebuffer
+	 * \return The color attachments of the framebuffer
+	 */
+	std::vector<std::shared_ptr<RenderTargetTexture>> getColorAttachments() const;
+
+	/**
+	 * \brief Returns the depth attachment of the framebuffer
+	 * \return The depth attachment of the framebuffer
+	 */
+	std::shared_ptr<RenderTargetTexture> getDepthAttachment() const;
+
+	/**
 	 * \brief Returns the size of the framebuffer
 	 * \return The size of the framebuffer
 	 */

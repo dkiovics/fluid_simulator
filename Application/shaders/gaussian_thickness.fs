@@ -2,8 +2,10 @@
 precision highp float;
 
 in vec2 texCoord;
+out vec4 fragmentColor;
 
 uniform sampler2D depthTexture;
+uniform sampler2D thicknessTexture;
 uniform float smoothingKernelSize;	//in world coordinates
 uniform int axis;	//0 - x axis, 1 - y axis
 
@@ -28,7 +30,7 @@ vec3 getEyePos(sampler2D depthTexture, vec2 texCoord) {
 void main() {
 	const vec3 eyeSpacePos = getEyePos(depthTexture, texCoord);
 	const vec2 textSize = textureSize(depthTexture, 0);
-	float depth = 0.0;
+	float thicknesss = 0.0;
 	float weightSum = 0.0;
 	
 	if(texture(depthTexture, texCoord).x == 1.0){
@@ -53,12 +55,10 @@ void main() {
 		const float standardDev2 = standardDev * standardDev;
 		const int r = kernelSize / 2;
 		for(int p = -r; p <= r; p++){
-			float d = texture(depthTexture, texCoord + vec2(0.0, texelSize) * p).x;
-			if(d < 1.0){
-				float w = exp(-p*p / standardDev2 * 0.5);
-				weightSum += w;
-				depth += d * w;
-			}
+			float d = texture(thicknessTexture, texCoord + vec2(0.0, texelSize) * p).x;
+			float w = exp(-p*p / standardDev2 * 0.5);
+			weightSum += w;
+			thicknesss += d * w;
 		}
 	}else{
 		const vec4 offsetOnScreen = camera.projectionMatrix * vec4(eyeSpacePos + vec3(smoothingKernelSize * 0.5, 0, 0), 1.0);
@@ -76,14 +76,12 @@ void main() {
 		const float standardDev2 = standardDev * standardDev;
 		const int r = kernelSize  / 2;
 		for(int p = -r; p <= r; p++){
-			float d = texture(depthTexture, texCoord + vec2(texelSize, 0.0) * p).x;
-			if(d < 1.0){
-				float w = exp(-p*p / standardDev2 * 0.5);
-				weightSum += w;
-				depth += d * w;
-			}
+			float d = texture(thicknessTexture, texCoord + vec2(texelSize, 0.0) * p).x;
+			float w = exp(-p*p / standardDev2 * 0.5);
+			weightSum += w;
+			thicknesss += d * w;
 		}
 	}
     
-    gl_FragDepth = depth / weightSum;
+    fragmentColor.r = thicknesss / weightSum;
 }

@@ -8,9 +8,9 @@ renderer::Framebuffer::Framebuffer(
 	std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments, std::shared_ptr<RenderTargetTexture> depthAttachment, bool hasStencil)
 	: colorAttachments(colorAttachments), depthAttachment(depthAttachment)
 {
-	if (!colorAttachments.empty())
+	if (!this->colorAttachments.empty())
 	{
-		size = colorAttachments[0]->getSize();
+		size = this->colorAttachments[0]->getSize();
 	}
 	else if (depthAttachment)
 	{
@@ -25,22 +25,14 @@ renderer::Framebuffer::Framebuffer(
 	glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
 
 	std::vector<GLenum> drawBuffers;
-	for (size_t i = 0; i < colorAttachments.size(); i++)
+	for (size_t i = 0; i < this->colorAttachments.size(); i++)
 	{
-		if (colorAttachments[i]->getSize() != size)
-		{
-			throw std::runtime_error("Color attachments must have the same size");
-		}
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorAttachments[i]->getTextureId(), 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, this->colorAttachments[i]->getTextureId(), 0);
 		drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
 	}
 
 	if (depthAttachment)
 	{
-		if (depthAttachment->getSize() != size)
-		{
-			throw std::runtime_error("Depth attachment must have the same size as the color attachments");
-		}
 		glFramebufferTexture2D(GL_FRAMEBUFFER, hasStencil ? GL_DEPTH_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT,
 			GL_TEXTURE_2D, depthAttachment->getTextureId(), 0);
 	}
@@ -53,7 +45,7 @@ renderer::Framebuffer::Framebuffer(
 	}
 
 	spdlog::debug("Framebuffer created with id: {}, size: {}x{}, color attachments: {}, depth attachment: {}",
-				framebufferId, size.x, size.y, colorAttachments.size(), depthAttachment != nullptr);
+				framebufferId, size.x, size.y, this->colorAttachments.size(), depthAttachment != nullptr);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -61,24 +53,20 @@ renderer::Framebuffer::Framebuffer(
 renderer::Framebuffer::Framebuffer(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments)
 	: colorAttachments(colorAttachments)
 {
-	if (colorAttachments.empty())
+	if (this->colorAttachments.empty())
 	{
 		throw std::runtime_error("Framebuffer must have at least one attachment");
 	}
 
-	size = colorAttachments[0]->getSize();
+	size = this->colorAttachments[0]->getSize();
 
 	glGenFramebuffers(1, &framebufferId);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
 
 	std::vector<GLenum> drawBuffers;
-	for (size_t i = 0; i < colorAttachments.size(); i++)
+	for (size_t i = 0; i < this->colorAttachments.size(); i++)
 	{
-		if (colorAttachments[i]->getSize() != size)
-		{
-			throw std::runtime_error("Color attachments must have the same size");
-		}
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorAttachments[i]->getTextureId(), 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, this->colorAttachments[i]->getTextureId(), 0);
 		drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
 	}
 
@@ -97,7 +85,7 @@ renderer::Framebuffer::Framebuffer(std::vector<std::shared_ptr<RenderTargetTextu
 	}
 
 	spdlog::debug("Framebuffer created with id: {}, size: {}x{}, color attachments: {}, renderbuffer depth/stencil attachement",
-		framebufferId, size.x, size.y, colorAttachments.size());
+		framebufferId, size.x, size.y, this->colorAttachments.size());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -143,6 +131,16 @@ void renderer::Framebuffer::setSize(glm::ivec2 size)
 	spdlog::debug("Framebuffer resized with id: {}, new size: {}x{}", framebufferId, size.x, size.y);
 
 	this->size = size;
+}
+
+std::vector<std::shared_ptr<RenderTargetTexture>> renderer::Framebuffer::getColorAttachments() const
+{
+	return colorAttachments;
+}
+
+std::shared_ptr<RenderTargetTexture> renderer::Framebuffer::getDepthAttachment() const
+{
+	return depthAttachment;
 }
 
 glm::ivec2 renderer::Framebuffer::getSize() const

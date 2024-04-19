@@ -39,7 +39,7 @@ void main() {
 		return;
 	}
 	
-	if(axis) {
+	if(axis == 1) {
 		const vec4 offsetOnScreen = camera.projectionMatrix * vec4(eyeSpacePos + vec3(0, smoothingKernelSize * 0.5, 0), 1.0);
 		const float offsetOnScreenSize = offsetOnScreen.y / offsetOnScreen.w * 0.5 + 0.5 - texCoord.y;
 

@@ -127,6 +127,7 @@ renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, cons
 	if (!success)
 	{
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		spdlog::error("Vertex shader source: {} compilation failed with error: {}", vertexShaderName, infoLog);
 		throw std::runtime_error(std::string("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n") + infoLog);
 	}
 
@@ -144,6 +145,7 @@ renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, cons
 	if (!success)
 	{
 		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+		spdlog::error("Fragment shader source: {} compilation failed with error: {}", fragmentShaderName, infoLog);
 		throw std::runtime_error(std::string("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n") + infoLog);
 	}
 
@@ -155,6 +157,7 @@ renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, cons
 	if (!success)
 	{
 		glGetProgramInfoLog(programId, 512, NULL, infoLog);
+		spdlog::error("Shader program ({} and {}) linking failed with error: {}", vertexShaderName, fragmentShaderName, infoLog);
 		throw std::runtime_error(std::string("ERROR::SHADER::PROGRAM::LINKING_FAILED\n") + infoLog);
 	}
 	glDeleteShader(vertexShader);

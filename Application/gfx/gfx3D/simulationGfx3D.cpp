@@ -109,7 +109,7 @@ void SimulationGfx3D::keyCallback(int key, int scancode, int action, int mode)
 
 void SimulationGfx3D::handleScreenChanged()
 {
-	testFramebuffer->setSize(glm::ivec2(screenSize.x, screenSize.y));
+	renderTargetFramebuffer->setSize(glm::ivec2(screenSize.x, screenSize.y));
 	camera->setAspectRatio(float(screenSize.x) / screenSize.y);
 }
 
@@ -272,7 +272,7 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 	planeGfx->setScale(glm::vec3(200, 200, 1));
 	planeGfx->setPitch(PI * 0.5f);
 
-	transparentBox = std::make_unique<TransparentBox>(camera, glm::vec4(0.8, 0.5, 0.2, 0.4), shaderProgramNotTextured);
+	transparentBox = std::make_unique<TransparentBox>(camera, glm::vec4(0.5, 0.5, 0.65, 0.4), shaderProgramNotTextured);
 
 	auto spheres = std::make_shared<renderer::BasicGeometryArray>(std::make_shared<renderer::Sphere>(8));
 	spheres->setMaxInstanceNum(maxParticleNum);
@@ -284,14 +284,16 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 	prevCellD = simulationManager->getCellD();
 	initGridLines();
 
-	testShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/quad.fs", engine);
-	testSquare = std::make_shared<renderer::Square>();
-	testTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y);
-	(*testShaderProgram)["colorTexture"] = *testTexture;
-	std::vector<std::shared_ptr<renderer::RenderTargetTexture>> textures = { testTexture };
-	testFramebuffer = std::make_shared<renderer::Framebuffer>(textures);
+	showShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/quad.fs", engine);
+	showSquare = std::make_shared<renderer::Square>();
+	renderTargetTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y);
+	(*showShaderProgram)["colorTexture"] = *renderTargetTexture;
+	std::vector<std::shared_ptr<renderer::RenderTargetTexture>> textures = { renderTargetTexture };
+	std::shared_ptr<renderer::RenderTargetTexture> renderTargetDepthTexture = std::make_shared<renderer::RenderTargetTexture>
+		(screenSize.x, screenSize.y, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
+	renderTargetFramebuffer = std::make_shared<renderer::Framebuffer>(textures, renderTargetDepthTexture, false);
 
-	fluidSurfaceGfx = std::make_unique<FluidSurfaceGfx>(engine, simulationManager, camera, lights, maxParticleNum);
+	fluidSurfaceGfx = std::make_unique<FluidSurfaceGfx>(engine, renderTargetFramebuffer, simulationManager, camera, lights, maxParticleNum);
 
 	addParamLine(ParamLine({ &fluidSurfaceEnabled }));
 }
@@ -515,7 +517,7 @@ void SimulationGfx3D::render()
 		handleScreenChanged();
 	}
 
-	testFramebuffer->bind();
+	renderTargetFramebuffer->bind();
 
 	glm::dvec3 dim = simulationManager->getDimensions();
 	glm::vec3 size = glm::vec3(dim.x, dim.y, dim.z);
@@ -529,16 +531,6 @@ void SimulationGfx3D::render()
 	planeGfx->setPosition(glm::vec4(center.x, -0.05f, center.z, 1));
 	planeGfx->draw();
 
-	if (fluidSurfaceEnabled.value)
-	{
-		fluidSurfaceGfx->render(testFramebuffer);
-		engine->enableDepthTest(true);
-		engine->setViewport(0, 0, screenSize.x, screenSize.y);
-		testFramebuffer->bind();
-	}
-	else
-		drawParticles();
-
 	for (auto& obstacle : obstacleGfxArray)
 	{
 		obstacle->draw();
@@ -547,17 +539,26 @@ void SimulationGfx3D::render()
 	if (gridlinesEnabled.value)
 		drawGridLines();
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	transparentBox->draw(center, size);
-	glDisable(GL_BLEND);
+	transparentBox->draw(center, size, true, false);
+
+	if (fluidSurfaceEnabled.value)
+	{
+		fluidSurfaceGfx->render();
+		engine->enableDepthTest(true);
+		engine->setViewport(0, 0, screenSize.x, screenSize.y);
+		renderTargetFramebuffer->bind();
+	}
+	else
+		drawParticles();
+
+	transparentBox->draw(center, size, false, true);
 
 	engine->bindDefaultFramebuffer();
 	engine->setViewport(screenStart.x, engine->getScreenHeight() - (screenStart.y + screenSize.y), screenSize.x, screenSize.y);
 	engine->clearViewport(glm::vec4(0.1, 0, 0, 0), 1.0);
-	testShaderProgram->activate();
+	showShaderProgram->activate();
 	engine->enableDepthTest(false);
-	testSquare->draw();
+	showSquare->draw();
 	engine->enableDepthTest(true);
 }
 

@@ -6,6 +6,9 @@ out vec4 fragmentColor;
 in vec2 texCoord;
 
 uniform sampler2D depthTexture;
+uniform sampler2D thicknessTexture;
+uniform float transparency;
+uniform int transparencyEnabled;
 
 uniform struct{
     mat4 viewMatrix;
@@ -85,7 +88,13 @@ void main(){
 	normal = camera.viewMatrixInverse * normalize(normal);
 	vec4 worldPosition = camera.viewMatrixInverse * vec4(posEye, 1.0);
 	
-	fragmentColor = vec4(0.0,0.0,0.0,object.diffuseColor.a);
+	if(transparencyEnabled == 1){
+		float thickness = texture(thicknessTexture, texCoord).x;
+		fragmentColor = vec4(0.0, 0.0, 0.0, exp(-transparency * thickness));
+	}else{
+		fragmentColor = vec4(0.0, 0.0, 0.0, object.diffuseColor.a);
+	}
+	
     for(int p = 0; p < lightNum; p++) {
         vec4 lightPositionOrDir = lights[p].position;
         vec3 powerDensity = lights[p].powerDensity;
