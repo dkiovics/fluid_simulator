@@ -37,7 +37,6 @@ public:
 
 	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", false);
 	ParamFloat fluidSurfaceNoiseScale = ParamFloat("Noise scale", 1.0f, 0.01f, 5.0f);
-	ParamFloat fluidSurfaceNoiseSpeedCoeff = ParamFloat("Noise speed coeff", 0.1f, 0.0f, 1.0f);
 	ParamFloat fluidSurfaceNoiseStrength = ParamFloat("Noise strength", 0.1f, 0.0f, 1.0f);
 
 private:
@@ -52,8 +51,9 @@ private:
 	std::shared_ptr<renderer::ShaderProgram> gaussianBlurShader;
 	std::shared_ptr<renderer::ShaderProgram> bilateralFilterShader;
 	std::shared_ptr<renderer::ShaderProgram> shadedDepthShader;
-	std::shared_ptr<renderer::ShaderProgram> fluidThicknessAndNoiseShader;
+	std::shared_ptr<renderer::ShaderProgram> fluidThicknessShader;
 	std::shared_ptr<renderer::ShaderProgram> fluidThicknessBlurShader;
+	std::shared_ptr<renderer::ShaderProgram> normalAndDepthShader;
 
 	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> surfaceSquareArrayObject;
 	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> spraySquareArrayObject;
@@ -64,8 +64,8 @@ private:
 	std::unique_ptr<renderer::Framebuffer> depthFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> depthBlurTmpFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessFramebuffer;
-	std::unique_ptr<renderer::Framebuffer> fluidThicknessAndNoiseFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessBlurTmpFramebuffer;
+	std::unique_ptr<renderer::Framebuffer> normalAndDepthFramebuffer;
 
 	glm::vec3 prevColor = glm::vec3(0.0f);
 	bool particleSpeedColorWasEnabled = false;

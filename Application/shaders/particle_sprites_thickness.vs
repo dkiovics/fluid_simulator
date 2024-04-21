@@ -35,7 +35,4 @@ void main() {
 	
 	gl_Position = camera.projectionMatrix * vec4(eyeSpacePos + vertexPos * particleRadius * 2.0, 1);
 	texCoord = texCoordIn;
-	
-	instanceId = instanceIdIn;
-	instanceSpeed = instanceSpeedIn;
 }

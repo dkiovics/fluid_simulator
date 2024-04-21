@@ -1,7 +1,7 @@
 #version 460 core
 precision highp float;
 
-out vec4 FragColor;
+out vec4 normalAndDepth;
 
 in vec2 texCoord;
 
@@ -27,15 +27,13 @@ vec3 getEyePos(sampler2D depthTexture, vec2 texCoord) {
 
 void main(){
 	float depth = texture(depthTexture, texCoord).x;
-	vec2 texelSize = vec2(1.0, 1.0) / textureSize(depthTexture, 0);
 	if (depth == 1.0f) {
 		discard;
 		return;
 	}
 	
-	gl_FragDepth = depth;
-	
 	vec3 posEye = uvToEye(texCoord, depth);
+	vec2 texelSize = vec2(1.0, 1.0) / textureSize(depthTexture, 0);
 	
 	vec3 ddx = getEyePos(depthTexture, texCoord + vec2(texelSize.x, 0)) - posEye;
 	vec3 ddx2 = posEye - getEyePos(depthTexture, texCoord + vec2(-texelSize.x, 0));
@@ -48,8 +46,7 @@ void main(){
 		ddy = ddy2;
 	}
 	
-	vec3 n = cross(ddx, ddy);
-	n = normalize(n);
+	vec3 normal = normalize(cross(ddx, ddy));
 	
-	FragColor = vec4(n * 0.5 + 0.5, 1.0); 
+	normalAndDepth = vec4(normal, depth);
 }
