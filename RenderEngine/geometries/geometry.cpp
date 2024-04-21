@@ -310,7 +310,7 @@ void renderer::ParticleGeometryArray::updateActiveInstanceParams()
 		if (instanceIdVboId == 0)
 		{
 			std::vector<ArrayAttribute> attributes = { ArrayAttribute{11, 1, GL_INT, NULL} };
-			instanceIdVboId = createVboPerInstance(ids, attributes, true);
+			instanceIdVboId = createVboPerInstance(ids, attributes, true, true);
 		}
 		else
 		{

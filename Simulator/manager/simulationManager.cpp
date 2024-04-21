@@ -37,16 +37,6 @@ glm::ivec3 SimulationManager::getGridSize() const {
 	return macGrid->gridSize;
 }
 
-void SimulationManager::setCalculateParticleSpeeds(bool calculate) {
-	std::unique_lock lock(sharedDataMutex);
-	calculateParticleSpeeds = calculate;
-}
-
-void genericfsim::manager::SimulationManager::setCalculateParticleDensities(bool calculate)
-{
-	calculateParticleDensities = calculate;
-}
-
 std::vector<SimulationManager::ParticleGfxData> SimulationManager::getParticleGfxData() {
 	std::unique_lock lock(sharedDataMutex);
 	return particleData;
@@ -230,23 +220,15 @@ void SimulationManager::simulationThreadWorker() {
 			while (particleData.size() > hashedParticles->getParticleNum())
 				particleData.pop_back();
 
-			if(calculateParticleDensities)
-				hashedParticles->forEach(true, [&](Particle& p, int index) {
-					particleData[index].pos = glm::vec3(p.pos.x, p.pos.y, p.pos.z);
-					if (calculateParticleSpeeds)
-						particleData[index].v = glm::length(p.v);
-					float density = 0;
-					auto cells = macGrid->getCellsAround(p.pos);
-					for (auto& c : cells)
-						density += trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum;
-					particleData[index].density = density;
-				});
-			else
-				hashedParticles->forEach(false, [&](Particle& p, int index) {
-					particleData[index].pos = glm::vec3(p.pos.x, p.pos.y, p.pos.z);
-					if (calculateParticleSpeeds)
-						particleData[index].v = glm::length(p.v);
-				});
+			hashedParticles->forEach(true, [&](Particle& p, int index) {
+				particleData[index].pos = glm::vec3(p.pos.x, p.pos.y, p.pos.z);
+				particleData[index].v = glm::length(p.v);
+				float density = 0;
+				auto cells = macGrid->getCellsAround(p.pos);
+				for (auto& c : cells)
+					density += trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum;
+				particleData[index].density = density;
+			});
 
 			particleNum = currentParticleNum = hashedParticles->getParticleNum();
 

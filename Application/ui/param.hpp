@@ -22,53 +22,6 @@ protected:
     const std::string name;
 };
 
-class ParamLine : public ImguiShowable
-{
-public:
-	ParamLine(std::initializer_list<Param*> params) : params(params) { }
-
-	void show(int screenWidth) override
-	{
-		for (int i = 0; i < params.size(); i++)
-		{
-			params[i]->show(screenWidth);
-			if (i < params.size() - 1)
-				ImGui::SameLine();
-		}
-	}
-
-private:
-	std::vector<Param*> params;
-};
-
-class ParamLineCollection : public ImguiShowable
-{
-public:
-	void addParamLines(std::initializer_list<ParamLine> paramLines)
-	{
-		for (auto& line : paramLines)
-		{
-			this->paramLines.push_back(line);
-		}
-	}
-
-	void addParamLine(ParamLine line)
-	{
-		paramLines.push_back(line);
-	}
-
-	void show(int screenWidth) override
-	{
-		for (auto& line : paramLines)
-		{
-			line.show(screenWidth);
-		}
-	}
-
-private:
-	std::vector<ParamLine> paramLines;
-};
-
 class ParamFloat : public Param
 {
 public:
@@ -131,4 +84,57 @@ public:
 	{
 		ImGui::ColorEdit3(name.c_str(), (float*)&value, ImGuiColorEditFlags_NoInputs);
 	}
+};
+
+class ParamLine : public ImguiShowable
+{
+public:
+	ParamLine(std::initializer_list<Param*> params) : params(params), renderEnabledParam(nullptr) {}
+
+	ParamLine(std::initializer_list<Param*> params, const ParamBool* renderEnabledParam) 
+		: params(params), renderEnabledParam(renderEnabledParam) {}
+
+	void show(int screenWidth) override
+	{
+		if(renderEnabledParam != nullptr && !renderEnabledParam->value)
+			return;
+		for (int i = 0; i < params.size(); i++)
+		{
+			params[i]->show(screenWidth);
+			if (i < params.size() - 1)
+				ImGui::SameLine();
+		}
+	}
+
+private:
+	const ParamBool* renderEnabledParam;
+	std::vector<Param*> params;
+};
+
+class ParamLineCollection : public ImguiShowable
+{
+public:
+	void addParamLines(std::initializer_list<ParamLine> paramLines)
+	{
+		for (auto& line : paramLines)
+		{
+			this->paramLines.push_back(line);
+		}
+	}
+
+	void addParamLine(ParamLine line)
+	{
+		paramLines.push_back(line);
+	}
+
+	void show(int screenWidth) override
+	{
+		for (auto& line : paramLines)
+		{
+			line.show(screenWidth);
+		}
+	}
+
+private:
+	std::vector<ParamLine> paramLines;
 };

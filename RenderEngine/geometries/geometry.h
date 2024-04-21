@@ -73,10 +73,11 @@ protected:
 	 * \param data - The data to be stored in the VBO
 	 * \param attributes - The attributes of the data
 	 * \param isDynamic - Whether the data will be updated frequently
+	 * \param isInt - Whether the data is of integer type
 	 * \return The id of the created VBO
 	 */
 	template<typename T>
-	GLuint createVbo(const std::vector<T>& data, const std::vector<ArrayAttribute>& attributes, bool isDynamic = false)
+	GLuint createVbo(const std::vector<T>& data, const std::vector<ArrayAttribute>& attributes, bool isDynamic = false, bool isInt = false)
 	{
 		bindVao();
 		GLuint vboId;
@@ -87,7 +88,10 @@ protected:
 		for (auto& attrib : attributes)
 		{
 			glEnableVertexAttribArray(attrib.id);
-			glVertexAttribPointer(attrib.id, attrib.size, attrib.type, GL_FALSE, sizeof(T), (void*)attrib.offset);
+			if(isInt)
+				glVertexAttribIPointer(attrib.id, attrib.size, attrib.type, sizeof(T), (void*)attrib.offset);
+			else
+				glVertexAttribPointer(attrib.id, attrib.size, attrib.type, GL_FALSE, sizeof(T), (void*)attrib.offset);
 		}
 		vboSizes.insert(std::make_pair(vboId, vboData));
 		unbindVao();
@@ -228,12 +232,13 @@ protected:
 	 * \param data - The data to be stored in the VBO
 	 * \param attributes - The attributes of the data
 	 * \param isDynamic - Whether the data will be updated frequently
+	 * \param isInt - Whether the data is of integer type
 	 * \return The id of the created VBO
 	 */
 	template<typename T>
-	GLuint createVboPerInstance(const std::vector<T>& data, const std::vector<ArrayAttribute>& attributes, bool isDynamic = false)
+	GLuint createVboPerInstance(const std::vector<T>& data, const std::vector<ArrayAttribute>& attributes, bool isDynamic = false, bool isInt = false)
 	{
-		GLuint vboId = geometry->createVbo(data, attributes, isDynamic);
+		GLuint vboId = geometry->createVbo(data, attributes, isDynamic, isInt);
 		geometry->bindVao();
 		for(auto& attrib : attributes)
 		{

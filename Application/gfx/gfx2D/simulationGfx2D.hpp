@@ -55,8 +55,6 @@ private:
 
 	void updateParticles() {
 		particlesGfx->setScale(glm::vec3(simulator->getConfig().particleRadius, simulator->getConfig().particleRadius, 1));
-		simulator->setCalculateParticleSpeeds(particleSpeedColorEnabled.value);
-		simulator->setCalculateParticleDensities(false);
 		auto particles = simulator->getParticleGfxData();
 		int particleNum = particles.size();
 		particlesGfx->drawable->setActiveInstanceNum(particleNum);

@@ -115,8 +115,6 @@ void SimulationGfx3D::handleScreenChanged()
 
 void SimulationGfx3D::drawParticles()
 {
-	simulationManager->setCalculateParticleSpeeds(particleSpeedColorEnabled.value);
-	simulationManager->setCalculateParticleDensities(false);
 	auto particles = simulationManager->getParticleGfxData();
 	auto& geometry = *(ballsGfx->drawable);
 	const int particleNum = particles.size();

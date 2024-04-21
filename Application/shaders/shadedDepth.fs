@@ -7,8 +7,11 @@ in vec2 texCoord;
 
 uniform sampler2D depthTexture;
 uniform sampler2D thicknessTexture;
+uniform sampler2D noiseTexture;
 uniform float transparency;
 uniform int transparencyEnabled;
+uniform int noiseEnabled;
+uniform float noiseStrength;
 
 uniform struct{
     mat4 viewMatrix;
@@ -59,9 +62,27 @@ vec3 shade(vec4 worldPos, vec4 normal, vec4 viewDir, vec4 lightPos, vec3 powerDe
     return powerDensity * (materialColor.xyz * lightCos + object.specularColor.xyz * pow(shine, object.shininess)) / d2;
 }
 
+vec4 getEyeSpaceNormal(sampler2D sampleTexture, float initialSample, vec2 texCoord) {
+	vec2 texelSize = vec2(1.0, 1.0) / textureSize(sampleTexture, 0);
+	
+	vec3 posEye = uvToEye(texCoord, initialSample);
+	
+	vec3 ddx = getEyePos(sampleTexture, texCoord + vec2(texelSize.x, 0)) - posEye;
+	vec3 ddx2 = posEye - getEyePos(sampleTexture, texCoord + vec2(-texelSize.x, 0));
+	if (abs(ddx.z) > abs(ddx2.z)) {
+		ddx = ddx2;
+	}
+	vec3 ddy = getEyePos(sampleTexture, texCoord + vec2(0, texelSize.y)) - posEye;
+	vec3 ddy2 = posEye - getEyePos(sampleTexture, texCoord + vec2(0, -texelSize.y));
+	if (abs(ddy2.z) < abs(ddy.z)) {
+		ddy = ddy2;
+	}
+	
+	return vec4(normalize(cross(ddx, ddy)), 0);
+}
+
 void main(){
 	float depth = texture(depthTexture, texCoord).x;
-	vec2 texelSize = vec2(1.0, 1.0) / textureSize(depthTexture, 0);
 	if (depth == 1.0f) {
 		discard;
 		return;
@@ -70,27 +91,16 @@ void main(){
 	gl_FragDepth = depth;
 	
 	vec3 posEye = uvToEye(texCoord, depth);
-	
-	vec3 ddx = getEyePos(depthTexture, texCoord + vec2(texelSize.x, 0)) - posEye;
-	vec3 ddx2 = posEye - getEyePos(depthTexture, texCoord + vec2(-texelSize.x, 0));
-	if (abs(ddx.z) > abs(ddx2.z)) {
-		ddx = ddx2;
-	}
-	vec3 ddy = getEyePos(depthTexture, texCoord + vec2(0, texelSize.y)) - posEye;
-	vec3 ddy2 = posEye - getEyePos(depthTexture, texCoord + vec2(0, -texelSize.y));
-	if (abs(ddy2.z) < abs(ddy.z)) {
-		ddy = ddy2;
-	}
-	
-	
-	
-	vec4 normal = vec4(cross(ddx, ddy), 0);
-	normal = camera.viewMatrixInverse * normalize(normal);
+	vec4 normal = camera.viewMatrixInverse * getEyeSpaceNormal(depthTexture, depth, texCoord);
 	vec4 worldPosition = camera.viewMatrixInverse * vec4(posEye, 1.0);
 	
 	if(transparencyEnabled == 1){
 		float thickness = texture(thicknessTexture, texCoord).x;
 		fragmentColor = vec4(0.0, 0.0, 0.0, exp(-transparency * thickness));
+		if(noiseEnabled == 1) {
+			vec4 noiseNormal = camera.viewMatrixInverse * getEyeSpaceNormal(noiseTexture, texture(noiseTexture, texCoord).r, texCoord);
+			normal = normalize(normal + noiseNormal * noiseStrength);
+		}
 	}else{
 		fragmentColor = vec4(0.0, 0.0, 0.0, object.diffuseColor.a);
 	}
@@ -102,4 +112,6 @@ void main(){
 		
         fragmentColor.rgb += shade(worldPosition, normal, viewDir, lightPositionOrDir, powerDensity, object.diffuseColor);
     }
+	
+	//fragmentColor = vec4(texture(noiseTexture, texCoord).r, 0, 0, 0);
 }

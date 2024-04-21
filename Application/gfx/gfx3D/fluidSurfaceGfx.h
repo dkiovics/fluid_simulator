@@ -35,8 +35,13 @@ public:
 	ParamFloat fluidTransparencyBlurSize = ParamFloat("Fluid thickness blur size", 2.4f, 0.01f, 6.0f);
 	ParamFloat fluidTransparency = ParamFloat("Fluid transparency", 0.75f, 0.0f, 3.0f);
 
+	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", false);
+	ParamFloat fluidSurfaceNoiseScale = ParamFloat("Noise scale", 1.0f, 0.01f, 5.0f);
+	ParamFloat fluidSurfaceNoiseSpeedCoeff = ParamFloat("Noise speed coeff", 0.1f, 0.0f, 1.0f);
+	ParamFloat fluidSurfaceNoiseStrength = ParamFloat("Noise strength", 0.1f, 0.0f, 1.0f);
+
 private:
-	void updateParticleColorsAndPositions();
+	void updateParticleData();
 
 	std::shared_ptr<renderer::RenderEngine> engine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager;
@@ -47,11 +52,11 @@ private:
 	std::shared_ptr<renderer::ShaderProgram> gaussianBlurShader;
 	std::shared_ptr<renderer::ShaderProgram> bilateralFilterShader;
 	std::shared_ptr<renderer::ShaderProgram> shadedDepthShader;
-	std::shared_ptr<renderer::ShaderProgram> fluidThicknessShader;
+	std::shared_ptr<renderer::ShaderProgram> fluidThicknessAndNoiseShader;
 	std::shared_ptr<renderer::ShaderProgram> fluidThicknessBlurShader;
 
-	std::unique_ptr<renderer::Object3D<renderer::BasicPosGeometryArray>> surfaceSquareArrayObject;
-	std::unique_ptr<renderer::Object3D<renderer::BasicPosGeometryArray>> spraySquareArrayObject;
+	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> surfaceSquareArrayObject;
+	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> spraySquareArrayObject;
 	std::unique_ptr<renderer::Square> square;
 	std::unique_ptr<renderer::Object3D<renderer::Square>> shadedSquareObject;
 
@@ -59,6 +64,7 @@ private:
 	std::unique_ptr<renderer::Framebuffer> depthFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> depthBlurTmpFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessFramebuffer;
+	std::unique_ptr<renderer::Framebuffer> fluidThicknessAndNoiseFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessBlurTmpFramebuffer;
 
 	glm::vec3 prevColor = glm::vec3(0.0f);

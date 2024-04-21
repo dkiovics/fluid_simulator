@@ -343,7 +343,6 @@ void startSimulatorGui() {
             else {
                 if(prevParticleNum != particleNum)
                     simulationManager->setParticleNum(particleNum);
-                simulationManager->setCalculateParticleSpeeds(true);
                 simulationManager->setConfig(*config);
             }
         }
