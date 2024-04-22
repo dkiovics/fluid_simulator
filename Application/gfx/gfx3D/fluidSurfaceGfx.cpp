@@ -75,6 +75,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	addParamLine(ParamLine({ &fluidTransparencyBlurSize, &fluidTransparency }, &fluidTransparencyEnabled));
 	addParamLine(ParamLine({ &fluidSurfaceNoiseEnabled }));
 	addParamLine(ParamLine({ &fluidSurfaceNoiseScale, &fluidSurfaceNoiseStrength }, &fluidSurfaceNoiseEnabled));
+	addParamLine(ParamLine({ &fluidSurfaceNoiseSpeed }, &fluidSurfaceNoiseEnabled));
 }
 
 void FluidSurfaceGfx::render()
@@ -148,7 +149,7 @@ void FluidSurfaceGfx::render()
 		glBlendFunc(GL_ONE, GL_ONE);
 		glEnable(GL_BLEND);
 		surfaceSquareArrayObject->drawable->draw();
-		if(sprayEnabled.value)
+		if (sprayEnabled.value)
 			spraySquareArrayObject->drawable->draw();
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
@@ -188,8 +189,13 @@ void FluidSurfaceGfx::render()
 	(*shadedDepthShader)["transparency"] = fluidTransparency.value;
 	(*shadedDepthShader)["transparencyEnabled"] = fluidTransparencyEnabled.value;
 	(*shadedDepthShader)["noiseEnabled"] = fluidSurfaceNoiseEnabled.value;
-	(*shadedDepthShader)["noiseScale"] = fluidSurfaceNoiseScale.value;
-	(*shadedDepthShader)["noiseStrength"] = fluidSurfaceNoiseStrength.value;
+	if (fluidSurfaceNoiseEnabled.value)
+	{
+		(*shadedDepthShader)["noiseScale"] = fluidSurfaceNoiseScale.value;
+		(*shadedDepthShader)["noiseStrength"] = fluidSurfaceNoiseStrength.value;
+		(*shadedDepthShader)["noiseOffset"] = noiseOffset;
+		noiseOffset += fluidSurfaceNoiseSpeed.value * 10.0 * engine->getLastFrameTime();
+	}
 	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
 	shadedSquareObject->draw();
 	glDisable(GL_BLEND);

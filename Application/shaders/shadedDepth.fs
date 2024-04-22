@@ -12,6 +12,7 @@ uniform int transparencyEnabled;
 uniform int noiseEnabled;
 uniform float noiseScale;
 uniform float noiseStrength;
+uniform float noiseOffset;
 uniform int lightNum;
 
 uniform struct{
@@ -39,6 +40,10 @@ vec3 uvToEye(vec2 texCoord, float depth) {
 	return eyeSpacePos.xyz / eyeSpacePos.w;
 }
 
+vec3 uvToWorldPos(vec2 texCoord, float depth) {
+	return (camera.viewMatrixInverse * vec4(uvToEye(texCoord, depth), 1.0)).xyz;
+}
+
 vec3 shade(vec4 worldPos, vec4 normal, vec4 viewDir, vec4 lightPos, vec3 powerDensity, vec4 materialColor) {
 	vec3 frag2light = lightPos.xyz - worldPos.xyz * lightPos.w;
     vec4 lightDir = vec4(normalize(frag2light), 0);
@@ -58,24 +63,25 @@ vec3 shade(vec4 worldPos, vec4 normal, vec4 viewDir, vec4 lightPos, vec3 powerDe
 
 float cnoise(vec3 P);
 
-vec3 getNoiseOffsetEyeSpacePos(vec2 texCoord) {
+vec3 getNoiseOffsetWorldSpacePos(vec2 texCoord) {
 	vec4 normalAndDepth = texture(normalAndDepthTexture, texCoord);
-	vec3 eyeSpacePos = uvToEye(texCoord, normalAndDepth.a);
-	float noise = cnoise(eyeSpacePos * noiseScale);
-	return eyeSpacePos + normalAndDepth.xyz * noise;
+	vec3 worldSpacePos = uvToWorldPos(texCoord, normalAndDepth.a);
+	vec3 pos = worldSpacePos * noiseScale;
+	float noise = cnoise(vec3(pos.x + noiseOffset, pos.y, pos.z)) + cnoise(vec3(-pos.x + noiseOffset, pos.y + noiseOffset, pos.z));
+	return worldSpacePos + normalAndDepth.xyz * noise;
 }
 
 vec3 getNormalWithNoise() {
-	vec3 posEye = getNoiseOffsetEyeSpacePos(texCoord);
+	vec3 posEye = getNoiseOffsetWorldSpacePos(texCoord);
 	vec2 texelSize = vec2(1.0, 1.0) / textureSize(normalAndDepthTexture, 0);
 	
-	vec3 ddx = getNoiseOffsetEyeSpacePos(texCoord + vec2(texelSize.x, 0)) - posEye;
-	vec3 ddx2 = posEye - getNoiseOffsetEyeSpacePos(texCoord + vec2(-texelSize.x, 0));
+	vec3 ddx = getNoiseOffsetWorldSpacePos(texCoord + vec2(texelSize.x, 0)) - posEye;
+	vec3 ddx2 = posEye - getNoiseOffsetWorldSpacePos(texCoord + vec2(-texelSize.x, 0));
 	if (abs(ddx.z) > abs(ddx2.z)) {
 		ddx = ddx2;
 	}
-	vec3 ddy = getNoiseOffsetEyeSpacePos(texCoord + vec2(0, texelSize.y)) - posEye;
-	vec3 ddy2 = posEye - getNoiseOffsetEyeSpacePos(texCoord + vec2(0, -texelSize.y));
+	vec3 ddy = getNoiseOffsetWorldSpacePos(texCoord + vec2(0, texelSize.y)) - posEye;
+	vec3 ddy2 = posEye - getNoiseOffsetWorldSpacePos(texCoord + vec2(0, -texelSize.y));
 	if (abs(ddy2.z) < abs(ddy.z)) {
 		ddy = ddy2;
 	}
@@ -92,7 +98,7 @@ void main(){
 	gl_FragDepth = normalAndDepth.a;
 	
 	vec3 posEye = uvToEye(texCoord, normalAndDepth.a);
-	vec4 normal = camera.viewMatrixInverse * vec4(normalAndDepth.xyz, 0);
+	vec4 normal = vec4(normalAndDepth.xyz, 0);
 	vec4 worldPosition = camera.viewMatrixInverse * vec4(posEye, 1.0);
 	
 	if(noiseEnabled == 1) {

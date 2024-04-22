@@ -350,7 +350,7 @@ void startSimulatorGui() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(window);
+        engine->swapBuffers();
         while (fpsCapTo60 && std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - prevTime).count() < 16666) { }
     }
 

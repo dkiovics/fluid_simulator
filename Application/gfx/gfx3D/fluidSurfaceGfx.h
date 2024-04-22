@@ -28,16 +28,17 @@ public:
 	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 2.4f, 0.01f, 6.0f);
 	ParamFloat blurScale = ParamFloat("Blur scale", 0.083f, 0.01f, 0.4f);
 	ParamFloat blurDepthFalloff = ParamFloat("Blur depth falloff", 1100.0f, 100.0f, 10000.0f);
-	ParamBool sprayEnabled = ParamBool("Spray", false);
+	ParamBool sprayEnabled = ParamBool("Spray", true);
 	ParamFloat sprayDensityThreashold = ParamFloat("Spray density threashold", 1.2f, 0.0f, 10.0f);
 
-	ParamBool fluidTransparencyEnabled = ParamBool("Transparent fluid", false);
+	ParamBool fluidTransparencyEnabled = ParamBool("Transparent fluid", true);
 	ParamFloat fluidTransparencyBlurSize = ParamFloat("Fluid thickness blur size", 2.4f, 0.01f, 6.0f);
-	ParamFloat fluidTransparency = ParamFloat("Fluid transparency", 0.75f, 0.0f, 3.0f);
+	ParamFloat fluidTransparency = ParamFloat("Fluid transparency", 1.334f, 0.0f, 3.0f);
 
-	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", false);
-	ParamFloat fluidSurfaceNoiseScale = ParamFloat("Noise scale", 1.0f, 0.01f, 5.0f);
-	ParamFloat fluidSurfaceNoiseStrength = ParamFloat("Noise strength", 0.1f, 0.0f, 1.0f);
+	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", true);
+	ParamFloat fluidSurfaceNoiseScale = ParamFloat("Noise scale", 0.956f, 0.01f, 5.0f);
+	ParamFloat fluidSurfaceNoiseStrength = ParamFloat("Noise strength", 0.123f, 0.0f, 1.0f);
+	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317, 0.0f, 1.0f);
 
 private:
 	void updateParticleData();
@@ -70,4 +71,5 @@ private:
 	glm::vec3 prevColor = glm::vec3(0.0f);
 	bool particleSpeedColorWasEnabled = false;
 	unsigned int prevParticleNum = 0;
+	float noiseOffset = 0.0f;
 };

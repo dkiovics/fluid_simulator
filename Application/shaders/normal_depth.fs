@@ -9,6 +9,7 @@ uniform sampler2D depthTexture;
 
 uniform struct{
     mat4 viewMatrix;
+	mat4 viewMatrixInverse;
 	mat4 projectionMatrix;
 	mat4 projectionMatrixInverse;
     vec4 position;
@@ -46,7 +47,7 @@ void main(){
 		ddy = ddy2;
 	}
 	
-	vec3 normal = normalize(cross(ddx, ddy));
+	vec3 normal = (camera.viewMatrixInverse * vec4(normalize(cross(ddx, ddy)), 0.0)).xyz;
 	
 	normalAndDepth = vec4(normal, depth);
 }

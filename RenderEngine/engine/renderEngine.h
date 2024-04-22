@@ -89,6 +89,17 @@ public:
 	void makeWindowContextcurrent();
 
 	/**
+	 * \brief Swaps the front and back buffers
+	 */
+	void swapBuffers();
+
+	/**
+	 * \brief Returns the length of the last frame in seconds
+	 * \return The length of the last frame in seconds
+	 */
+	double getLastFrameTime() const;
+
+	/**
 	 * \brief Sets the viewport to the given values
 	 * 
 	 * \param x - x position of the viewport
@@ -123,6 +134,9 @@ private:
 	unsigned int screenHeight;
 
 	unsigned int activeProgram = 65535;
+
+	double lastEndTime = 0.0;
+	double lastFrameTime = 0.0;
 };
 
 } // namespace renderer

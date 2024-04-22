@@ -164,6 +164,19 @@ void RenderEngine::makeWindowContextcurrent()
 	glfwMakeContextCurrent(window);
 }
 
+void renderer::RenderEngine::swapBuffers()
+{
+	glfwSwapBuffers(window);
+	double currentTime = glfwGetTime();
+	lastFrameTime = currentTime - lastEndTime;
+	lastEndTime = currentTime;
+}
+
+double renderer::RenderEngine::getLastFrameTime() const
+{
+	return lastFrameTime;
+}
+
 void RenderEngine::setViewport(int x, int y, int width, int height)
 {
 	glViewport(x, y, width, height);
