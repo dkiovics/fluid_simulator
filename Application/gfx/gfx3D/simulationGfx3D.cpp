@@ -121,7 +121,6 @@ void SimulationGfx3D::drawParticles()
 	const float maxSpeedInv = 1.0f / maxParticleSpeed.value;
 	geometry.setActiveInstanceNum(particleNum);
 
-#pragma omp parallel for
 	for (int p = 0; p < particleNum; p++)
 	{
 		geometry.setOffset(p, glm::vec4(particles[p].pos, 0));

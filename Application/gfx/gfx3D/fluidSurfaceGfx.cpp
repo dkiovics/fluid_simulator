@@ -250,7 +250,6 @@ void FluidSurfaceGfx::updateParticleData()
 	}
 	else
 	{
-#pragma omp parallel for
 		for (int p = 0; p < particleNum; p++)
 		{
 			surfaceSquareArray->setOffset(p, glm::vec4(particles[p].pos, 1.0f));
