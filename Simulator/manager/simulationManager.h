@@ -74,6 +74,7 @@ public:
 	struct ParticleGfxData {
 		glm::vec3 pos;
 		float v;
+		float density;
 	};
 	/**
 	 * Returns the gfx data of all particles.
@@ -81,13 +82,6 @@ public:
 	 * \return - an array with all the particle positions and speeds (speeds are used for visualization).
 	 */
 	std::vector<ParticleGfxData> getParticleGfxData();
-
-	/**
-	 * Sets whether or not to update the particle speeds in the ParticleGfxData array in each iteration.
-	 * 
-	 * \param calculate - if true, the speeds will be calculated
-	 */
-	void setCalculateParticleSpeeds(bool calculate);
 
 	/**
 	 * Gets a reference for a paricle with a certain index. Be careful, because the particle data might be changed by another thread.
@@ -235,7 +229,6 @@ private:
 
 	std::condition_variable simulationStepVar;
 	
-	std::atomic<bool> calculateParticleSpeeds = false;
 	std::atomic<bool> autoDt = true;
 	std::atomic<double> dtVal = 0.01;
 	std::atomic<bool> run = false;

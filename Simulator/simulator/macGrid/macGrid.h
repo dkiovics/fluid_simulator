@@ -40,6 +40,14 @@ public:
 	std::array<std::array<MacGridCell::FaceRef, 8>, 3> getFacesAround(const glm::dvec3& pos);
 
 	/**
+	 * \brief Returns the cell closest to the given pos.
+	 * 
+	 * \param pos - a point in space
+	 * \return - the cell
+	 */
+	MacGridCell& getCellAt(const glm::dvec3& pos);
+
+	/**
 	 * Returns all 8 cells closest to a point in space.
 	 * 
 	 * \param pos - a point in space

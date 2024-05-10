@@ -8,15 +8,24 @@
 #include <set>
 #include <optional>
 #include <functional>
+#include <glm/glm.hpp>
 
-#include "engineGeometry.h"
 #include "callback.hpp"
 
+namespace renderer
+{
 
-class RenderEngine {
+/**
+ * \brief This class is responsible for a given rendering context, it must be created before any other
+ * object in the "renderer" namespace is created and must be destroyed after all other objects are destroyed.
+ * \brief You also must make sure that the context is current before creating any object in the "renderer" namespace
+ * in the same thread for a given context.
+ */
+class RenderEngine
+{
 private:
 	static std::unordered_map<GLFWwindow*, RenderEngine*> engineWindowPairs;
-	
+
 	static RenderEngine* getEngine(GLFWwindow* window);
 
 	static void framebufferSizeChangedCallback(GLFWwindow* window, int width, int height);
@@ -27,73 +36,96 @@ private:
 	static void keyCallbackFun(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 public:
+	/**
+	* \brief Returns the instance of the RenderEngine class that is associated with the current thread context
+	* \return The instance of the RenderEngine class
+	*/
+	static RenderEngine& getInstance();
+
 	RenderEngine(int screenWidth, int screenHeight, std::string name);
 
 	~RenderEngine();
 
-	/*
-	* Also binds texture0-texture9 to sampler 0-9
-	*/
-	unsigned int createGPUProgram(std::string vertexShaderName, std::string fragmentShaderName);
-	void deleteGPUProgram(unsigned int id);
-
+	/**
+	 * \brief Activates the program with the given id, if the program is already active, nothing happens
+	 * \param program - id of the program to activate
+	 */
 	void activateGPUProgram(unsigned int program);
 
-	void drawGeometryArray(unsigned int geometry, int num = -1) const;
-
+	/**
+	 * \brief Renders wireframe only if enable is true
+	 * \param enable - if true, wireframe is rendered, if false, normal rendering is done
+	 */
 	void renderWireframeOnly(bool enable);
 
-	void setUniformInt(unsigned int program, std::string name, int value);
-	void setUniformFloat(unsigned int program, std::string name, float value);
-	void setUniformVec2(unsigned int program, std::string name, glm::vec2 value);
-	void setUniformVec3(unsigned int program, std::string name, glm::vec3 value);
-	void setUniformVec4(unsigned int program, std::string name, glm::vec4 value);
-	void setUniformMat4(unsigned int program, std::string name, glm::mat4 value);
-	void setUniformSampler(unsigned int program, std::string name, int value);
+	/**
+	 * \brief Enables or disables depth test
+	 * \param enable - if true, depth test is enabled, if false, depth test is disabled
+	 */
+	void enableDepthTest(bool enable);
 
-	void clearViewport(const glm::vec4& color, int bufferBits);
+	/**
+	 * \brief Clear the viewport color and depth buffer with the given values
+	 * \param color - color to clear the viewport with
+	 * \param depth - depth value to clear the viewport with
+	 */
+	void clearViewport(const glm::vec4& color, const float depth);
+	
+	/**
+	 * \brief Clear the viewport color buffer with the given color
+	 * \param color - color to clear the viewport with
+	 */
+	void clearViewport(const glm::vec4& color);
 
-	/*
-	* In the vertex shader the input locations are:
-	*	0  - vertex position vec3
-	*	1  - vertex normal vec3
-	*	2  - texture position vec2
-	*	10 - object position vec3 (per instance)
-	*	11 - object ambient color vec3 (pre instance)
-	*/
-	unsigned int createGeometryArray(InputGeometryArray& input);
-	void updatePosition(unsigned int geometryId, std::vector<glm::vec3>& position, int num = -1);
-	void updateColor(unsigned int geometryId, std::vector<glm::vec4>& color, int num = -1);
-	void removeGeometryArray(unsigned int geometry);
+	/**
+	 * \brief Clear the viewport depth buffer with the given depth value
+	 * \param depth - depth value to clear the viewport with
+	 */
+	void clearViewport(const float depth);
 
-	unsigned int loadTexture(std::string name, int minSampler, int magSampler, bool repeatingTiles = false);
-	/*
-	* Creates a render target texture with a framebuffer
-	*	If no params are provided, it gets always automatically resized to the viewport size
-	* It needs to be rebinded (fbo and texture) after every resize (or every frame)
-	*/
-	unsigned int createRenderTargetTexture(int width = -1, int height = -1);
-	void bindTexture(unsigned int sampler, unsigned int texture);
-	void bindRenderTargetTexture(unsigned int sampler, unsigned int id);
-	void deleteTexture(unsigned int id);
-	void deleteRenderTargetTexture(unsigned int id);
-
+	/**
+	 * \brief Makes the window context current on the calling thread
+	 */
 	void makeWindowContextcurrent();
+
+	/**
+	 * \brief Swaps the front and back buffers
+	 */
+	void swapBuffers();
+
+	/**
+	 * \brief Returns the length of the last frame in seconds
+	 * \return The length of the last frame in seconds
+	 */
+	double getLastFrameTime() const;
+
+	/**
+	 * \brief Sets the viewport to the given values
+	 * 
+	 * \param x - x position of the viewport
+	 * \param y - y position of the viewport
+	 * \param width - width of the viewport
+	 * \param height - height of the viewport
+	 */
 	void setViewport(int x, int y, int width, int height);
 
-	/*
-	* If no params are provided, default framebuffer is binded
-	*/
-	void bindFramebuffer(unsigned int renderTargetTextureId = -1);
+	void bindDefaultFramebuffer();
 
 	unsigned int getScreenWidth() const;
 	unsigned int getScreenHeight() const;
+	
+	/**
+	 * \brief Returns the window associated with this render engine
+	 * 
+	 * \return The window associated with this render engine
+	 */
 	GLFWwindow* getWindow() const;
 
 	Callback<double, double> mouseCallback;
 	Callback<double, double> scrollCallback;
 	Callback<int, int, int> mouseButtonCallback;
 	Callback<int, int, int, int> keyCallback;
+	Callback<int, int> framebufferSizeCallback;
 
 private:
 	GLFWwindow* window;
@@ -101,31 +133,10 @@ private:
 	unsigned int screenWidth;
 	unsigned int screenHeight;
 
-	struct InternalGeometryArray {
-		unsigned int vaoId, vboId, indexId, posId, colorId;
-		bool hasIndexes = false;
-		int arraySize;
-		int renderAs;
-		int renderVertexNum;
-	};
-
-	struct RenderTargetTexture {
-		bool autoResize;
-		int width;
-		int height;
-		unsigned int fbo;
-		unsigned int rbo;
-		unsigned int textureId;
-	};
-
 	unsigned int activeProgram = 65535;
 
-	std::set<unsigned int> shaderPrograms;
-	std::set<unsigned int> textures;
-	std::unordered_map<unsigned int, RenderTargetTexture> renderTargetTextures;
-	std::unordered_map<unsigned int, InternalGeometryArray> internalGeometryArrayMap;
-	unsigned int geometryIdCounter = 0;
-	unsigned int renderTargetIdCounter = 0;
-
-	void removeInternalGeometry(InternalGeometryArray& geometry);
+	double lastEndTime = 0.0;
+	double lastFrameTime = 0.0;
 };
+
+} // namespace renderer
