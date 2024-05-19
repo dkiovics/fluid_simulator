@@ -5,13 +5,13 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)
 	: engine(engine), simulationManager(simulationManager), camera(camera), lights(lights), renderTargetFramebuffer(renderTargetFramebuffer)
 {
-	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_depth.fs", engine);
-	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/gaussian.fs", engine);
-	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/shadedDepth.fs", engine);
-	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/bilateral.fs", engine);
-	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vs", "shaders/particle_sprites_thickness.fs", engine);
-	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/gaussian_thickness.fs", engine);
-	normalAndDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/normal_depth.fs", engine);
+	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_depth.frag");
+	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian.frag");
+	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/shadedDepth.frag");
+	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/bilateral.frag");
+	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_thickness.frag");
+	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian_thickness.frag");
+	normalAndDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/normal_depth.frag");
 
 	surfaceSquareArrayObject = std::make_unique<renderer::Object3D<renderer::ParticleGeometryArray>>
 		(std::make_shared<renderer::ParticleGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);

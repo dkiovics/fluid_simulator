@@ -15,17 +15,17 @@ class UniformProvider
 {
 public:
 	/**
-	* \brief Sets the uniforms of the given ShaderProgram.
-	* \param program - The ShaderProgram to set the uniforms of.
+	* \brief Sets the uniforms of the given GpuProgram.
+	* \param program - The GpuProgram to set the uniforms of.
 	* \param prefix - The prefix to use for the uniform names.
 	*/
-	virtual void setUniforms(const ShaderProgram& program, const std::string& prefix = "") const = 0;
+	virtual void setUniforms(const GpuProgram& program, const std::string& prefix = "") const = 0;
 };
 
 class UniformGatherer : public UniformProvider
 {
 public:
-	void setUniforms(const ShaderProgram& program, const std::string& prefix = "") const override
+	void setUniforms(const GpuProgram& program, const std::string& prefix = "") const override
 	{
 		for (const UniformProvider* provider : providers)
 		{
@@ -80,7 +80,7 @@ public:
 	* \brief Adds the given ShaderPrograms to the list of programs to set the uniforms of whenever the uniforms change.
 	* \param args - The ShaderPrograms to add.
 	*/
-	void addProgram(std::initializer_list<std::shared_ptr<ShaderProgram>> args)
+	void addProgram(std::initializer_list<std::shared_ptr<GpuProgram>> args)
 	{
 		for (auto& p : args)
 		{
@@ -101,13 +101,13 @@ public:
 
 protected:
 	/**
-	* \brief Sets the uniforms of the given ShaderProgram.
-	* \param program - The ShaderProgram to set the uniforms of.
+	* \brief Sets the uniforms of the given GpuProgram.
+	* \param program - The GpuProgram to set the uniforms of.
 	*/
-	virtual void setUniformsGlobal(const ShaderProgram& program) const = 0;
+	virtual void setUniformsGlobal(const GpuProgram& program) const = 0;
 
 private:
-	std::vector<std::shared_ptr<ShaderProgram>> programs;
+	std::vector<std::shared_ptr<GpuProgram>> programs;
 };
 
 template<typename V>
@@ -120,7 +120,7 @@ public:
 	 */
 	UniformVariable(const std::string& name) : name(name) { }
 
-	void setUniforms(const ShaderProgram& program, const std::string& prefix = "") const override
+	void setUniforms(const GpuProgram& program, const std::string& prefix = "") const override
 	{
 		if (value.has_value())
 		{
@@ -179,7 +179,7 @@ public:
 	UniformVariable(const UniformVariable&) = delete;
 	UniformVariable& operator=(const UniformVariable&) = delete;
 
-	void setUniforms(const ShaderProgram& program, const std::string& prefix) const override
+	void setUniforms(const GpuProgram& program, const std::string& prefix) const override
 	{
 		if (value)
 		{
@@ -222,7 +222,7 @@ public:
 	UniformPointer(const UniformPointer&) = delete;
 	UniformPointer& operator=(const UniformPointer&) = delete;
 
-	void setUniforms(const ShaderProgram& program, const std::string& prefix) const override
+	void setUniforms(const GpuProgram& program, const std::string& prefix) const override
 	{
 		if (value)
 		{

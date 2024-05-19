@@ -30,9 +30,9 @@ private:
 
 	std::shared_ptr<renderer::Camera2D> camera;
 
-	std::shared_ptr<renderer::ShaderProgram> basicArrayProgram;
-	std::shared_ptr<renderer::ShaderProgram> basicArrayProgramSingleColor;
-	std::shared_ptr<renderer::ShaderProgram> basicProgram;
+	std::shared_ptr<renderer::GpuProgram> basicArrayProgram;
+	std::shared_ptr<renderer::GpuProgram> basicArrayProgramSingleColor;
+	std::shared_ptr<renderer::GpuProgram> basicProgram;
 
 	std::unique_ptr<renderer::Object2D<renderer::BasicGeometryArray>> gridlinesGfx;
 	std::unique_ptr<renderer::Object2D<renderer::BasicGeometryArray>> particlesGfx;
@@ -160,9 +160,9 @@ public:
 		auto dimensions = simulator->getDimensions();
 		camera = std::make_shared<renderer::Camera2D>(glm::vec2(dimensions.x, dimensions.y), glm::vec2(dimensions.x, dimensions.y) * 0.5f);
 
-		basicArrayProgram = std::make_shared<renderer::ShaderProgram>("shaders/basic2DArray.vs", "shaders/basic2D.fs", engine);
-		basicArrayProgramSingleColor = std::make_shared<renderer::ShaderProgram>("shaders/basic2DArraySingleColor.vs", "shaders/basic2D.fs", engine);
-		basicProgram = std::make_shared<renderer::ShaderProgram>("shaders/basic2D.vs", "shaders/basic2D.fs", engine);
+		basicArrayProgram = std::make_shared<renderer::ShaderProgram>("shaders/basic2DArray.vert", "shaders/basic2D.frag");
+		basicArrayProgramSingleColor = std::make_shared<renderer::ShaderProgram>("shaders/basic2DArraySingleColor.vert", "shaders/basic2D.frag");
+		basicProgram = std::make_shared<renderer::ShaderProgram>("shaders/basic2D.vert", "shaders/basic2D.frag");
 		camera->addProgram({ basicArrayProgram, basicArrayProgramSingleColor, basicProgram });
 		camera->setUniformsForAllPrograms();
 
