@@ -48,13 +48,13 @@ private:
 	std::shared_ptr<renderer::Camera3D> camera;
 	std::shared_ptr<renderer::Lights> lights;
 
-	std::shared_ptr<renderer::ShaderProgram> particleSpritesDepthShader;
-	std::shared_ptr<renderer::ShaderProgram> gaussianBlurShader;
-	std::shared_ptr<renderer::ShaderProgram> bilateralFilterShader;
-	std::shared_ptr<renderer::ShaderProgram> shadedDepthShader;
-	std::shared_ptr<renderer::ShaderProgram> fluidThicknessShader;
-	std::shared_ptr<renderer::ShaderProgram> fluidThicknessBlurShader;
-	std::shared_ptr<renderer::ShaderProgram> normalAndDepthShader;
+	std::shared_ptr<renderer::GpuProgram> particleSpritesDepthShader;
+	std::shared_ptr<renderer::GpuProgram> gaussianBlurShader;
+	std::shared_ptr<renderer::GpuProgram> bilateralFilterShader;
+	std::shared_ptr<renderer::GpuProgram> shadedDepthShader;
+	std::shared_ptr<renderer::GpuProgram> fluidThicknessShader;
+	std::shared_ptr<renderer::GpuProgram> fluidThicknessBlurShader;
+	std::shared_ptr<renderer::GpuProgram> normalAndDepthShader;
 
 	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> surfaceSquareArrayObject;
 	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> spraySquareArrayObject;

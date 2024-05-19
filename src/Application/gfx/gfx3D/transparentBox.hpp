@@ -26,7 +26,7 @@ private:
 
 public:
 	TransparentBox(const std::shared_ptr<renderer::Camera3D> camera, const glm::vec4& color, 
-		std::shared_ptr<renderer::ShaderProgram> gpuProgram) : camera(camera)
+		std::shared_ptr<renderer::GpuProgram> gpuProgram) : camera(camera)
 	{
 		std::shared_ptr<renderer::Square> side = std::make_shared<renderer::Square>();
 		for (int p = 0; p < 6; p++) 

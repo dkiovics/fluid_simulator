@@ -233,9 +233,9 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 {
 	this->screenStart = screenStart;
 	this->screenSize = screenSize;
-	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vs", "shaders/3D_object_textured.fs", engine);
-	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vs", "shaders/3D_object_not_textured.fs", engine);
-	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vs", "shaders/3D_objectArray.fs", engine);
+	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_textured.frag");
+	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_not_textured.frag");
+	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray.frag");
 
 	glm::dvec3 dim = simulationManager->getDimensions();
 	modelRotationPoint = glm::vec3(dim.x, dim.y, dim.z) * 0.5f;
@@ -281,7 +281,7 @@ SimulationGfx3D::SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine,
 	prevCellD = simulationManager->getCellD();
 	initGridLines();
 
-	showShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vs", "shaders/quad.fs", engine);
+	showShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/quad.frag");
 	showSquare = std::make_shared<renderer::Square>();
 	renderTargetTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
 	(*showShaderProgram)["colorTexture"] = *renderTargetTexture;
