@@ -13,6 +13,9 @@
 #include "manager/simulationManager.h"
 #include "../../ui/param.hpp"
 
+namespace gfx3D
+{
+
 class FluidSurfaceGfx : public ParamLineCollection
 {
 public:
@@ -73,3 +76,5 @@ private:
 	unsigned int prevParticleNum = 0;
 	float noiseOffset = 0.0f;
 };
+
+}	// namespace gfx3D

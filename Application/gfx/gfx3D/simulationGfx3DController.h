@@ -13,11 +13,13 @@
 #include "manager/simulationManager.h"
 #include "../gfxInterface.hpp"
 #include <vector>
-#include "transparentBox.hpp"
-#include "fluidSurfaceGfx.h"
+#include "diffRenderProxy.h"
 
 
-class SimulationGfx3D : public GfxInterface
+namespace gfx3D
+{
+
+class SimulationGfx3DController : public GfxInterface
 {
 private:
 	std::shared_ptr<renderer::RenderEngine> engine;
@@ -26,18 +28,7 @@ private:
 	std::shared_ptr<renderer::Camera3D> camera;
 	std::shared_ptr<renderer::Lights> lights;
 
-	std::unique_ptr<renderer::Object3D<renderer::Geometry>> planeGfx;
-	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> ballsGfx;
-
-	std::unique_ptr<TransparentBox> transparentBox;
-
 	std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>> obstacleGfxArray;
-
-	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesXGfx;
-	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesYGfx;
-	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesZGfx;
-
-	std::unique_ptr<FluidSurfaceGfx> fluidSurfaceGfx;
 
 	struct Hitbox
 	{
@@ -48,18 +39,7 @@ private:
 	int selectedObstacle = -1;
 	int lastSelectedObstacle = -1;
 
-	glm::vec3 prevColor;
-	unsigned int prevParticleNum;
-
-	glm::vec3 prevGridlineColor;
-	glm::dvec3 prevCellD;
-
-	glm::ivec2 prevScreenStart;
-	glm::ivec2 prevScreenSize;
-
-	std::shared_ptr<renderer::GpuProgram> shaderProgramTextured;
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTextured;
-	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArray;
 
 	std::shared_ptr<renderer::GpuProgram> showShaderProgram;
 	std::shared_ptr<renderer::Square> showSquare;
@@ -79,34 +59,28 @@ private:
 	bool isRightButtonDown = false;
 	bool mouseValid = false;
 
-	ParamBool fluidSurfaceEnabled = ParamBool("Fluid surface", false);
-
 	float cameraDistance = 60;
 	const float minCameraDistance = 1;
 	const float maxCameraDIstance = 200;
 	glm::vec3 modelRotationPoint = glm::vec3(0, 0, 0);
 	bool inModelRotationMode = false;
 
+	std::unique_ptr<Renderer3DInterface> renderer3DInterface;
+
 	void mouseCallback(double x, double y);
 	void mouseButtonCallback(int button, int action, int mods);
 	void scrollCallback(double xoffset, double yoffset);
 	void keyCallback(int key, int scancode, int action, int mode);
 
-	void handleScreenChanged();
-
 	void selectObstacle();
 	void handleObstacleMovement();
 
-	bool particleSpeedColorWasEnabled = false;
-	void drawParticles();
-
-	void initGridLines();
-	void drawGridLines();
+	ConfigData3D getConfigData3D();
 
 	void addObstacle(std::unique_ptr<renderer::Object3D<renderer::Geometry>> obstacleGfx, std::unique_ptr<genericfsim::manager::Obstacle> obstacle, glm::dvec3 size);
 
 public:
-	SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+	SimulationGfx3DController(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 		glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
 
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) override;
@@ -127,7 +101,8 @@ public:
 
 	void show(int screenWidth) override;
 
-	~SimulationGfx3D() override;
+	~SimulationGfx3DController() override;
 
 };
 
+} // namespace gfx3D

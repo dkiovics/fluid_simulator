@@ -154,8 +154,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="gfx\gfx3D\diffRenderProxy.cpp" />
     <ClCompile Include="gfx\gfx3D\fluidSurfaceGfx.cpp" />
-    <ClCompile Include="gfx\gfx3D\simulationGfx3D.cpp" />
+    <ClCompile Include="gfx\gfx3D\simulationGfx3DController.cpp" />
+    <ClCompile Include="gfx\gfx3D\simulationGfx3DRenderer.cpp" />
     <ClCompile Include="ui\simParamsAdvanced.cpp" />
     <ClCompile Include="ui\simulationGui.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
@@ -169,8 +171,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gfx\gfx2D\simulationGfx2D.hpp" />
+    <ClInclude Include="gfx\gfx3D\diffRenderProxy.h" />
     <ClInclude Include="gfx\gfx3D\fluidSurfaceGfx.h" />
-    <ClInclude Include="gfx\gfx3D\simulationGfx3D.h" />
+    <ClInclude Include="gfx\gfx3D\renderer3DInterface.h" />
+    <ClInclude Include="gfx\gfx3D\simulationGfx3DController.h" />
+    <ClInclude Include="gfx\gfx3D\simulationGfx3DRenderer.h" />
     <ClInclude Include="gfx\gfx3D\transparentBox.hpp" />
     <ClInclude Include="gfx\gfxInterface.hpp" />
     <ClInclude Include="ui\param.hpp" />

@@ -151,6 +151,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="compute\computeProgram.h" />
+    <ClInclude Include="compute\computeTexture.h" />
     <ClInclude Include="engineUtils\camera2D.hpp" />
     <ClInclude Include="engineUtils\object.h" />
     <ClInclude Include="engine\framebuffer.h" />
@@ -168,6 +169,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compute\computeProgram.cpp" />
+    <ClCompile Include="compute\computeTexture.cpp" />
     <ClCompile Include="engine\framebuffer.cpp" />
     <ClCompile Include="engine\shaderProgram.cpp" />
     <ClCompile Include="engine\texture.cpp" />

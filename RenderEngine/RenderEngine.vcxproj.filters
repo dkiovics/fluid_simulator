@@ -60,6 +60,9 @@
     <ClInclude Include="compute\computeProgram.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="compute\computeTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine\renderEngine.cpp">
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="compute\computeProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compute\computeTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

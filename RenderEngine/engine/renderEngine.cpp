@@ -107,6 +107,11 @@ RenderEngine::RenderEngine(int screenWidth, int screenHeight, std::string name) 
 		throw std::runtime_error("Failed to init GLAD");
 	glEnable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
+	int maxImageUnits;
+	glGetIntegerv(GL_MAX_IMAGE_UNITS, &maxImageUnits);
+	spdlog::info("Max image units: {}", maxImageUnits);
+	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxImageUnits);
+	spdlog::info("Max combined texture image units: {}", maxImageUnits);
 }
 
 RenderEngine::~RenderEngine()

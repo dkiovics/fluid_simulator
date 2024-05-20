@@ -12,6 +12,9 @@
 #include <geometries/basicGeometries.h>
 
 
+namespace gfx3D
+{
+
 class TransparentBox {
 private:
 	std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>> boxSides;
@@ -91,3 +94,4 @@ public:
 	}
 };
 
+} //namespace gfx3D
