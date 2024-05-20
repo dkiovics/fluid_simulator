@@ -7,11 +7,13 @@
 #define GL_SILENCE_DEPRECATION
 #include <GLFW/glfw3.h>
 #include "../gfx/gfx2D/simulationGfx2D.hpp"
-#include "../gfx/gfx3D/simulationGfx3D.h"
+#include "../gfx/gfx3D/simulationGfx3DController.h"
 #include "../gfx/gfxInterface.hpp"
 #include "manager/simulationManager.h"
 #include "simParamsAdvanced.h"
 #include <chrono>
+
+using namespace gfx3D;
 
 using namespace genericfsim::manager;
 using CellType = genericfsim::macgrid::MacGridCell::CellType;
@@ -85,7 +87,7 @@ void startSimulatorGui() {
 
     bool renderer2D = false;
     bool simulation2D = false;
-    std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 200000);
+    std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3DController>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 200000);
 
     simulationManager->startSimulation();
 
@@ -195,8 +197,8 @@ void startSimulatorGui() {
                     simulatorRenderer = std::make_unique<SimulationGfx2D>(engine, simulationManager, 200000);
                     simulationManager->setObstacles(std::vector<std::unique_ptr<Obstacle>>());
                 }
-                else if (!renderer2D && dynamic_cast<SimulationGfx3D*>(simulatorRenderer.get()) == nullptr) {
-                    simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, simStart, simSize, 200000);
+                else if (!renderer2D && dynamic_cast<SimulationGfx3DController*>(simulatorRenderer.get()) == nullptr) {
+                    simulatorRenderer = std::make_unique<SimulationGfx3DController>(engine, simulationManager, simStart, simSize, 200000);
                     simulationManager->setObstacles(std::vector<std::unique_ptr<Obstacle>>());
                 }
                 else if (newSimManager) {
@@ -234,7 +236,7 @@ void startSimulatorGui() {
             if (ImGui::Button("Add rectangle")) {
                 simulatorRenderer->addRectengularObstacle(obstacleColor, obstacleSize);
             }
-            if (SimulationGfx3D* renderer3D = dynamic_cast<SimulationGfx3D*>(simulatorRenderer.get())) {
+            if (SimulationGfx3DController* renderer3D = dynamic_cast<SimulationGfx3DController*>(simulatorRenderer.get())) {
                 ImGui::SameLine();
                 if (ImGui::Button("Add particle source")) {
                     renderer3D->addParticleSource(obstacleColor, obstacleRadius, particleSpawnRate, particleSpawnSpeed);

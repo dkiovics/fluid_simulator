@@ -89,6 +89,15 @@ bool renderer::GpuProgram::UniformProxy::operator=(const Texture& value) const
 	return true;
 }
 
+bool renderer::GpuProgram::UniformProxy::setImageUnit(ComputeTexture& texture) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform1i(val, texture.getImageSampler());
+	return true;
+}
+
 renderer::GpuProgram::UniformProxy::UniformProxy(const int programId, const std::string& name) : programId(programId), name(name) {}
 
 renderer::GpuProgram::UniformProxy renderer::GpuProgram::operator[](const std::string& name) const
@@ -107,7 +116,7 @@ void renderer::GpuProgram::activate() const
 renderer::GpuProgram::~GpuProgram()
 {
 	glDeleteProgram(programId);
-	spdlog::debug("Shader program deleted with id: {}", programId);
+	spdlog::debug("GPU program deleted with id: {}", programId);
 }
 
 renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName)
