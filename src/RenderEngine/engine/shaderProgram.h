@@ -5,6 +5,7 @@
 #include <glad.h>
 #include "texture.h"
 #include "../compute/computeTexture.h"
+#include <spdlog/spdlog.h>
 
 namespace renderer
 {
@@ -27,7 +28,7 @@ public:
 		bool operator=(const glm::mat4& value) const;
 		bool operator=(const Texture& texture) const;
 
-		bool setImageUnit(ComputeTexture& texture) const;
+		bool setImageUnit(const ComputeTexture& texture) const;
 
 	private:
 		friend class GpuProgram;

@@ -1,0 +1,31 @@
+#version 460 compatibility
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(rgba32f) restrict uniform image2D image;
+
+struct SboTestData{
+	bool color;
+	float colorValue[4];
+};
+
+layout(std430, binding = 20) readonly buffer ssbo1 {
+	SboTestData data[];
+};
+
+void main() {
+  // get index in global work group i.e x,y position
+  ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 numPixels = ivec2(gl_NumWorkGroups.xy);
+  
+  vec4 pixel = imageLoad(image, pixelCoords);
+
+  if(!data[pixelCoords.y].color){
+	  pixel.x += data[pixelCoords.y].colorValue[0];
+  }else{
+	  pixel.y += data[pixelCoords.y].colorValue[1];
+  }
+  
+  // output to a specific pixel in the image
+  imageStore(image, pixelCoords, pixel);
+}
