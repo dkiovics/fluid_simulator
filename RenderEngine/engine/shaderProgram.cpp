@@ -89,7 +89,7 @@ bool renderer::GpuProgram::UniformProxy::operator=(const Texture& value) const
 	return true;
 }
 
-bool renderer::GpuProgram::UniformProxy::setImageUnit(ComputeTexture& texture) const
+bool renderer::GpuProgram::UniformProxy::setImageUnit(const ComputeTexture& texture) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
