@@ -24,6 +24,7 @@ out vec4 worldPosition;
 out vec4 worldNormal;
 out vec2 textureCoords;
 out vec4 diffuseColor;
+flat out unsigned int instanceID;
 
 void main() {
 	worldPosition = (object.modelMatrix * pos) + instanceOffset;
@@ -31,4 +32,5 @@ void main() {
 	worldNormal = object.modelMatrixInverse * normal;
 	textureCoords = texCoordIn;
 	diffuseColor = instanceColor;
+	instanceID = gl_InstanceID;
 }

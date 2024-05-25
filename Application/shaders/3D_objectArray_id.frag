@@ -2,10 +2,12 @@
 precision highp float;
 
 layout(location = 0) out vec4 fragmentColor;
+layout(location = 1) out uvec4 geometryId;
 in vec2 textureCoords;
 in vec4 worldPosition;
 in vec4 worldNormal;
 in vec4 diffuseColor;
+flat in unsigned int instanceID;
 
 uniform struct {
     mat4 modelMatrix;
@@ -56,4 +58,5 @@ void main(void) {
 		
         fragmentColor.rgb += shade(worldPosition, normal, viewDir, lightPositionOrDir, powerDensity, diffuseColor);
     }
+    geometryId = uvec4(instanceID, 0, 0, 0);
 }

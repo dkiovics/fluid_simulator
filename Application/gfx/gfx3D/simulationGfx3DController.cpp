@@ -160,7 +160,7 @@ SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::R
 	std::vector<std::shared_ptr<renderer::RenderTargetTexture>> textures = { renderTargetTexture };
 	std::shared_ptr<renderer::RenderTargetTexture> renderTargetDepthTexture = std::make_shared<renderer::RenderTargetTexture>
 		(screenSize.x, screenSize.y, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
-	renderTargetFramebuffer = std::make_shared<renderer::Framebuffer>(textures, renderTargetDepthTexture, false);
+	renderTargetFramebuffer = std::make_shared<renderer::Framebuffer>(textures);
 
 	renderer3DInterface = std::make_unique<DiffRendererProxy>(std::make_shared<SimulationGfx3DRenderer>
 		(engine, camera, lights, obstacleGfxArray, maxParticleNum, getConfigData3D()));

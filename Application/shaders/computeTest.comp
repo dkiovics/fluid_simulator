@@ -9,7 +9,7 @@ struct SboTestData{
 	float colorValue[4];
 };
 
-layout(std430, binding = 20) readonly buffer ssbo1 {
+layout(std430, binding = 0) readonly buffer ssbo1 {
 	SboTestData data[];
 };
 

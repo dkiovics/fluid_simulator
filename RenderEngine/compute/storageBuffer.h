@@ -69,6 +69,11 @@ public:
 		this->size = size;
 	}
 
+	unsigned int getSize() const
+	{
+		return size;
+	}
+
 	/**
 	 * \brief Maps the buffer to the CPU with the given access.
 	 * 

@@ -1,7 +1,7 @@
 #version 460 core
 precision highp float;
 
-out vec4 fragmentColor;
+layout(location = 0) out vec4 fragmentColor;
 in vec2 textureCoords;
 in vec4 worldPosition;
 in vec4 worldNormal;
