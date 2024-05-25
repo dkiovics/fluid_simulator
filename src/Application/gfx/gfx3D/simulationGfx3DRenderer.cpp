@@ -10,6 +10,7 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_textured.frag");
 	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_not_textured.frag");
 	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray.frag");
+	shaderProgramNotTexturedArrayWithId = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray_id.frag");
 
 	auto floorTexture = std::make_shared<renderer::ColorTexture>("shaders/tiles.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, true);
 	//auto floor = std::make_shared<renderer::Square>(1, std::vector<glm::vec3>{ glm::vec3(0, -0.1, 0) }, std::vector<glm::vec4>{ glm::vec4(1, 1, 1, 1) }, engine, 200, 200);
@@ -31,8 +32,8 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 	ballsGfx->shininess = 80;
 	ballsGfx->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
 
-	camera->addProgram({ shaderProgramTextured, shaderProgramNotTextured, shaderProgramNotTexturedArray });
-	lights->addProgram({ shaderProgramTextured, shaderProgramNotTextured, shaderProgramNotTexturedArray });
+	camera->addProgram({ shaderProgramTextured, shaderProgramNotTextured, shaderProgramNotTexturedArray, shaderProgramNotTexturedArrayWithId });
+	lights->addProgram({ shaderProgramTextured, shaderProgramNotTextured, shaderProgramNotTexturedArray, shaderProgramNotTexturedArrayWithId });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
 }
@@ -42,7 +43,7 @@ void SimulationGfx3DRenderer::setConfigData(const ConfigData3D& configData)
 	this->configData = configData;
 }
 
-void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& renderData) const
+void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& renderData)
 {
 	auto ballGeometry = ballsGfx->drawable;
 	const float maxSpeedInv = 1.0f / configData.maxParticleSpeed;
@@ -59,7 +60,7 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 	{
 		for (unsigned int i = 0; i < numParticles; i++)
 		{
-			float s = std::min(renderData.speeds[i] * maxSpeedInv, 1.0f);
+			float s = std::clamp(renderData.speeds[i] * maxSpeedInv, 0.0f, 1.0f);
 			s = std::pow(s, 0.3f);
 			ballGeometry->setColor(i, glm::vec4((renderData.color * (1.0f - s)) + (renderData.speedColor * s), 1));
 		}
@@ -69,23 +70,31 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 
 	engine->enableDepthTest(true);
 	engine->setViewport(0, 0, configData.screenSize.x, configData.screenSize.y);
-	engine->clearViewport(glm::vec4(0.1, 0, 0, 0), 1.0f);
+	engine->clearViewport(glm::vec4(0, 0, 0, 0), 1.0f);
 
-	planeGfx->setPosition(glm::vec4(configData.sceneCenter.x, -0.05f, configData.sceneCenter.z, 1));
-	planeGfx->draw();
+	/*planeGfx->setPosition(glm::vec4(configData.sceneCenter.x, -0.05f, configData.sceneCenter.z, 1));
+	planeGfx->draw();*/
 
 	for (auto& obstacle : obstacleGfxArray)
 	{
 		obstacle->draw();
 	}
 
-	transparentBox->draw(configData.sceneCenter, configData.boxSize, true, false);
+	/*transparentBox->draw(configData.sceneCenter, configData.boxSize, true, false);*/
 
 	ballGeometry->updateActiveInstanceParams();
 	ballsGfx->setScale(glm::vec3(configData.particleRadius, configData.particleRadius, configData.particleRadius));
+	if (framebuffer->getColorAttachments().size() == 2)
+	{
+		ballsGfx->shaderProgram = shaderProgramNotTexturedArrayWithId;
+	}
+	else
+	{
+		ballsGfx->shaderProgram = shaderProgramNotTexturedArray;
+	}
 	ballsGfx->draw();
 
-	transparentBox->draw(configData.sceneCenter, configData.boxSize, false, true);
+	//transparentBox->draw(configData.sceneCenter, configData.boxSize, false, true);
 }
 
 

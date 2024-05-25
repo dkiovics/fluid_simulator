@@ -26,7 +26,7 @@ public:
 
 	void setConfigData(const ConfigData3D& configData) override;
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& renderData) const override;
+	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& renderData) override;
 
 private:
 	ConfigData3D configData;
@@ -44,6 +44,7 @@ private:
 	std::shared_ptr<renderer::GpuProgram> shaderProgramTextured;
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTextured;
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArray;
+	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArrayWithId;
 
 	std::shared_ptr<renderer::GpuProgram> showShaderProgram;
 	std::shared_ptr<renderer::Square> showSquare;

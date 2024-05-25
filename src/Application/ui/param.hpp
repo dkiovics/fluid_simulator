@@ -72,6 +72,21 @@ public:
 	}
 };
 
+class ParamButton : public Param
+{
+public:
+	ParamButton(const std::string& name) 
+		: Param(name), value(false) { }
+
+	bool value;
+
+	void show(int) override
+	{
+		value = ImGui::Button(name.c_str());
+	}
+
+};
+
 class ParamColor : public Param
 {
 public:
