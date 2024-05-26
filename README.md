@@ -1,10 +1,12 @@
 # fluid_simulator
-A basic 3D PIC/FLIP/APIC fluid simulation application
+A basic 3D PIC/FLIP/APIC fluid simulation application with a screen-space fluid surface renderer.
 
 ## Brief project description
 This is a pretty basic fluid simulation project that I've made as a part of my BSc thesis.
 
 The application is able to function in either 2D or 3D, and the user can choose between PIC/FLIP/APIC simulation modes. The simulator itself can be fine tuned pretty well, and you can also play around with obstacles and particle sources/sinks.
+
+The fluid surface visualization is also pretty customizable, you can select between different modes, or turn it off completely.
 
 Controls:
 - WASD, SPACE and SHIFT move the camera in space
@@ -15,9 +17,9 @@ Controls:
 ## Build instructions
 The project was built and tested using Visual Studio 2022. Before running the main Application project you must configure the dependency paths for all 3 subprojects:
 
-- The `Simulator` subproject must have the include path configured for [glm](https://github.com/g-truc/glm)
-- The `RenderEngine` subproject must have the include paths configured for [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h), [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm)
-- The `Application` subproject must have the include paths configured for [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm)
+- The `Simulator` subproject must have the include path configured for [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
+- The `RenderEngine` subproject must have the include paths configured for [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h), [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
+- The `Application` subproject must have the include paths configured for [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
 - The `Application` subproject must have an additional lib path to the GLFW lib-vc2022 directory
 
 ## Resources that I've used during research and implementation
@@ -26,6 +28,7 @@ The project was built and tested using Visual Studio 2022. Before running the ma
 - [Dear ImGui](https://github.com/ocornut/imgui) - for the UI
 - [libfluid](https://github.com/lukedan/libfluid) - this helped me in the correct implementation of the incompressibility solver from Bridson's book
 - Matthias Müller: [Ten Minute Physics videos](https://www.youtube.com/channel/UCTG_vrRdKYfrpqCv_WV4eyA) - an amazing channel that really helped me to get started from zero fluid simulation knowledge
+- `Screen space fluid rendering with curvature flow` paper for the screen space fluid surface computation and rendering
 
 ## Results
 ![Alt text](image.png) ![Alt text](image-1.png)

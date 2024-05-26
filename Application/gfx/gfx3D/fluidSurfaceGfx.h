@@ -23,7 +23,7 @@ public:
 
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager);
 
-	ParamColor particleColor = ParamColor("Particle color", glm::vec3(0.0, 0.4, 0.95));
+	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0, 0.4, 0.95));
 	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", false);
 	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 2.4f, 0.01f, 6.0f);
 	ParamFloat blurScale = ParamFloat("Blur scale", 0.083f, 0.01f, 0.4f);
