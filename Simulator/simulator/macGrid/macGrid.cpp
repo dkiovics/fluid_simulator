@@ -180,6 +180,11 @@ std::array<std::array<MacGridCell::FaceRef, 8>, 3> MacGrid::getFacesAround(const
 
 }
 
+MacGridCell& genericfsim::macgrid::MacGrid::getCellAt(const glm::dvec3& pos)
+{
+	return cell(pos * cellDInv);
+}
+
 std::array<MacGridCellRef, 8> MacGrid::getCellsAround(const glm::dvec3& pos) {
 	glm::dvec3 gridPos = pos * cellDInv - glm::dvec3(0.5, 0.5, 0.5);
 	glm::ivec3 coord = glm::ivec3(gridPos.x, gridPos.y, gridPos.z);

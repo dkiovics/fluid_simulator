@@ -1,35 +1,54 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "../engine/renderEngine.h"
-#include "../geometries/geometry.h"
 #include <memory>
 #include <vector>
 #include <string>
 
+#include "../engine/shaderProgram.h"
+#include "../engine/uniforms.hpp"
 
-struct Light {
-	glm::vec4 position;		//If the w component is 0 than the light is directional, otherwise it's a spotlight
-	glm::vec3 powerDensity;
+namespace renderer
+{
 
-	Light(glm::vec4 position, glm::vec3 powerDensity) : position(position), powerDensity(powerDensity) { }
-};
+struct Light : public UniformGatherer
+{
+	//If the w component is 0 than the light is directional, otherwise it's a spotlight
+	u_var(position, glm::vec4);
+	u_var(powerDensity, glm::vec3);
 
-struct Lights {
-	std::vector<Light> lights;
-	std::shared_ptr<RenderEngine> engine;
-	std::vector<unsigned int> shaderProgramIds;
-
-	Lights(std::shared_ptr<RenderEngine> engine, std::vector<unsigned int> shaderProgramIds) : engine(engine), shaderProgramIds(shaderProgramIds) { }
-
-	void setUniforms() {
-		for (auto shaderProgram : shaderProgramIds) {
-			engine->activateGPUProgram(shaderProgram);
-			engine->setUniformInt(shaderProgram, "lightNum", lights.size());
-			for (int p = 0; p < lights.size(); p++) {
-				engine->setUniformVec4(shaderProgram, "lights[" + std::to_string(p) + "].position", lights[p].position);
-				engine->setUniformVec3(shaderProgram, "lights[" + std::to_string(p) + "].powerDensity", lights[p].powerDensity);
-			}
-		}
+	Light(glm::vec4 position, glm::vec3 powerDensity) 
+		: UniformGatherer("", false, this->position, this->powerDensity) 
+	{
+		this->position = position;
+		this->powerDensity = powerDensity;
 	}
 };
+
+class Lights : public UniformProvider, public UniformGathererGlobal
+{
+public:
+	std::vector<std::unique_ptr<Light>> lights;
+
+	void setUniforms(const renderer::ShaderProgram& program, const std::string&) const override {
+		program["lightNum"] = (int)lights.size();
+		for (int p = 0; p < lights.size(); p++) {
+			lights[p]->setUniforms(program, "lights[" + std::to_string(p) + "].");
+		}
+	}
+
+	void setUniformsForAllPrograms() const
+	{
+		UniformGathererGlobal::setUniformsForAllPrograms();
+	}
+
+protected:
+	void setUniformsGlobal(const ShaderProgram& program) const override
+	{
+		setUniforms(program, "");
+	}
+};
+
+} // namespace renderer
+
+

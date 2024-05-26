@@ -72,9 +72,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <AllProjectIncludesArePublic>true</AllProjectIncludesArePublic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(Platform)\$(Configuration)\</OutDir>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <AllProjectIncludesArePublic>true</AllProjectIncludesArePublic>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -110,9 +116,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\dkiovics\Documents\C++_lib\stb_image;C:\Users\dkiovics\Documents\C++_lib\glm;C:\Users\dkiovics\Documents\C++_lib\glfw-3.3.8.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\dkiovics\Documents\C++_lib\spdlog;C:\Users\dkiovics\Documents\C++_lib\stb_image;C:\Users\dkiovics\Documents\C++_lib\glm;C:\Users\dkiovics\Documents\C++_lib\glfw-3.3.8.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -127,9 +133,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\dkiovics\Documents\C++_lib\stb_image;C:\Users\dkiovics\Documents\C++_lib\glm;C:\Users\dkiovics\Documents\C++_lib\glfw-3.3.8.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\dkiovics\Documents\C++_lib\spdlog;C:\Users\dkiovics\Documents\C++_lib\stb_image;C:\Users\dkiovics\Documents\C++_lib\glm;C:\Users\dkiovics\Documents\C++_lib\glfw-3.3.8.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -144,27 +150,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="engineUtils\camera2D.hpp" />
+    <ClInclude Include="engineUtils\object.h" />
+    <ClInclude Include="engine\framebuffer.h" />
+    <ClInclude Include="engine\uniforms.hpp" />
     <ClInclude Include="engine\callback.hpp" />
+    <ClInclude Include="engine\shaderProgram.h" />
+    <ClInclude Include="engine\texture.h" />
+    <ClInclude Include="geometries\basicGeometries.h" />
+    <ClInclude Include="geometries\geometry.h" />
     <ClInclude Include="glad\glad.h" />
     <ClInclude Include="glad\khrplatform.h" />
     <ClInclude Include="engineUtils\camera3D.hpp" />
-    <ClInclude Include="geometries\circle.h" />
-    <ClInclude Include="engine\engineGeometry.h" />
-    <ClInclude Include="geometries\geometry.h" />
     <ClInclude Include="engineUtils\lights.hpp" />
-    <ClInclude Include="engineUtils\object3D.hpp" />
-    <ClInclude Include="geometries\quad.h" />
-    <ClInclude Include="geometries\rectangle.h" />
     <ClInclude Include="engine\renderEngine.h" />
-    <ClInclude Include="geometries\sphere.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="geometries\circle.cpp" />
+    <ClCompile Include="engine\framebuffer.cpp" />
+    <ClCompile Include="engine\shaderProgram.cpp" />
+    <ClCompile Include="engine\texture.cpp" />
+    <ClCompile Include="geometries\basicGeometries.cpp" />
     <ClCompile Include="geometries\geometry.cpp" />
-    <ClCompile Include="geometries\quad.cpp" />
-    <ClCompile Include="geometries\rectangle.cpp" />
     <ClCompile Include="engine\renderEngine.cpp" />
-    <ClCompile Include="geometries\sphere.cpp" />
     <ClCompile Include="glad\glad.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

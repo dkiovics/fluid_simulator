@@ -3,21 +3,21 @@ precision highp float;
 
 out vec4 fragmentColor;
 in vec2 textureCoords;
-in vec3 worldPosition;
-in vec3 worldNormal;
+in vec4 worldPosition;
+in vec4 worldNormal;
 in vec4 diffuseColor;
 
 uniform struct {
-    sampler2D colorTexture;
-	float textureScale;
-    vec3 specularColor;
+    mat4 modelMatrix;
+	mat4 modelMatrixInverse;
+    vec4 specularColor;
     float shininess;
-} material;
+} object;
 
 uniform struct{
     mat4 viewMatrix;
 	mat4 projectionMatrix;
-    vec3 position;
+    vec4 position;
 } camera;
 
 uniform struct {
@@ -28,9 +28,9 @@ uniform struct {
 uniform int lightNum;
 
 
-vec3 shade(vec3 worldPos, vec3 normal, vec3 viewDir, vec4 lightPos, vec3 powerDensity, vec3 materialColor) {
-	vec3 frag2light = lightPos.xyz - worldPos * lightPos.w;
-    vec3 lightDir = normalize(frag2light);
+vec3 shade(vec4 worldPos, vec4 normal, vec4 viewDir, vec4 lightPos, vec3 powerDensity, vec4 materialColor) {
+	vec3 frag2light = lightPos.xyz - worldPos.xyz * lightPos.w;
+    vec4 lightDir = vec4(normalize(frag2light), 0);
     if(dot(normal, viewDir) < 0.0)
         normal = -normal;
     float lightCos = dot(lightDir, normal);
@@ -38,24 +38,22 @@ vec3 shade(vec3 worldPos, vec3 normal, vec3 viewDir, vec4 lightPos, vec3 powerDe
         return vec3(0.0, 0.0, 0.0);
     float d2 = length(frag2light);
     d2 = d2*d2;
-    vec3 halfWay = normalize(viewDir + lightDir);
+    vec4 halfWay = normalize(viewDir + lightDir);
     float shine = dot(halfWay, normal);
     if(shine < 0.0)
         shine = 0.0;
-    return powerDensity * (materialColor * lightCos + material.specularColor * pow(shine, material.shininess)) / d2;
+    return powerDensity * (materialColor.xyz * lightCos + object.specularColor.xyz * pow(shine, object.shininess)) / d2;
 }
 
 
 void main(void) {
     fragmentColor = vec4(0.0,0.0,0.0,diffuseColor.a);
-	vec3 normal = normalize(worldNormal);
-	vec3 color = diffuseColor.rgb * texture(material.colorTexture, textureCoords * material.textureScale).rgb;
-	vec3 viewDir = normalize(camera.position - worldPosition);
-	
+	vec4 normal = normalize(worldNormal);
     for(int p = 0; p < lightNum; p++) {
         vec4 lightPositionOrDir = lights[p].position;
         vec3 powerDensity = lights[p].powerDensity;
+        vec4 viewDir = normalize(camera.position - worldPosition);
 		
-        fragmentColor.rgb += shade(worldPosition, normal, viewDir, lightPositionOrDir, powerDensity, color);
+        fragmentColor.rgb += shade(worldPosition, normal, viewDir, lightPositionOrDir, powerDensity, diffuseColor);
     }
 }

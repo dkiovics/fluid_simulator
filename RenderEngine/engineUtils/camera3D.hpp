@@ -2,47 +2,39 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "../engine/renderEngine.h"
-#include "../geometries/geometry.h"
 #include <memory>
 #include <algorithm>
 #include <vector>
 
+#include "../engine/shaderProgram.h"
+#include "../engine/uniforms.hpp"
 
-class Camera3D {
-private:
-    glm::vec3 position;
-    glm::vec3 direction;
-    glm::vec3 right;
-    const float fov;
-    float aspectRatio;
-    float pitch;
-    const float maxPitch = 88;
-    const float minPitch = -88;
-    float yaw;
-    glm::mat4 viewMatrix;
-    glm::mat4 projectionMatrix;
-    std::shared_ptr<RenderEngine> engine;
 
+namespace renderer
+{
+
+class Camera3D : public UniformGatherer, public UniformGathererGlobal
+{
 public:
-    std::vector<unsigned int> shaderProgramIds;
-
-    Camera3D(std::shared_ptr<RenderEngine> engine, std::vector<unsigned int> shaderProgramIds, const glm::vec3& position, float fov, float aspectRatio)
-        : engine(engine), shaderProgramIds(shaderProgramIds), position(position), fov(fov), pitch(0.0f), yaw(0.0f), aspectRatio(aspectRatio) {
+    Camera3D(const glm::vec3& position, float fov, float aspectRatio)
+        : UniformGatherer("camera.", true, this->position, viewMatrix, projectionMatrix, projectionMatrixInverse, viewMatrixInverse),
+        fov(fov), pitch(0.0f), yaw(0.0f), aspectRatio(aspectRatio)
+    {
+        this->position = glm::vec4(position, 1);
         updateViewMatrix();
         updateProjectionMatrix();
     }
 
     glm::mat4 getViewMatrix() const {
-        return viewMatrix;
+        return *viewMatrix;
     }
 
     glm::mat4 getProjectionMatrix() const {
-        return projectionMatrix;
+        return *projectionMatrix;
     }
 
     void move(const glm::vec3& offset) {
-        position += offset;
+        *position += glm::vec4(offset, 0);
         updateViewMatrix();
     }
 
@@ -68,17 +60,8 @@ public:
         offset.x = -cos(glm::radians(yaw)) * cos(glm::radians(pitch));
         offset.y = -sin(glm::radians(pitch));
         offset.z = -sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        position = point + offset * r;
+        position = glm::vec4(point + offset * r, 1);
         updateViewMatrix();
-    }
-
-    void setUniforms() {
-        for (auto shaderProgramId : shaderProgramIds) {
-            engine->activateGPUProgram(shaderProgramId);
-            engine->setUniformVec3(shaderProgramId, "camera.position", position);
-            engine->setUniformMat4(shaderProgramId, "camera.projectionMatrix", projectionMatrix);
-            engine->setUniformMat4(shaderProgramId, "camera.viewMatrix", viewMatrix);
-        }
     }
 
     glm::vec3 getFrontVec() const {
@@ -90,10 +73,37 @@ public:
     }
 
     glm::vec3 getPosition() const {
-        return position;
+        return *position;
+    }
+
+    glm::vec3 getMouseRayDir(const glm::vec2& mousePos) const
+    {
+        glm::vec3 nearPoint = glm::unProject(glm::vec3(mousePos, 0), getViewMatrix(), getProjectionMatrix(), glm::vec4(0, 0, 1, 1));
+        glm::vec3 farPoint = glm::unProject(glm::vec3(mousePos, 1), getViewMatrix(), getProjectionMatrix(), glm::vec4(0, 0, 1, 1));
+        return glm::normalize(farPoint - nearPoint);
+    }
+
+protected:
+    void setUniformsGlobal(const ShaderProgram& program) const override
+    {
+        setUniforms(program);
     }
 
 private:
+    u_var(position, glm::vec4);
+    glm::vec3 direction;
+    glm::vec3 right;
+    const float fov;
+    float aspectRatio;
+    float pitch;
+    const float maxPitch = 88;
+    const float minPitch = -88;
+    float yaw;
+    u_var(viewMatrix, glm::mat4);
+    u_var(viewMatrixInverse, glm::mat4);
+    u_var(projectionMatrix, glm::mat4);
+    u_var(projectionMatrixInverse, glm::mat4);
+
     void updateViewMatrix() {
         glm::vec3 front;
         front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -104,12 +114,20 @@ private:
         right = glm::normalize(glm::cross(front, glm::vec3(0, 1, 0)));
         glm::vec3 up = glm::normalize(glm::cross(right, front));
 
-        viewMatrix = glm::lookAt(position, position + direction, up);
+        viewMatrix = glm::lookAt(glm::vec3(*position), glm::vec3(*position) + direction, up);
+        viewMatrixInverse = glm::inverse(*viewMatrix);
+        setUniformsForAllPrograms();
     }
 
     void updateProjectionMatrix() {
         projectionMatrix = glm::perspective(glm::radians(fov), aspectRatio, 0.5f, 300.0f);
+        projectionMatrixInverse = glm::inverse(*projectionMatrix);
+        setUniformsForAllPrograms();
     }
 
 };
+
+
+
+} // namespace renderer
 

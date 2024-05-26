@@ -4,34 +4,43 @@
 #include <memory>
 #include <engineUtils/lights.hpp>
 #include <engineUtils/camera3D.hpp>
-#include <engineUtils/object3D.hpp>
-#include "geometries/quad.h"
+#include <engineUtils/object.h>
+#include <geometries/basicGeometries.h>
+#include <engine/renderEngine.h>
+#include <engine/texture.h>
+#include <engine/shaderProgram.h>
+#include <engine/framebuffer.h>
 #include "manager/simulationManager.h"
 #include "../gfxInterface.hpp"
 #include <vector>
 #include "transparentBox.hpp"
+#include "fluidSurfaceGfx.h"
 
 
-class SimulationGfx3D : public GfxInterface {
+class SimulationGfx3D : public GfxInterface
+{
 private:
-	std::shared_ptr<RenderEngine> engine;
+	std::shared_ptr<renderer::RenderEngine> engine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager;
 
-	std::unique_ptr<Camera3D> camera;
-	std::unique_ptr<Lights> lights;
-	unsigned int floorTexture;
-	std::unique_ptr<Object3D> plane;
-	std::unique_ptr<Object3D> balls;
+	std::shared_ptr<renderer::Camera3D> camera;
+	std::shared_ptr<renderer::Lights> lights;
+
+	std::unique_ptr<renderer::Object3D<renderer::Geometry>> planeGfx;
+	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> ballsGfx;
 
 	std::unique_ptr<TransparentBox> transparentBox;
 
-	std::vector<std::unique_ptr<Object3D>> obstacleGfx;
+	std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>> obstacleGfxArray;
 
-	std::unique_ptr<Object3D> gridLinesX;
-	std::unique_ptr<Object3D> gridLinesY;
-	std::unique_ptr<Object3D> gridLinesZ;
+	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesXGfx;
+	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesYGfx;
+	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> gridLinesZGfx;
 
-	struct Hitbox {
+	std::unique_ptr<FluidSurfaceGfx> fluidSurfaceGfx;
+
+	struct Hitbox
+	{
 		glm::dvec3 center;
 		glm::dvec3 size;
 	};
@@ -44,9 +53,18 @@ private:
 
 	glm::vec3 prevGridlineColor;
 	glm::dvec3 prevCellD;
-	
-	unsigned int shaderProgramTextured;
-	unsigned int shaderProgramNotTextured;
+
+	glm::ivec2 prevScreenStart;
+	glm::ivec2 prevScreenSize;
+
+	std::shared_ptr<renderer::ShaderProgram> shaderProgramTextured;
+	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTextured;
+	std::shared_ptr<renderer::ShaderProgram> shaderProgramNotTexturedArray;
+
+	std::shared_ptr<renderer::ShaderProgram> showShaderProgram;
+	std::shared_ptr<renderer::Square> showSquare;
+	std::shared_ptr<renderer::RenderTargetTexture> renderTargetTexture;
+	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer;
 
 	int mouseCallbackId;
 	int mouseButtonCallbackId;
@@ -61,18 +79,21 @@ private:
 	bool isRightButtonDown = false;
 	bool mouseValid = false;
 
+	ParamBool fluidSurfaceEnabled = ParamBool("Fluid surface", false);
+
 	float cameraDistance = 60;
 	const float minCameraDistance = 1;
 	const float maxCameraDIstance = 200;
 	glm::vec3 modelRotationPoint = glm::vec3(0, 0, 0);
 	bool inModelRotationMode = false;
-	
+
 	void mouseCallback(double x, double y);
 	void mouseButtonCallback(int button, int action, int mods);
 	void scrollCallback(double xoffset, double yoffset);
 	void keyCallback(int key, int scancode, int action, int mode);
 
-	glm::dvec3 getMouseRayDirection(glm::vec2 mousePos);
+	void handleScreenChanged();
+
 	void selectObstacle();
 	void handleObstacleMovement();
 
@@ -82,12 +103,12 @@ private:
 	void initGridLines();
 	void drawGridLines();
 
-	void addObstacle(std::shared_ptr<Geometry> obstacleGfx, std::unique_ptr<genericfsim::manager::Obstacle> obstacle, glm::dvec3 size);
+	void addObstacle(std::unique_ptr<renderer::Object3D<renderer::Geometry>> obstacleGfx, std::unique_ptr<genericfsim::manager::Obstacle> obstacle, glm::dvec3 size);
 
 public:
-	SimulationGfx3D(std::shared_ptr<RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager, 
-						glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
-	
+	SimulationGfx3D(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+		glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
+
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) override;
 
 	void handleTimePassed(double dt) override;
@@ -103,6 +124,8 @@ public:
 	void addParticleSink(glm::vec3 color, float r);
 
 	void removeObstacle() override;
+
+	void show(int screenWidth) override;
 
 	~SimulationGfx3D() override;
 
