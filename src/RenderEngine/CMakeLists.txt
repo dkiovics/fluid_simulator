@@ -25,12 +25,22 @@ set(GEOMETRIES_SOURCES
     geometries/basicGeometries.cpp
 )
 
+set(COMPUTE_SOURCES
+    compute/computeProgram.h
+    compute/computeProgram.cpp
+    compute/computeTexture.h
+    compute/computeTexture.cpp
+    compute/storageBuffer.h
+    compute/storageBuffer.cpp
+)
+
 add_subdirectory(glad)
 
 add_library(render_engine STATIC
     ${ENGINE_SOURCES}
     ${ENGINE_UTILS_SOURCES}
     ${GEOMETRIES_SOURCES}
+    ${COMPUTE_SOURCES}
 )
 
 target_include_directories(render_engine
