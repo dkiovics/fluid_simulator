@@ -15,12 +15,11 @@ Controls:
 - Moving the mouse while the right button is down moves the selected obstacle if there is any
 
 ## Build instructions
-The project was built and tested using Visual Studio 2022. Before running the main Application project you must configure the dependency paths for all 3 subprojects:
+The project was built and tested using CMake and Visual Studio 2022. Before building and running the project, make sure that you have the following dependencies installed:
 
-- The `Simulator` subproject must have the include path configured for [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
-- The `RenderEngine` subproject must have the include paths configured for [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h), [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
-- The `Application` subproject must have the include paths configured for [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
-- The `Application` subproject must have an additional lib path to the GLFW lib-vc2022 directory
+- The `Simulator` submodule depends on [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
+- The `RenderEngine` submodule depends on [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h), [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
+- The `Application` submodule depends on [GLFW](https://github.com/glfw/glfw), [glm](https://github.com/g-truc/glm), [spdlog](https://github.com/gabime/spdlog)
 
 ## Resources that I've used during research and implementation
 - Robert Bridson's `Fluid Simulation for Computer Graphics` book
@@ -31,6 +30,6 @@ The project was built and tested using Visual Studio 2022. Before running the ma
 - `Screen space fluid rendering with curvature flow` paper for the screen space fluid surface computation and rendering
 
 ## Results
-![Alt text](image.png) ![Alt text](image-1.png)
-![Alt text](image-2.png) ![Alt text](image-3.png)
-![Alt text](image-4.png) ![Alt text](image-5.png)
+![Alt text](Images/image.png) ![Alt text](Images/image-1.png)
+![Alt text](Images/image-2.png) ![Alt text](Images/image-3.png)
+![Alt text](Images/image-4.png) ![Alt text](Images/image-5.png)

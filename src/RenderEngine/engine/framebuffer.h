@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../glad/glad.h"
+#include <glad.h>
 #include "texture.h"
 #include <vector>
 #include <memory>

@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb_image/stb_image.h>
 
 std::map<GLFWwindow*, std::set<GLint>> renderer::Texture::availableTexSamplersPerContext;
 std::mutex renderer::Texture::availableTexSamplersMutex;

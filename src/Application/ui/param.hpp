@@ -5,7 +5,7 @@
 #include <initializer_list>
 #include <vector>
 #include <engine/renderEngine.h>
-#include "../imgui/imgui.h"
+#include <imgui.h>
 
 class ImguiShowable
 {

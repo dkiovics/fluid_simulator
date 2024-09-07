@@ -2,7 +2,7 @@
 
 #include <string>
 #include <glm/glm.hpp>
-#include "../glad/glad.h"
+#include <glad.h>
 #include "texture.h"
 
 namespace renderer
