@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer3DInterface.h"
+#include "../renderer3DInterface.h"
 #include <memory>
 #include "engine/framebuffer.h"
 #include "compute/computeTexture.h"

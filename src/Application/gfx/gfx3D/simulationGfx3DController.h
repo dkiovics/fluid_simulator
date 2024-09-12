@@ -13,7 +13,7 @@
 #include "manager/simulationManager.h"
 #include "../gfxInterface.hpp"
 #include <vector>
-#include "diffRenderProxy.h"
+#include "renderer3DInterface.h"
 
 
 namespace gfx3D

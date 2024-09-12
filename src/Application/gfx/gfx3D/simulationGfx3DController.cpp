@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <geometries/basicGeometries.h>
 #include <map>
-#include "simulationGfx3DRenderer.h"
+#include "renderer/simulationGfx3DRenderer.h"
+#include "renderer/diffRenderProxy.h"
 
 using namespace gfx3D;
 

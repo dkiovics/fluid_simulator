@@ -1,14 +1,14 @@
 set(SOURCES
     gfx/gfx2D/simulationGfx2D.hpp
     
-    gfx/gfx3D/fluidSurfaceGfx.h
-    gfx/gfx3D/fluidSurfaceGfx.cpp
-    gfx/gfx3D/transparentBox.hpp
+    gfx/gfx3D/renderer/fluidSurfaceGfx.h
+    gfx/gfx3D/renderer/fluidSurfaceGfx.cpp
+    gfx/gfx3D/renderer/transparentBox.hpp
     gfx/gfx3D/renderer3DInterface.h
-    gfx/gfx3D/diffRenderProxy.h
-    gfx/gfx3D/diffRenderProxy.cpp
-    gfx/gfx3D/simulationGfx3DRenderer.h
-    gfx/gfx3D/simulationGfx3DRenderer.cpp
+    gfx/gfx3D/renderer/diffRenderProxy.h
+    gfx/gfx3D/renderer/diffRenderProxy.cpp
+    gfx/gfx3D/renderer/simulationGfx3DRenderer.h
+    gfx/gfx3D/renderer/simulationGfx3DRenderer.cpp
     gfx/gfx3D/simulationGfx3DController.h
     gfx/gfx3D/simulationGfx3DController.cpp
 

@@ -10,9 +10,8 @@
 #include <engine/framebuffer.h>
 #include <engine/texture.h>
 #include <engineUtils/object.h>
-#include "manager/simulationManager.h"
 #include <param.hpp>
-#include "renderer3DInterface.h"
+#include "../renderer3DInterface.h"
 
 namespace gfx3D
 {
