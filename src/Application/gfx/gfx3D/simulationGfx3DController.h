@@ -39,6 +39,8 @@ private:
 	int selectedObstacle = -1;
 	int lastSelectedObstacle = -1;
 
+	const int maxParticleNum;
+
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTextured;
 
 	std::shared_ptr<renderer::GpuProgram> showShaderProgram;
@@ -66,6 +68,8 @@ private:
 	bool inModelRotationMode = false;
 
 	std::unique_ptr<Renderer3DInterface> renderer3DInterface;
+
+	ParamBool diffRenderEnabled = ParamBool("Diff Render Enabled", false);
 
 	void mouseCallback(double x, double y);
 	void mouseButtonCallback(int button, int action, int mods);

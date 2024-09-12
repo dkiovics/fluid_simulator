@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <initializer_list>
 #include <vector>
-#include <engine/renderEngine.h>
 #include <imgui.h>
 
 class ImguiShowable
@@ -99,6 +98,27 @@ public:
 	{
 		ImGui::ColorEdit3(name.c_str(), (float*)&value, ImGuiColorEditFlags_NoInputs);
 	}
+};
+
+class ParamRadio : public Param
+{
+public:
+    ParamRadio(const std::string& name, const std::vector<std::string>& options, const int value) 
+        : Param(name), options(options), value(value) { }
+
+    int value;
+    const std::vector<std::string> options;
+
+    void show(int) override
+    {
+        for (int i = 0; i < options.size(); i++)
+        {
+            if (ImGui::RadioButton(options[i].c_str(), value == i))
+                value = i;
+            if (i < options.size() - 1)
+                ImGui::SameLine();
+        }
+    }
 };
 
 class ParamLine : public ImguiShowable

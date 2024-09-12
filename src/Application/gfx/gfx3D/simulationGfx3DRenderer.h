@@ -13,6 +13,8 @@
 #include <vector>
 #include "transparentBox.hpp"
 #include "renderer3DInterface.h"
+#include <param.hpp>
+#include "fluidSurfaceGfx.h"
 
 namespace gfx3D
 {
@@ -20,15 +22,21 @@ namespace gfx3D
 class SimulationGfx3DRenderer : public Renderer3DInterface
 {
 public:
-	SimulationGfx3DRenderer(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<renderer::Camera3D> camera, 
-		std::shared_ptr<renderer::Lights> lights, const std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>>& obstacleGfxArray,
+	SimulationGfx3DRenderer(std::shared_ptr<renderer::RenderEngine> engine, 
+		std::shared_ptr<renderer::Camera3D> camera,	std::shared_ptr<renderer::Lights> lights, 
+		const std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>>& obstacleGfxArray,
 		unsigned int maxParticleNum, ConfigData3D configData);
 
 	void setConfigData(const ConfigData3D& configData) override;
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& renderData) override;
+	void show(int screenWidth) override;
+
+	void render(std::shared_ptr<renderer::Framebuffer> framebuffer,
+		std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data) override;
 
 private:
+	const int maxParticleNum;
+
 	ConfigData3D configData;
 
 	std::shared_ptr<renderer::RenderEngine> engine;
@@ -37,7 +45,7 @@ private:
 	const std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>>& obstacleGfxArray;
 
 	std::unique_ptr<renderer::Object3D<renderer::Geometry>> planeGfx;
-	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> ballsGfx;
+	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> particlesGfx;
 
 	std::unique_ptr<TransparentBox> transparentBox;
 
@@ -49,7 +57,26 @@ private:
 	std::shared_ptr<renderer::GpuProgram> showShaderProgram;
 	std::shared_ptr<renderer::Square> showSquare;
 	std::shared_ptr<renderer::RenderTargetTexture> renderTargetTexture;
-	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer;
+
+	std::unique_ptr<FluidSurfaceGfx> fluidSurfaceGfx;
+
+	enum FluidRenderMode
+	{
+		NONE = 0,
+		PARTICLES,
+		SURFACE
+	};
+
+	ParamBool showFloor = ParamBool("Show floor", true);
+	ParamBool showBox = ParamBool("Show box", true);
+	ParamBool showObstacles = ParamBool("Show obstacles", true);
+	ParamRadio fluidRenderMode = ParamRadio("Fluid render mode", { "None", "Particles", "Surface" }, PARTICLES);
+
+	void handleFluidRenderModeChange();
+
+	void renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer,
+		std::shared_ptr<renderer::RenderTargetTexture> paramTexture, 
+		const std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>& data);
 };
 
 } // namespace gfx3D

@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <initializer_list>
 
 namespace renderer
 {
@@ -53,6 +54,18 @@ public:
 	std::vector<std::shared_ptr<RenderTargetTexture>> getColorAttachments() const;
 
 	/**
+	* \brief Sets the color attachments of the framebuffer
+	* \param colorAttachments - The new color attachments of the framebuffer
+	*/
+	void setColorAttachments(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments);
+
+	/**
+	* \brief Sets the depth attachment of the framebuffer
+	* \param depthAttachment - The new depth attachment of the framebuffer
+	*/
+	void setDepthAttachment(std::shared_ptr<RenderTargetTexture> depthAttachment);
+
+	/**
 	 * \brief Returns the depth attachment of the framebuffer
 	 * \return The depth attachment of the framebuffer
 	 */
@@ -63,6 +76,14 @@ public:
 	 * \return The size of the framebuffer
 	 */
 	glm::ivec2 getSize() const;
+
+	/**
+	 * \brief Converts a list of textures to an array.
+	 */
+	static std::vector<std::shared_ptr<renderer::RenderTargetTexture>> toArray(std::initializer_list<std::shared_ptr<renderer::RenderTargetTexture>> texture)
+	{
+		return { texture };
+	}
 
 private:
 	GLuint framebufferId = 0;

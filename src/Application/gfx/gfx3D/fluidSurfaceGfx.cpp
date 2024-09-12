@@ -3,9 +3,8 @@
 using namespace gfx3D;
 
 FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
-	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)
-	: engine(engine), simulationManager(simulationManager), camera(camera), lights(lights), renderTargetFramebuffer(renderTargetFramebuffer)
+	: engine(engine), camera(camera), lights(lights)
 {
 	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_depth.frag");
 	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian.frag");
@@ -49,7 +48,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32F, GL_RED, GL_FLOAT);
 		fluidThicknessFramebuffer = std::make_unique<renderer::Framebuffer>
 			(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>{ fluidThicknessTexture },
-				renderTargetFramebuffer->getDepthAttachment(), false);
+				nullptr, false);
 
 		std::shared_ptr<renderer::RenderTargetTexture> fluidThicknessBlurTmpTexture =
 			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32F, GL_RED, GL_FLOAT);
@@ -80,9 +79,15 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	addParamLine(ParamLine({ &fluidSurfaceNoiseSpeed }, &fluidSurfaceNoiseEnabled));
 }
 
-void FluidSurfaceGfx::render()
+void FluidSurfaceGfx::setConfigData(const ConfigData3D& config)
 {
-	glm::ivec2 viewportSize = renderTargetFramebuffer->getSize();
+	this->config = config;
+}
+
+void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
+	std::shared_ptr<renderer::RenderTargetTexture>, const Gfx3DRenderData& data)
+{
+	glm::ivec2 viewportSize = framebuffer->getSize();
 	if (viewportSize != depthFramebuffer->getSize())
 	{
 		depthFramebuffer->setSize(viewportSize);
@@ -91,9 +96,10 @@ void FluidSurfaceGfx::render()
 		fluidThicknessFramebuffer->setSize(viewportSize);
 		normalAndDepthFramebuffer->setSize(viewportSize);
 	}
+	fluidThicknessFramebuffer->setDepthAttachment(framebuffer->getDepthAttachment());
 
-	updateParticleData();
-	(*particleSpritesDepthShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
+	updateParticleData(data);
+	(*particleSpritesDepthShader)["particleRadius"] = config.particleRadius;
 
 	depthFramebuffer->bind();
 	engine->setViewport(0, 0, viewportSize.x, viewportSize.y);
@@ -145,7 +151,7 @@ void FluidSurfaceGfx::render()
 	{
 		fluidThicknessFramebuffer->bind();
 		fluidThicknessShader->activate();
-		(*fluidThicknessShader)["particleRadius"] = simulationManager->getConfig().particleRadius;
+		(*fluidThicknessShader)["particleRadius"] = config.particleRadius;
 		engine->clearViewport(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_ONE, GL_ONE);
@@ -182,7 +188,7 @@ void FluidSurfaceGfx::render()
 	square->draw();
 
 	engine->enableDepthTest(true);
-	renderTargetFramebuffer->bind();
+	framebuffer->bind();
 	if (fluidTransparencyEnabled.value)
 	{
 		glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
@@ -205,15 +211,9 @@ void FluidSurfaceGfx::render()
 	engine->bindDefaultFramebuffer();
 }
 
-void FluidSurfaceGfx::setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager)
+void FluidSurfaceGfx::updateParticleData(const Gfx3DRenderData& data)
 {
-	this->simulationManager = simulationManager;
-}
-
-void FluidSurfaceGfx::updateParticleData()
-{
-	auto particles = simulationManager->getParticleGfxData();
-	const int particleNum = particles.size();
+	const int particleNum = data.particleData.size();
 	auto surfaceSquareArray = surfaceSquareArrayObject->drawable;
 	auto spraySquareArray = spraySquareArrayObject->drawable;
 
@@ -224,9 +224,9 @@ void FluidSurfaceGfx::updateParticleData()
 		for (int p = 0; p < particleNum; p++)
 		{
 
-			if (particles[p].density < sprayDensityThreashold.value)
+			if (data.particleData[p].density < sprayDensityThreashold.value)
 			{
-				spraySquareArray->setOffset(sprayParticleCount, glm::vec4(particles[p].pos, 1.0f));
+				spraySquareArray->setOffset(sprayParticleCount, glm::vec4(data.particleData[p].pos, 1.0f));
 				/*if (fluidSurfaceNoiseEnabled.value)
 				{
 					spraySquareArray->setSpeed(sprayParticleCount, particles[p].v);
@@ -236,7 +236,7 @@ void FluidSurfaceGfx::updateParticleData()
 			}
 			else
 			{
-				surfaceSquareArray->setOffset(surfaceParticleCount, glm::vec4(particles[p].pos, 1.0f));
+				surfaceSquareArray->setOffset(surfaceParticleCount, glm::vec4(data.particleData[p].pos, 1.0f));
 				/*if (fluidSurfaceNoiseEnabled.value)
 				{
 					surfaceSquareArray->setSpeed(surfaceParticleCount, particles[p].v);
@@ -254,7 +254,7 @@ void FluidSurfaceGfx::updateParticleData()
 	{
 		for (int p = 0; p < particleNum; p++)
 		{
-			surfaceSquareArray->setOffset(p, glm::vec4(particles[p].pos, 1.0f));
+			surfaceSquareArray->setOffset(p, glm::vec4(data.particleData[p].pos, 1.0f));
 			/*if (fluidSurfaceNoiseEnabled.value)
 			{
 				surfaceSquareArray->setSpeed(p, particles[p].v);

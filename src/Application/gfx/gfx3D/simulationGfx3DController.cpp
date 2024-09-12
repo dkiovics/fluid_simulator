@@ -122,13 +122,15 @@ ConfigData3D SimulationGfx3DController::getConfigData3D()
 	modelRotationPoint = center;
 	config.sceneCenter = center;
 	config.screenSize = screenSize;
-	config.speedColor = particleSpeedColorEnabled.value;
+	config.speedColor = particleSpeedColor.value;
+	config.color = particleColor.value;
+	config.speedColorEnabled = particleSpeedColorEnabled.value;
 	return config;
 }
 
 SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 	glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum)
-	: engine(engine), simulationManager(simulationManager)
+	: engine(engine), simulationManager(simulationManager), maxParticleNum(maxParticleNum)
 {
 	this->screenStart = screenStart;
 	this->screenSize = screenSize;
@@ -162,12 +164,14 @@ SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::R
 		(screenSize.x, screenSize.y, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
 	renderTargetFramebuffer = std::make_shared<renderer::Framebuffer>(textures, renderTargetDepthTexture, false);
 
-	renderer3DInterface = std::make_unique<DiffRendererProxy>(std::make_shared<SimulationGfx3DRenderer>
-		(engine, camera, lights, obstacleGfxArray, maxParticleNum, getConfigData3D()));
+	renderer3DInterface = std::make_unique<SimulationGfx3DRenderer>
+		(engine, camera, lights, obstacleGfxArray, maxParticleNum, getConfigData3D());
 	camera->addProgram({ shaderProgramNotTextured });
 	lights->addProgram({ shaderProgramNotTextured });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
+
+	addParamLine({ &diffRenderEnabled });
 }
 
 void SimulationGfx3DController::setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager)
@@ -266,6 +270,24 @@ void SimulationGfx3DController::removeObstacle()
 void SimulationGfx3DController::show(int screenWidth)
 {
 	ParamLineCollection::show(screenWidth);
+
+	bool diffRenderMode = dynamic_cast<DiffRendererProxy*>(renderer3DInterface.get()) != nullptr;
+	if (diffRenderEnabled.value)
+	{
+		if (!diffRenderMode)
+		{
+			renderer3DInterface = std::make_unique<DiffRendererProxy>(std::make_shared<SimulationGfx3DRenderer>
+				(engine, camera, lights, obstacleGfxArray, maxParticleNum, getConfigData3D()));
+		}
+	}
+	else
+	{
+		if (diffRenderMode)
+		{
+			renderer3DInterface = std::make_unique<SimulationGfx3DRenderer>
+				(engine, camera, lights, obstacleGfxArray, maxParticleNum, getConfigData3D());
+		}
+	}
 	renderer3DInterface->show(screenWidth);
 }
 
@@ -351,18 +373,9 @@ void SimulationGfx3DController::render()
 
 	renderer3DInterface->setConfigData(getConfigData3D());
 
-	auto particles = simulationManager->getParticleGfxData();
-	const int particleNum = particles.size();
-	Gfx3DRenderData renderData(particleColor.value, particleSpeedColor.value);
-	renderData.positions.reserve(particleNum);
-	renderData.speeds.reserve(particleNum);
-	for(int i = 0; i < particleNum; i++)
-	{
-		renderData.positions.push_back(particles[i].pos);
-		renderData.speeds.push_back(particles[i].v);
-	}
+	Gfx3DRenderData data(std::move(simulationManager->getParticleGfxData()));
 
-	renderer3DInterface->render(renderTargetFramebuffer, renderData);
+	renderer3DInterface->render(renderTargetFramebuffer, nullptr, data);
 
 	engine->bindDefaultFramebuffer();
 	engine->setViewport(screenStart.x, engine->getScreenHeight() - (screenStart.y + screenSize.y), screenSize.x, screenSize.y);

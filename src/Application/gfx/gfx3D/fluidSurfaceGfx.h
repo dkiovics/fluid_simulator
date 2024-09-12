@@ -11,20 +11,22 @@
 #include <engine/texture.h>
 #include <engineUtils/object.h>
 #include "manager/simulationManager.h"
-#include "../../ui/param.hpp"
+#include <param.hpp>
+#include "renderer3DInterface.h"
 
 namespace gfx3D
 {
 
-class FluidSurfaceGfx : public ParamLineCollection
+class FluidSurfaceGfx : public Renderer3DInterface
 {
 public:
-	FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+	FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 		std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum);
 
-	void render();
+	void render(std::shared_ptr<renderer::Framebuffer> framebuffer,
+		std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data) override;
 
-	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager);
+	void setConfigData(const ConfigData3D& config) override;
 
 	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0, 0.4, 0.95));
 	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", false);
@@ -44,10 +46,9 @@ public:
 	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317, 0.0f, 1.0f);
 
 private:
-	void updateParticleData();
+	void updateParticleData(const Gfx3DRenderData& data);
 
 	std::shared_ptr<renderer::RenderEngine> engine;
-	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager;
 	std::shared_ptr<renderer::Camera3D> camera;
 	std::shared_ptr<renderer::Lights> lights;
 
@@ -64,7 +65,6 @@ private:
 	std::unique_ptr<renderer::Square> square;
 	std::unique_ptr<renderer::Object3D<renderer::Square>> shadedSquareObject;
 
-	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> depthFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> depthBlurTmpFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessFramebuffer;
@@ -75,6 +75,8 @@ private:
 	bool particleSpeedColorWasEnabled = false;
 	unsigned int prevParticleNum = 0;
 	float noiseOffset = 0.0f;
+
+	ConfigData3D config;
 };
 
 }	// namespace gfx3D

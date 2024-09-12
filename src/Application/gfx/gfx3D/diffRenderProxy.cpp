@@ -1,30 +1,28 @@
 #include "diffRenderProxy.h"
-#include <initializer_list>
 #include <armadillo>
 #include <iostream>
 
 using namespace gfx3D;
 
-static std::vector<std::shared_ptr<renderer::RenderTargetTexture>> toArray(std::initializer_list<std::shared_ptr<renderer::RenderTargetTexture>> texture)
-{
-	return { texture };
-}
-
 DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> renderer3D)
 	:renderer3D(renderer3D), renderEngine(renderer::RenderEngine::getInstance())
 {
 	referenceFramebuffer = std::make_shared<renderer::Framebuffer>(
-		toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE),
-				std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT)
+		renderer::Framebuffer::toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE),
 			})
 	);
 
+	paramFramebuffer = std::make_shared<renderer::Framebuffer>(
+		renderer::Framebuffer::toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT) }),
+		nullptr
+	);
+
 	pertPlusFramebuffer = std::make_shared<renderer::Framebuffer>(
-		toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) })
+		renderer::Framebuffer::toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) })
 	);
 
 	pertMinusFramebuffer = std::make_shared<renderer::Framebuffer>(
-		toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) })
+		renderer::Framebuffer::toArray({ std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) })
 	);
 
 	parameterSSBO = std::make_unique<renderer::StorageBuffer<glm::vec4>>(1000, GL_DYNAMIC_DRAW);
@@ -40,7 +38,7 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	(*stochaisticGradientProgram)["referenceImage"] = *referenceFramebuffer->getColorAttachments()[0];
 	(*stochaisticGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getColorAttachments()[0];
 	(*stochaisticGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getColorAttachments()[0];
-	(*stochaisticGradientProgram)["contributionImage"] = *referenceFramebuffer->getColorAttachments()[1];
+	(*stochaisticGradientProgram)["contributionImage"] = *paramFramebuffer->getColorAttachments()[0];
 	stochaisticGradientSSBO->bindBuffer(10);
 
 	showQuad = std::make_unique<renderer::Square>();
@@ -52,26 +50,26 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	addParamLine({ &adamEnabled });
 }
 
-void DiffRendererProxy::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data)
+void DiffRendererProxy::render(std::shared_ptr<renderer::Framebuffer> framebuffer, std::shared_ptr<renderer::RenderTargetTexture>, const Gfx3DRenderData& data)
 {
 	if (showReference.value)
 	{
 		copytextureToFramebuffer(*referenceFramebuffer->getColorAttachments()[0], framebuffer);
 		return;
 	}
-	if (updateReference.value || updateReferenceButton.value || referenceRenderData.positions.size() == 0)
+	if (updateReference.value || updateReferenceButton.value || referenceRenderData.particleData.size() == 0)
 	{
 		renderReferenceImage(data);
 		referenceRenderData = data;
 		initParameterAndPerturbationSSBO(data);
 		resetAdam();
-		//copytextureToFramebuffer(*referenceFramebuffer->getColorAttachments()[0], framebuffer);
-		framebuffer->bind();
+		copytextureToFramebuffer(*referenceFramebuffer->getColorAttachments()[0], framebuffer);
+		/*framebuffer->bind();
 		renderEngine.setViewport(0, 0, framebuffer->getSize().x, framebuffer->getSize().y);
 		renderEngine.enableDepthTest(false);
 		showIntProgram->activate();
-		(*showIntProgram)["colorTexture"] = *referenceFramebuffer->getColorAttachments()[1];
-		showQuad->draw();
+		(*showIntProgram)["colorTexture"] = *paramFramebuffer->getColorAttachments()[0];
+		showQuad->draw();*/
 	}
 	else
 	{
@@ -94,6 +92,7 @@ void DiffRendererProxy::setConfigData(const ConfigData3D& data)
 	{
 		prevScreenSize = data.screenSize;
 		referenceFramebuffer->setSize(data.screenSize);
+		paramFramebuffer->setSize(data.screenSize);
 		pertPlusFramebuffer->setSize(data.screenSize);
 		pertMinusFramebuffer->setSize(data.screenSize);
 	}
@@ -101,7 +100,7 @@ void DiffRendererProxy::setConfigData(const ConfigData3D& data)
 	if (data != prevConfigData)
 	{
 		prevConfigData = data;
-		referenceRenderData.positions.clear();
+		referenceRenderData.particleData.clear();
 	}
 }
 
@@ -109,13 +108,12 @@ void DiffRendererProxy::show(int screenWidth)
 {
 	ImGui::SeparatorText("DiffRendererProxy");
 	ParamLineCollection::show(screenWidth);
-	ImGui::SeparatorText("Renderer 3D");
 	renderer3D->show(screenWidth);
 }
 
 void gfx3D::DiffRendererProxy::initParameterAndPerturbationSSBO(const Gfx3DRenderData& data)
 {
-	unsigned int paramSize = data.positions.size();
+	unsigned int paramSize = data.particleData.size();
 	perturbationSSBO->setSize(paramSize);
 	parameterSSBO->setSize(paramSize);
 	resultSSBO->setSize(paramSize);
@@ -159,7 +157,10 @@ void gfx3D::DiffRendererProxy::computeStochaisticGradient()
 
 void gfx3D::DiffRendererProxy::renderReferenceImage(const Gfx3DRenderData& data) const
 {
-	renderer3D->render(referenceFramebuffer, data);
+	paramFramebuffer->bind();
+	renderEngine.setViewport(0, 0, paramFramebuffer->getSize().x, paramFramebuffer->getSize().y);
+	renderEngine.clearViewport(glm::vec4(0, 0, 0, 0));
+	renderer3D->render(referenceFramebuffer, paramFramebuffer->getColorAttachments()[0], data);
 }
 
 void gfx3D::DiffRendererProxy::renderFromPerturbatedParams(Gfx3DRenderData data) const
@@ -167,15 +168,15 @@ void gfx3D::DiffRendererProxy::renderFromPerturbatedParams(Gfx3DRenderData data)
 	resultSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
 	for (unsigned int i = 0; i < parameterSSBO->getSize(); i++)
 	{
-		data.speeds[i] = (*resultSSBO)[i].paramPositiveOffset.x;
+		data.particleData[i].v = (*resultSSBO)[i].paramPositiveOffset.x;
 	}
-	renderer3D->render(pertPlusFramebuffer, data);
+	renderer3D->render(pertPlusFramebuffer, nullptr, data);
 	for (unsigned int i = 0; i < parameterSSBO->getSize(); i++)
 	{
-		data.speeds[i] = (*resultSSBO)[i].paramNegativeOffset.x;
+		data.particleData[i].v = (*resultSSBO)[i].paramNegativeOffset.x;
 	}
 	resultSSBO->unmapBuffer();
-	renderer3D->render(pertMinusFramebuffer, data);
+	renderer3D->render(pertMinusFramebuffer, nullptr, data);
 }
 
 void gfx3D::DiffRendererProxy::resetAdam()

@@ -17,7 +17,7 @@ class DiffRendererProxy : public Renderer3DInterface
 public:
 	DiffRendererProxy(std::shared_ptr<Renderer3DInterface> renderer);
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data) override;
+	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data) override;
 	void setConfigData(const ConfigData3D& data) override;
 
 	void show(int screenWidth) override;
@@ -39,6 +39,7 @@ private:
 	float t = 0;
 
 	std::shared_ptr<renderer::Framebuffer> referenceFramebuffer;
+	std::shared_ptr<renderer::Framebuffer> paramFramebuffer;
 
 	std::shared_ptr<renderer::Framebuffer> pertPlusFramebuffer;
 	std::shared_ptr<renderer::Framebuffer> pertMinusFramebuffer;

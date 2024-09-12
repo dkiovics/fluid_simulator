@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 #include "manager/simulationManager.h"
-#include "../ui/param.hpp"
+#include <param.hpp>
 
 
 class GfxInterface : public ParamLineCollection {

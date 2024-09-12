@@ -1,8 +1,6 @@
 set(SOURCES
     gfx/gfx2D/simulationGfx2D.hpp
     
-    #gfx/gfx3D/simulationGfx3D.h
-    #gfx/gfx3D/simulationGfx3D.cpp
     gfx/gfx3D/fluidSurfaceGfx.h
     gfx/gfx3D/fluidSurfaceGfx.cpp
     gfx/gfx3D/transparentBox.hpp
@@ -14,10 +12,8 @@ set(SOURCES
     gfx/gfx3D/simulationGfx3DController.h
     gfx/gfx3D/simulationGfx3DController.cpp
 
-
     gfx/gfxInterface.hpp
     
-    ui/param.hpp
     ui/simParamsAdvanced.h
     ui/simParamsAdvanced.cpp
     ui/simulationGui.h

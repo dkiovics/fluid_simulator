@@ -138,6 +138,69 @@ std::vector<std::shared_ptr<RenderTargetTexture>> renderer::Framebuffer::getColo
 	return colorAttachments;
 }
 
+void renderer::Framebuffer::setColorAttachments(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments)
+{
+	if (colorAttachments.empty() && !depthAttachment)
+	{
+		throw std::runtime_error("Framebuffer must have at least one attachment");
+	}
+	for (auto& colorAttachment : colorAttachments)
+	{
+		if (colorAttachment->getSize() != size)
+		{
+			throw std::runtime_error("All attachments must have the same size");
+		}
+	}
+	this->colorAttachments = colorAttachments;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+
+	std::vector<GLenum> drawBuffers;
+	for (size_t i = 0; i < this->colorAttachments.size(); i++)
+	{
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, this->colorAttachments[i]->getTextureId(), 0);
+		drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+	}
+
+	glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderer::Framebuffer::setDepthAttachment(std::shared_ptr<RenderTargetTexture> depthAttachment)
+{
+	if (depthAttachment && depthAttachment->getSize() != size)
+	{
+		throw std::runtime_error("Depth attachment must have the same size as the color attachments");
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
+
+	if (depthAttachment)
+	{
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment->getTextureId(), 0);
+	}
+	else
+	{
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+	}
+
+	if (depthStencilRenderbufferId)
+	{
+		glDeleteRenderbuffers(1, &depthStencilRenderbufferId.value());
+		depthStencilRenderbufferId.reset();
+	}
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		throw std::runtime_error("Framebuffer is not complete");
+	}
+
+	this->depthAttachment = depthAttachment;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 std::shared_ptr<RenderTargetTexture> renderer::Framebuffer::getDepthAttachment() const
 {
 	return depthAttachment;
