@@ -88,6 +88,7 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 		fluidSurfaceGfx->render(framebuffer, paramTexture, data);
 	}
 
+	framebuffer->bind();
 	if (showBox.value)
 	{
 		transparentBox->draw(configData.sceneCenter, configData.boxSize, false, true);

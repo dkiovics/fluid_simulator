@@ -57,10 +57,11 @@ void DiffRendererProxy::render(std::shared_ptr<renderer::Framebuffer> framebuffe
 		copytextureToFramebuffer(*referenceFramebuffer->getColorAttachments()[0], framebuffer);
 		return;
 	}
-	if (updateReference.value || updateReferenceButton.value || referenceRenderData.particleData.size() == 0)
+	if (updateReference.value || updateReferenceButton.value || configChanged)
 	{
+		configChanged = false;
+		paramDataTmp = data;
 		renderReferenceImage(data);
-		referenceRenderData = data;
 		initParameterAndPerturbationSSBO(data);
 		resetAdam();
 		copytextureToFramebuffer(*referenceFramebuffer->getColorAttachments()[0], framebuffer);
@@ -75,7 +76,7 @@ void DiffRendererProxy::render(std::shared_ptr<renderer::Framebuffer> framebuffe
 	{
 		computePerturbation();
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-		renderFromPerturbatedParams(referenceRenderData);
+		perturbateAndRenderParams();
 		computeStochaisticGradient();
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		if(adamEnabled.value)
@@ -100,7 +101,7 @@ void DiffRendererProxy::setConfigData(const ConfigData3D& data)
 	if (data != prevConfigData)
 	{
 		prevConfigData = data;
-		referenceRenderData.particleData.clear();
+		configChanged = true;
 	}
 }
 
@@ -163,20 +164,23 @@ void gfx3D::DiffRendererProxy::renderReferenceImage(const Gfx3DRenderData& data)
 	renderer3D->render(referenceFramebuffer, paramFramebuffer->getColorAttachments()[0], data);
 }
 
-void gfx3D::DiffRendererProxy::renderFromPerturbatedParams(Gfx3DRenderData data) const
+void gfx3D::DiffRendererProxy::perturbateAndRenderParams()
 {
 	resultSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
 	for (unsigned int i = 0; i < parameterSSBO->getSize(); i++)
 	{
-		data.particleData[i].v = (*resultSSBO)[i].paramPositiveOffset.x;
+		paramDataTmp.particleData[i].v = (*resultSSBO)[i].paramPositiveOffset.x;
 	}
-	renderer3D->render(pertPlusFramebuffer, nullptr, data);
+	paramFramebuffer->bind();
+	renderEngine.setViewport(0, 0, paramFramebuffer->getSize().x, paramFramebuffer->getSize().y);
+	renderEngine.clearViewport(glm::vec4(0, 0, 0, 0));
+	renderer3D->render(pertPlusFramebuffer, paramFramebuffer->getColorAttachments()[0], paramDataTmp);
 	for (unsigned int i = 0; i < parameterSSBO->getSize(); i++)
 	{
-		data.particleData[i].v = (*resultSSBO)[i].paramNegativeOffset.x;
+		paramDataTmp.particleData[i].v = (*resultSSBO)[i].paramNegativeOffset.x;
 	}
 	resultSSBO->unmapBuffer();
-	renderer3D->render(pertMinusFramebuffer, nullptr, data);
+	renderer3D->render(pertMinusFramebuffer, nullptr, paramDataTmp);
 }
 
 void gfx3D::DiffRendererProxy::resetAdam()

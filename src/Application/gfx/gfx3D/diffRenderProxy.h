@@ -28,8 +28,9 @@ private:
 	std::shared_ptr<Renderer3DInterface> renderer3D;
 	renderer::RenderEngine& renderEngine;
 
-	Gfx3DRenderData referenceRenderData;
+	Gfx3DRenderData paramDataTmp;
 	ConfigData3D prevConfigData;
+	bool configChanged = true;
 
 	arma::fvec currentParams;
 	arma::fvec mVec;
@@ -75,7 +76,7 @@ private:
 	void computeStochaisticGradient();
 
 	void renderReferenceImage(const Gfx3DRenderData& data) const;
-	void renderFromPerturbatedParams(Gfx3DRenderData data) const;
+	void perturbateAndRenderParams();
 
 	void resetAdam();
 	void runAdamIteration();
