@@ -9,6 +9,8 @@ uniform sampler2D plusPertImage;
 uniform sampler2D minusPertImage;
 uniform usampler2D contributionImage;
 
+uniform float multiplier;
+
 struct ResultSSBOData {
 	float signedPerturbation[4];
 	float paramPositiveOffset[4];
@@ -37,11 +39,11 @@ void main(void) {
 		perturbationResult[contributingParam].signedPerturbation[3]);
 
 	if(signedPerturbation.x != 0.0)
-		atomicAdd(gradient[contributingParam].x, (positiveError - negativeError) / (2 * signedPerturbation.x));
+		atomicAdd(gradient[contributingParam].x, (positiveError - negativeError) / (2 * signedPerturbation.x) * multiplier);
 	if(signedPerturbation.y != 0.0)
-		atomicAdd(gradient[contributingParam].y, (positiveError - negativeError) / (2 * signedPerturbation.y));
+		atomicAdd(gradient[contributingParam].y, (positiveError - negativeError) / (2 * signedPerturbation.y) * multiplier);
 	if(signedPerturbation.z != 0.0)
-		atomicAdd(gradient[contributingParam].z, (positiveError - negativeError) / (2 * signedPerturbation.z));
+		atomicAdd(gradient[contributingParam].z, (positiveError - negativeError) / (2 * signedPerturbation.z) * multiplier);
 	if(signedPerturbation.w != 0.0)
-		atomicAdd(gradient[contributingParam].w, (positiveError - negativeError) / (2 * signedPerturbation.w));
+		atomicAdd(gradient[contributingParam].w, (positiveError - negativeError) / (2 * signedPerturbation.w) * multiplier);
 }

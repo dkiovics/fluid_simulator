@@ -28,6 +28,7 @@ private:
 	std::shared_ptr<Renderer3DInterface> renderer3D;
 	renderer::RenderEngine& renderEngine;
 
+	Gfx3DRenderData paramData;
 	Gfx3DRenderData paramDataTmp;
 	ConfigData3D prevConfigData;
 	bool configChanged = true;
@@ -46,8 +47,11 @@ private:
 	std::shared_ptr<renderer::Framebuffer> pertMinusFramebuffer;
 
 	ParamFloat speedPerturbation = ParamFloat("Speed perturbation", 0.2f, 0.01f, 5.0f);
-	ParamBool updateReference = ParamBool("Updating reference", false);
-	ParamButton updateReferenceButton = ParamButton("Update reference");
+	ParamInt stochaisticGradientSamples = ParamInt("Stochaistic gradient samples", 1, 1, 10);
+	ParamBool showSim = ParamBool("Show simulation", false);
+	ParamButton updateReference = ParamButton("Update reference");
+	ParamButton updateParams = ParamButton("Update params");
+	ParamButton randomizeParams = ParamButton("Randomize params");
 	ParamBool showReference = ParamBool("Show reference", false);
 	ParamBool adamEnabled = ParamBool("Adam enabled", false);
 
@@ -72,11 +76,14 @@ private:
 
 	void initParameterAndPerturbationSSBO(const Gfx3DRenderData& data);
 
+	void resetStochaisticGradientSSBO();
 	void computePerturbation();
 	void computeStochaisticGradient();
-
-	void renderReferenceImage(const Gfx3DRenderData& data) const;
+	
 	void perturbateAndRenderParams();
+
+	void updateSSBOFromParams(const Gfx3DRenderData& data);
+	void randomizeParamValues();
 
 	void resetAdam();
 	void runAdamIteration();
