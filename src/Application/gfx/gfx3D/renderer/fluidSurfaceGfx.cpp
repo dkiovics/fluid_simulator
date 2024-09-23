@@ -7,7 +7,8 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	: engine(engine), camera(camera), lights(lights)
 {
 	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_depth.frag");
-	gaussianBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian.frag");
+	gaussianBlurShaderX = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian_x.frag");
+	gaussianBlurShaderY = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian_y.frag");
 	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/shadedDepth.frag");
 	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/bilateral.frag");
 	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_thickness.frag");
@@ -61,7 +62,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	(*fluidThicknessShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 	(*normalAndDepthShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 
-	camera->addProgram({ particleSpritesDepthShader, gaussianBlurShader, 
+	camera->addProgram({ particleSpritesDepthShader, gaussianBlurShaderX, gaussianBlurShaderY,
 		bilateralFilterShader, shadedDepthShader, fluidThicknessShader, fluidThicknessBlurShader, normalAndDepthShader });
 	lights->addProgram({ particleSpritesDepthShader, shadedDepthShader, fluidThicknessShader });
 	camera->setUniformsForAllPrograms();
@@ -128,16 +129,16 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	}
 	else
 	{
-		gaussianBlurShader->activate();
-		(*gaussianBlurShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
-		(*gaussianBlurShader)["axis"] = 0;
-		(*gaussianBlurShader)["smoothingKernelSize"] = smoothingSize.value;
+		gaussianBlurShaderX->activate();
+		(*gaussianBlurShaderX)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
+		(*gaussianBlurShaderX)["smoothingKernelSize"] = smoothingSize.value;
 		square->draw();
 
 		depthFramebuffer->bind();
 		engine->clearViewport(1.0f);
-		(*gaussianBlurShader)["depthTexture"] = *depthBlurTmpFramebuffer->getDepthAttachment();
-		(*gaussianBlurShader)["axis"] = 1;
+		gaussianBlurShaderY->activate();
+		(*gaussianBlurShaderY)["depthTexture"] = *depthBlurTmpFramebuffer->getDepthAttachment();
+		(*gaussianBlurShaderY)["smoothingKernelSize"] = smoothingSize.value;
 		square->draw();
 	}
 

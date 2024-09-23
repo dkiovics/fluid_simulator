@@ -52,7 +52,8 @@ private:
 	std::shared_ptr<renderer::Lights> lights;
 
 	std::shared_ptr<renderer::GpuProgram> particleSpritesDepthShader;
-	std::shared_ptr<renderer::GpuProgram> gaussianBlurShader;
+	std::shared_ptr<renderer::GpuProgram> gaussianBlurShaderX;
+	std::shared_ptr<renderer::GpuProgram> gaussianBlurShaderY;
 	std::shared_ptr<renderer::GpuProgram> bilateralFilterShader;
 	std::shared_ptr<renderer::GpuProgram> shadedDepthShader;
 	std::shared_ptr<renderer::GpuProgram> fluidThicknessShader;
