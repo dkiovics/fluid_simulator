@@ -22,6 +22,7 @@ public:
 		bool operator=(const float value) const;
 		bool operator=(const int value) const;
 		bool operator=(const glm::vec2& value) const;
+		bool operator=(const glm::ivec2& value) const;
 		bool operator=(const glm::vec3& value) const;
 		bool operator=(const glm::vec4& value) const;
 		bool operator=(const glm::mat3& value) const;

@@ -21,7 +21,7 @@ layout(std430, binding = 2) restrict readonly buffer perturbationResultSSBO {
 	ResultSSBOData perturbationResult[];
 };
 
-layout(std430, binding = 10) restrict buffer gradientSSBO {
+layout(std430, binding = 10) restrict writeonly buffer gradientSSBO {
 	vec4 gradient[];
 };
 
