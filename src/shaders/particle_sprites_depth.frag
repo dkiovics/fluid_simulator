@@ -1,11 +1,16 @@
 #version 460 core
 precision highp float;
 
+layout(location = 0) out ivec4 geometryId;
+
 //out vec4 fragmentColor;
 in vec2 texCoord;
 in vec3 eyeSpacePos;
 //in vec4 color;
 in mat3 billboardM;
+flat in unsigned int instanceID;
+
+uniform ivec2 resolution;
 
 uniform struct{
     mat4 viewMatrix;
@@ -14,6 +19,15 @@ uniform struct{
 	mat4 projectionMatrixInverse;
     vec4 position;
 } camera;
+
+struct FragmentParam {
+	int paramNum;
+	int paramIndexes[30];
+};
+
+layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
+	FragmentParam pixelParams[];
+};
 
 uniform float particleRadius;
 
@@ -32,6 +46,12 @@ void main(void) {
 	vec4 pixelPos = vec4(eyeSpacePos + normalize(eyeSpaceNormal)*particleRadius, 1.0);
 	vec4 clipSpacePos = camera.projectionMatrix * pixelPos;
 	gl_FragDepth = clipSpacePos.z / clipSpacePos.w * 0.5 + 0.5;
+
+	int index = int(gl_FragCoord.y) * resolution.x + int(gl_FragCoord.x);
+	pixelParams[index].paramIndexes[0] = int(instanceID);
+	pixelParams[index].paramNum = 1;
+
+	geometryId = ivec4(instanceID, 0, 0, 0);
 	
 	//vec3 lightDir = normalize(vec3(1, 1, -1));
 	

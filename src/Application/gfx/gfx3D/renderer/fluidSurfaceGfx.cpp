@@ -32,12 +32,16 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	{
 		std::shared_ptr<renderer::RenderTargetTexture> depthTexture =
 			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+		std::shared_ptr<renderer::RenderTargetTexture> depthParamTexture = std::make_shared<renderer::RenderTargetTexture>
+			(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32I, GL_RED_INTEGER, GL_INT);
 		depthFramebuffer = std::make_unique<renderer::Framebuffer>
-			(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>(), depthTexture, false);
+			(renderer::Framebuffer::toArray( {depthParamTexture} ), depthTexture, false);
+
 		std::shared_ptr<renderer::RenderTargetTexture> depthBlurTmpTexture =
 			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
 		depthBlurTmpFramebuffer = std::make_unique<renderer::Framebuffer>
-			(std::vector<std::shared_ptr<renderer::RenderTargetTexture>>(), depthBlurTmpTexture, false);
+			(renderer::Framebuffer::toArray({}), depthBlurTmpTexture, false);
+
 		std::shared_ptr<renderer::RenderTargetTexture> normalAndDepthTexture =
 			std::make_shared<renderer::RenderTargetTexture>(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA32F, GL_RGBA, GL_FLOAT);
 		normalAndDepthFramebuffer = std::make_unique<renderer::Framebuffer>
@@ -61,6 +65,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	(*shadedDepthShader)["thicknessTexture"] = *fluidThicknessFramebuffer->getColorAttachments()[0];
 	(*fluidThicknessShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 	(*normalAndDepthShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
+	(*gaussianBlurShaderX)["paramTexture"] = *depthFramebuffer->getColorAttachments()[0];
 
 	camera->addProgram({ particleSpritesDepthShader, gaussianBlurShaderX, gaussianBlurShaderY,
 		bilateralFilterShader, shadedDepthShader, fluidThicknessShader, fluidThicknessBlurShader, normalAndDepthShader });
@@ -86,7 +91,7 @@ void FluidSurfaceGfx::setConfigData(const ConfigData3D& config)
 }
 
 void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
-	std::shared_ptr<renderer::RenderTargetTexture>, const Gfx3DRenderData& data)
+	std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data)
 {
 	glm::ivec2 viewportSize = framebuffer->getSize();
 	if (viewportSize != depthFramebuffer->getSize())
@@ -96,7 +101,15 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		fluidThicknessBlurTmpFramebuffer->setSize(viewportSize);
 		fluidThicknessFramebuffer->setSize(viewportSize);
 		normalAndDepthFramebuffer->setSize(viewportSize);
+		depthParamBufferBlurX = std::make_unique<renderer::StorageBuffer<PixelParamDataX>>
+			(viewportSize.x * viewportSize.y, GL_DYNAMIC_COPY);
+		depthParamBufferOut = std::make_unique<renderer::StorageBuffer<PixelParamDataY>>
+			(viewportSize.x * viewportSize.y, GL_DYNAMIC_COPY);
+		depthParamBufferBlurX->bindBuffer(20);
+		depthParamBufferOut->bindBuffer(21);
+		(*particleSpritesDepthShader)["resolution"] = viewportSize;
 	}
+
 	fluidThicknessFramebuffer->setDepthAttachment(framebuffer->getDepthAttachment());
 
 	updateParticleData(data);
@@ -105,7 +118,8 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	depthFramebuffer->bind();
 	engine->setViewport(0, 0, viewportSize.x, viewportSize.y);
 	engine->enableDepthTest(true);
-	engine->clearViewport(1.0f);
+	depthFramebuffer->clearDepthAttachment(1.0f);
+	depthFramebuffer->clearColorAttachment(0, glm::ivec4(-1));
 
 	surfaceSquareArrayObject->draw();
 
@@ -133,6 +147,8 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		(*gaussianBlurShaderX)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 		(*gaussianBlurShaderX)["smoothingKernelSize"] = smoothingSize.value;
 		square->draw();
+
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 		depthFramebuffer->bind();
 		engine->clearViewport(1.0f);
@@ -210,6 +226,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	glDisable(GL_BLEND);
 
 	engine->bindDefaultFramebuffer();
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void FluidSurfaceGfx::updateParticleData(const Gfx3DRenderData& data)

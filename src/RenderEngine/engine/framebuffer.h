@@ -48,6 +48,21 @@ public:
 	void setSize(glm::ivec2 size);
 
 	/**
+	 * \brief Clears the color attachments of the framebuffer
+	 */
+	void clearColorAttachment(int index, glm::vec4 color) const;
+
+	/**
+	 * \brief Clears the color attachments of the framebuffer (integer version)
+	 */
+	void clearColorAttachment(int index, glm::ivec4 color) const;
+
+	/**
+	 * \brief Clears the depth attachment of the framebuffer
+	 */
+	void clearDepthAttachment(float depth) const;
+
+	/**
 	 * \brief Returns the color attachments of the framebuffer
 	 * \return The color attachments of the framebuffer
 	 */

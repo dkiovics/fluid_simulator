@@ -10,6 +10,7 @@ out vec2 texCoord;
 out vec3 eyeSpacePos;
 //out vec4 color;
 out mat3 billboardM;
+flat out unsigned int instanceID;
 
 uniform struct{
     mat4 viewMatrix;
@@ -33,6 +34,8 @@ void main() {
 	
 	gl_Position = camera.projectionMatrix * vec4(eyeSpacePos + vertexPos * particleRadius * 2.0, 1);
 	texCoord = texCoordIn;
+
+	instanceID = gl_InstanceID;
 	//color = instanceColorIn;
 	
 	/*

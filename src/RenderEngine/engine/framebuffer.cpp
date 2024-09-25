@@ -133,6 +133,21 @@ void renderer::Framebuffer::setSize(glm::ivec2 size)
 	this->size = size;
 }
 
+void renderer::Framebuffer::clearColorAttachment(int index, glm::vec4 color) const
+{
+	glClearNamedFramebufferfv(framebufferId, GL_COLOR, index, reinterpret_cast<float*>(&color));
+}
+
+void renderer::Framebuffer::clearColorAttachment(int index, glm::ivec4 color) const
+{
+	glClearNamedFramebufferiv(framebufferId, GL_COLOR, index, reinterpret_cast<int*>(&color));
+}
+
+void renderer::Framebuffer::clearDepthAttachment(float depth) const
+{
+	glClearNamedFramebufferfv(framebufferId, GL_DEPTH, 0, &depth);
+}
+
 std::vector<std::shared_ptr<RenderTargetTexture>> renderer::Framebuffer::getColorAttachments() const
 {
 	return colorAttachments;

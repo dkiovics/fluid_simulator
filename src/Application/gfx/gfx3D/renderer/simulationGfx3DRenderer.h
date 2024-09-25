@@ -70,7 +70,7 @@ private:
 	ParamBool showFloor = ParamBool("Show floor", true);
 	ParamBool showBox = ParamBool("Show box", true);
 	ParamBool showObstacles = ParamBool("Show obstacles", true);
-	ParamRadio fluidRenderMode = ParamRadio("Fluid render mode", { "None", "Particles", "Surface" }, PARTICLES);
+	ParamRadio fluidRenderMode = ParamRadio("Fluid render mode", { "None", "Particles", "Surface" }, SURFACE);
 
 	void handleFluidRenderModeChange();
 

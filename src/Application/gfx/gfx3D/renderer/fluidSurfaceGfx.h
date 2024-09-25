@@ -12,6 +12,7 @@
 #include <engineUtils/object.h>
 #include <param.hpp>
 #include "../renderer3DInterface.h"
+#include <compute/storageBuffer.h>
 
 namespace gfx3D
 {
@@ -29,17 +30,17 @@ public:
 
 	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0, 0.4, 0.95));
 	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", false);
-	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 2.4f, 0.01f, 6.0f);
+	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 0.8f, 0.01f, 6.0f);
 	ParamFloat blurScale = ParamFloat("Blur scale", 0.083f, 0.01f, 0.4f);
 	ParamFloat blurDepthFalloff = ParamFloat("Blur depth falloff", 1100.0f, 100.0f, 10000.0f);
-	ParamBool sprayEnabled = ParamBool("Spray", true);
+	ParamBool sprayEnabled = ParamBool("Spray", false);
 	ParamFloat sprayDensityThreashold = ParamFloat("Spray density threashold", 1.2f, 0.0f, 10.0f);
 
-	ParamBool fluidTransparencyEnabled = ParamBool("Transparent fluid", true);
+	ParamBool fluidTransparencyEnabled = ParamBool("Transparent fluid", false);
 	ParamFloat fluidTransparencyBlurSize = ParamFloat("Fluid thickness blur size", 2.4f, 0.01f, 6.0f);
 	ParamFloat fluidTransparency = ParamFloat("Fluid transparency", 1.334f, 0.0f, 3.0f);
 
-	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", true);
+	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", false);
 	ParamFloat fluidSurfaceNoiseScale = ParamFloat("Noise scale", 0.956f, 0.01f, 5.0f);
 	ParamFloat fluidSurfaceNoiseStrength = ParamFloat("Noise strength", 0.123f, 0.0f, 1.0f);
 	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317, 0.0f, 1.0f);
@@ -70,6 +71,24 @@ private:
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> fluidThicknessBlurTmpFramebuffer;
 	std::unique_ptr<renderer::Framebuffer> normalAndDepthFramebuffer;
+
+	static constexpr int PARAM_NUM_X = 10;
+	static constexpr int PARAM_NUM_Y = 40;
+
+	struct PixelParamDataX
+	{
+		int paramNum;
+		int paramIndexes[PARAM_NUM_X];
+	};
+
+	struct PixelParamDataY
+	{
+		int paramNum;
+		int paramIndexes[PARAM_NUM_Y];
+	};
+
+	std::unique_ptr<renderer::StorageBuffer<PixelParamDataX>> depthParamBufferBlurX;
+	std::unique_ptr<renderer::StorageBuffer<PixelParamDataY>> depthParamBufferOut;
 
 	glm::vec3 prevColor = glm::vec3(0.0f);
 	bool particleSpeedColorWasEnabled = false;

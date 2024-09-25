@@ -4,6 +4,7 @@ precision highp float;
 in vec2 texCoord;
 
 uniform sampler2D depthTexture;
+uniform isampler2D paramTexture;
 uniform float smoothingKernelSize;	//in world coordinates
 
 uniform struct CameraStruct {
@@ -12,6 +13,17 @@ uniform struct CameraStruct {
 	mat4 projectionMatrixInverse;
     vec4 position;
 } camera;
+
+#define PARAM_NUM 10
+
+struct FragmentParam {
+	int paramNum;
+	int paramIndexes[PARAM_NUM];
+};
+
+layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
+	FragmentParam pixelParams[];
+};
 
 
 vec3 uvToEye(vec2 texCoord, float depth) {
@@ -30,7 +42,11 @@ void main() {
 	float depth = 0.0;
 	float weightSum = 0.0;
 	
+	FragmentParam param;
+	param.paramNum = 0;
+
 	if(texture(depthTexture, texCoord).x == 1.0){
+		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
 		discard;
 		return;
 	}
@@ -47,14 +63,33 @@ void main() {
 	const float standardDev = (kernelSize - 1) / 6.0;
 	const float standardDev2 = standardDev * standardDev;
 	const int r = kernelSize  / 2;
+
 	for(int p = -r; p <= r; p++){
-		float d = texture(depthTexture, texCoord + vec2(texelSize, 0.0) * p).x;
+		vec2 coord = texCoord + vec2(texelSize, 0.0) * float(p);
+		float d = texture(depthTexture, coord).x;
 		if(d < 1.0){
 			float w = exp(-p*p / standardDev2 * 0.5);
 			weightSum += w;
 			depth += d * w;
 		}
+		int paramIndex = texture(paramTexture, coord).x;
+		if(paramIndex >= 0){
+			//check if the param is already in the list
+			bool found = false;
+			for(int j = 0; j < param.paramNum; j++){
+				if(paramIndex == param.paramIndexes[j]){
+					found = true;
+					break;
+				}
+			}
+			if(!found && param.paramNum < PARAM_NUM){
+				param.paramIndexes[param.paramNum] = paramIndex;
+				param.paramNum++;
+			}
+		}
 	}
+
+	pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
     
     gl_FragDepth = depth / weightSum;
 }
