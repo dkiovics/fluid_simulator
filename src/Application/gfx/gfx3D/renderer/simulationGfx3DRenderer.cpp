@@ -14,6 +14,12 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray.frag");
 	shaderProgramNotTexturedArrayWithId = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray_id.frag");
 
+	paramTmpTexture = std::make_shared<renderer::RenderTargetTexture>
+		(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32I, GL_RED_INTEGER, GL_INT);
+
+	paramCopyProgram = std::make_shared<renderer::ComputeProgram>("shaders/copyParams.comp");
+	(*paramCopyProgram)["paramTexture"] = *paramTmpTexture;
+
 	auto floorTexture = std::make_shared<renderer::ColorTexture>("shaders/tiles.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, true);
 	auto floor = std::make_shared<renderer::Square>();
 	planeGfx = std::make_unique<renderer::Object3D<renderer::Geometry>>(floor, shaderProgramTextured);
@@ -49,8 +55,7 @@ void SimulationGfx3DRenderer::show(int screenWidth)
 		fluidSurfaceGfx->show(screenWidth);
 }
 
-void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, 
-	std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data)
+void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data)
 {
 	handleFluidRenderModeChange();
 
@@ -81,11 +86,11 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 
 	if(fluidRenderMode.value == PARTICLES)
 	{
-		renderParticles(framebuffer, paramTexture, data.particleData);
+		renderParticles(framebuffer, data.particleData);
 	}
 	else if (fluidRenderMode.value == SURFACE)
 	{
-		fluidSurfaceGfx->render(framebuffer, paramTexture, data);
+		fluidSurfaceGfx->render(framebuffer, data);
 	}
 
 	framebuffer->bind();
@@ -93,10 +98,10 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 	{
 		transparentBox->draw(configData.sceneCenter, configData.boxSize, false, true);
 	}
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void gfx3D::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer,
-	std::shared_ptr<renderer::RenderTargetTexture> paramTexture, 
 	const std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>& data)
 {
 	auto ballGeometry = particlesGfx->drawable;
@@ -119,21 +124,25 @@ void gfx3D::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::F
 
 	ballGeometry->updateActiveInstanceParams();
 	particlesGfx->setScale(glm::vec3(configData.particleRadius, configData.particleRadius, configData.particleRadius));
-	if (paramTexture)
-	{
-		particlesGfx->shaderProgram = shaderProgramNotTexturedArrayWithId;
-		auto colorAttachment = framebuffer->getColorAttachments()[0];
-		framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment, paramTexture }));
-		framebuffer->bind();
-		particlesGfx->draw();
-		framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment }));
-		framebuffer->bind();
-	}
-	else
-	{
-		particlesGfx->shaderProgram = shaderProgramNotTexturedArray;
-		particlesGfx->draw();
-	}
+	particlesGfx->shaderProgram = shaderProgramNotTexturedArrayWithId;
+	auto colorAttachment = framebuffer->getColorAttachments()[0];
+	framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment, paramTmpTexture }));
+	framebuffer->clearColorAttachment(1, glm::ivec4(-1));
+	framebuffer->bind();
+	particlesGfx->draw();
+	framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment }));
+	framebuffer->bind();
+	
+	(*paramCopyProgram)["screenSize"] = configData.screenSize;
+	paramBufferOut->bindBuffer(30);
+	paramCopyProgram->dispatchCompute(configData.screenSize.x, configData.screenSize.y, 1);
+}
+
+std::shared_ptr<renderer::StorageBuffer<ParamInterface::PixelParamData>> gfx3D::SimulationGfx3DRenderer::getParamBufferOut() const
+{
+	if(fluidSurfaceGfx)
+		return fluidSurfaceGfx->getParamBufferOut();
+	return paramBufferOut;
 }
 
 void gfx3D::SimulationGfx3DRenderer::handleFluidRenderModeChange()
@@ -141,6 +150,7 @@ void gfx3D::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 	if (fluidRenderMode.value == SURFACE)
 	{
 		particlesGfx.reset();
+		paramBufferOut.reset();
 		if (!fluidSurfaceGfx)
 		{
 			fluidSurfaceGfx = std::make_unique<FluidSurfaceGfx>(engine, camera, lights, maxParticleNum);
@@ -150,6 +160,8 @@ void gfx3D::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 	else if(fluidRenderMode.value == PARTICLES)
 	{
 		fluidSurfaceGfx.reset();
+		setBufferSize(configData.screenSize);
+		paramTmpTexture->resizeTexture(configData.screenSize.x, configData.screenSize.y);
 		if (!particlesGfx)
 		{
 			fluidSurfaceGfx.reset();
@@ -162,6 +174,7 @@ void gfx3D::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 	}
 	else
 	{
+		paramBufferOut.reset();
 		fluidSurfaceGfx.reset();
 		particlesGfx.reset();
 	}

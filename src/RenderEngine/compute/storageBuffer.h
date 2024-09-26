@@ -74,6 +74,16 @@ public:
 		return size;
 	}
 
+	void fillWithZeros() const
+	{
+		if (mappedData != nullptr)
+		{
+			throw std::runtime_error("Buffer must be unmapped before filling it with zeros.");
+		}
+
+		glClearNamedBufferData(bufferId, GL_R8UI, GL_RED, GL_UNSIGNED_BYTE, NULL);
+	}
+
 	/**
 	 * \brief Maps the buffer to the CPU with the given access.
 	 * 

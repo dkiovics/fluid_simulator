@@ -18,6 +18,7 @@ set(SOURCES
     ui/simParamsAdvanced.cpp
     ui/simulationGui.h
     ui/simulationGui.cpp
+    gfx/gfx3D/renderer/paramInterface.h
     
     main.cpp
 )

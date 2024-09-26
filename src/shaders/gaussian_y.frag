@@ -30,7 +30,7 @@ layout(std430, binding = 20) restrict readonly buffer pixelParamsInSSBO {
 	FragmentParamX pixelParamsIn[];
 };
 
-layout(std430, binding = 21) restrict writeonly buffer pixelParamsOutSSBO {
+layout(std430, binding = 30) restrict writeonly buffer pixelParamsOutSSBO {
 	FragmentParamY pixelParamsOut[];
 };
 

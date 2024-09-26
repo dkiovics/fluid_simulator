@@ -90,8 +90,7 @@ void FluidSurfaceGfx::setConfigData(const ConfigData3D& config)
 	this->config = config;
 }
 
-void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
-	std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data)
+void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data)
 {
 	glm::ivec2 viewportSize = framebuffer->getSize();
 	if (viewportSize != depthFramebuffer->getSize())
@@ -103,12 +102,12 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		normalAndDepthFramebuffer->setSize(viewportSize);
 		depthParamBufferBlurX = std::make_unique<renderer::StorageBuffer<PixelParamDataX>>
 			(viewportSize.x * viewportSize.y, GL_DYNAMIC_COPY);
-		depthParamBufferOut = std::make_unique<renderer::StorageBuffer<PixelParamDataY>>
-			(viewportSize.x * viewportSize.y, GL_DYNAMIC_COPY);
-		depthParamBufferBlurX->bindBuffer(20);
-		depthParamBufferOut->bindBuffer(21);
+		setBufferSize(viewportSize);
 		(*particleSpritesDepthShader)["resolution"] = viewportSize;
 	}
+
+	depthParamBufferBlurX->bindBuffer(20);
+	paramBufferOut->bindBuffer(30);
 
 	fluidThicknessFramebuffer->setDepthAttachment(framebuffer->getDepthAttachment());
 

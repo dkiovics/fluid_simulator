@@ -15,11 +15,13 @@
 #include "../renderer3DInterface.h"
 #include <param.hpp>
 #include "fluidSurfaceGfx.h"
+#include "paramInterface.h"
+#include <compute/computeProgram.h>
 
 namespace gfx3D
 {
 
-class SimulationGfx3DRenderer : public Renderer3DInterface
+class SimulationGfx3DRenderer : public ParamInterface
 {
 public:
 	SimulationGfx3DRenderer(std::shared_ptr<renderer::RenderEngine> engine, 
@@ -31,8 +33,7 @@ public:
 
 	void show(int screenWidth) override;
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer,
-		std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data) override;
+	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data) override;
 
 private:
 	const int maxParticleNum;
@@ -54,9 +55,12 @@ private:
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArray;
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArrayWithId;
 
+	std::shared_ptr<renderer::ComputeProgram> paramCopyProgram;
+
 	std::shared_ptr<renderer::GpuProgram> showShaderProgram;
 	std::shared_ptr<renderer::Square> showSquare;
 	std::shared_ptr<renderer::RenderTargetTexture> renderTargetTexture;
+	std::shared_ptr<renderer::RenderTargetTexture> paramTmpTexture;
 
 	std::unique_ptr<FluidSurfaceGfx> fluidSurfaceGfx;
 
@@ -74,9 +78,10 @@ private:
 
 	void handleFluidRenderModeChange();
 
-	void renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer,
-		std::shared_ptr<renderer::RenderTargetTexture> paramTexture, 
+	void renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer, 
 		const std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>& data);
+
+	std::shared_ptr<renderer::StorageBuffer<PixelParamData>> getParamBufferOut() const override;
 };
 
 } // namespace gfx3D

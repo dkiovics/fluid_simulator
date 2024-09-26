@@ -376,7 +376,7 @@ void SimulationGfx3DController::render()
 
 	Gfx3DRenderData data(std::move(simulationManager->getParticleGfxData()));
 
-	renderer3DInterface->render(renderTargetFramebuffer, nullptr, data);
+	renderer3DInterface->render(renderTargetFramebuffer, data);
 
 	engine->bindDefaultFramebuffer();
 	engine->setViewport(screenStart.x, engine->getScreenHeight() - (screenStart.y + screenSize.y), screenSize.x, screenSize.y);

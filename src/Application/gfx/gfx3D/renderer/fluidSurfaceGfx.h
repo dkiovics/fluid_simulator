@@ -13,18 +13,18 @@
 #include <param.hpp>
 #include "../renderer3DInterface.h"
 #include <compute/storageBuffer.h>
+#include "paramInterface.h"
 
 namespace gfx3D
 {
 
-class FluidSurfaceGfx : public Renderer3DInterface
+class FluidSurfaceGfx : public ParamInterface
 {
 public:
 	FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 		std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum);
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer,
-		std::shared_ptr<renderer::RenderTargetTexture> paramTexture, const Gfx3DRenderData& data) override;
+	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data) override;
 
 	void setConfigData(const ConfigData3D& config) override;
 
@@ -73,7 +73,6 @@ private:
 	std::unique_ptr<renderer::Framebuffer> normalAndDepthFramebuffer;
 
 	static constexpr int PARAM_NUM_X = 10;
-	static constexpr int PARAM_NUM_Y = 40;
 
 	struct PixelParamDataX
 	{
@@ -81,14 +80,7 @@ private:
 		int paramIndexes[PARAM_NUM_X];
 	};
 
-	struct PixelParamDataY
-	{
-		int paramNum;
-		int paramIndexes[PARAM_NUM_Y];
-	};
-
-	std::unique_ptr<renderer::StorageBuffer<PixelParamDataX>> depthParamBufferBlurX;
-	std::unique_ptr<renderer::StorageBuffer<PixelParamDataY>> depthParamBufferOut;
+	std::shared_ptr<renderer::StorageBuffer<PixelParamDataX>> depthParamBufferBlurX;
 
 	glm::vec3 prevColor = glm::vec3(0.0f);
 	bool particleSpeedColorWasEnabled = false;
