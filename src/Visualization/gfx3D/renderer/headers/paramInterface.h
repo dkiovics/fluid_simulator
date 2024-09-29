@@ -1,9 +1,9 @@
 #pragma once
 
 #include <compute/storageBuffer.h>
-#include "gfx/gfx3D/renderer3DInterface.h"
+#include "gfx3D/renderer3DInterface.h"
 
-namespace gfx3D
+namespace visual
 {
 
 class ParamInterface : public Renderer3DInterface
@@ -32,4 +32,4 @@ protected:
 	std::shared_ptr<renderer::StorageBuffer<PixelParamData>> paramBufferOut;
 };
 
-} // namespace gfx3D
+} // namespace visual

@@ -3,9 +3,12 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
-#include "manager/simulationManager.h"
+#include <manager/simulationManager.h>
 #include <param.hpp>
 
+
+namespace visual
+{
 
 class GfxInterface : public ParamLineCollection {
 public:
@@ -48,3 +51,5 @@ protected:
 		addParamLine(ParamLine({ &particleColor, &particleSpeedColor }));
 	}
 };
+
+} // namespace vis

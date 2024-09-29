@@ -1,11 +1,11 @@
-#include "simulationGfx3DController.h"
 #include <algorithm>
 #include <geometries/basicGeometries.h>
 #include <map>
-#include "renderer/simulationGfx3DRenderer.h"
-#include "renderer/diffRenderProxy.h"
+#include "simulationGfx3DController.h"
+#include "renderer/headers/simulationGfx3DRenderer.h"
+#include "renderer/headers/diffRenderProxy.h"
 
-using namespace gfx3D;
+using namespace visual;
 
 void SimulationGfx3DController::mouseCallback(double x, double y)
 {

@@ -1,8 +1,8 @@
-#include "diffRenderProxy.h"
+#include "headers/diffRenderProxy.h"
 #include <armadillo>
 #include <iostream>
 
-using namespace gfx3D;
+using namespace visual;
 
 DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> renderer3D)
 	:renderer3D(std::static_pointer_cast<ParamInterface>(renderer3D)), renderEngine(renderer::RenderEngine::getInstance())
@@ -133,7 +133,7 @@ void DiffRendererProxy::show(int screenWidth)
 	renderer3D->show(screenWidth);
 }
 
-void gfx3D::DiffRendererProxy::initParameterAndPerturbationSSBO(const Gfx3DRenderData& data)
+void visual::DiffRendererProxy::initParameterAndPerturbationSSBO(const Gfx3DRenderData& data)
 {
 	unsigned int paramSize = data.particleData.size();
 	perturbationSSBO->setSize(paramSize);
@@ -150,18 +150,18 @@ void gfx3D::DiffRendererProxy::initParameterAndPerturbationSSBO(const Gfx3DRende
 	perturbationSSBO->unmapBuffer();
 }
 
-void gfx3D::DiffRendererProxy::resetStochaisticGradientSSBO()
+void visual::DiffRendererProxy::resetStochaisticGradientSSBO()
 {
 	stochaisticGradientSSBO->fillWithZeros();
 }
 
-void gfx3D::DiffRendererProxy::computePerturbation()
+void visual::DiffRendererProxy::computePerturbation()
 {
 	(*perturbationProgram)["seed"] = std::rand() % 1000;
 	perturbationProgram->dispatchCompute(parameterSSBO->getSize() / 64 + 1, 1, 1);
 }
 
-void gfx3D::DiffRendererProxy::computeStochaisticGradient()
+void visual::DiffRendererProxy::computeStochaisticGradient()
 {
 	renderEngine.setViewport(0, 0, referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y);
 	renderEngine.enableDepthTest(false);
@@ -172,7 +172,7 @@ void gfx3D::DiffRendererProxy::computeStochaisticGradient()
 	showQuad->draw();
 }
 
-void gfx3D::DiffRendererProxy::perturbateAndRenderParams()
+void visual::DiffRendererProxy::perturbateAndRenderParams()
 {
 	paramDataTmp = paramData;
 	resultSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
@@ -206,7 +206,7 @@ void gfx3D::DiffRendererProxy::perturbateAndRenderParams()
 	renderer3D->render(currentParamFramebuffer, paramDataTmp);
 }
 
-void gfx3D::DiffRendererProxy::updateSSBOFromParams(const Gfx3DRenderData& data)
+void visual::DiffRendererProxy::updateSSBOFromParams(const Gfx3DRenderData& data)
 {
 	unsigned int paramSize = data.particleData.size();
 	parameterSSBO->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -222,7 +222,7 @@ void gfx3D::DiffRendererProxy::updateSSBOFromParams(const Gfx3DRenderData& data)
 	parameterSSBO->unmapBuffer();
 }
 
-void gfx3D::DiffRendererProxy::randomizeParamValues()
+void visual::DiffRendererProxy::randomizeParamValues()
 {
 	unsigned int paramSize = paramData.particleData.size();
 	for (unsigned int i = 0; i < paramSize; i++)
@@ -231,7 +231,7 @@ void gfx3D::DiffRendererProxy::randomizeParamValues()
 	}
 }
 
-void gfx3D::DiffRendererProxy::resetAdam()
+void visual::DiffRendererProxy::resetAdam()
 {
 	mVec = arma::fvec(currentParams.size(), arma::fill::zeros);
 	vVec = arma::fvec(currentParams.size(), arma::fill::zeros);
@@ -240,7 +240,7 @@ void gfx3D::DiffRendererProxy::resetAdam()
 	t = 0;
 }
 
-void gfx3D::DiffRendererProxy::runAdamIteration()
+void visual::DiffRendererProxy::runAdamIteration()
 {
 	stochaisticGradientSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
 	arma::fvec g(stochaisticGradientSSBO->getSize() * 4);
@@ -288,7 +288,7 @@ void gfx3D::DiffRendererProxy::runAdamIteration()
 	parameterSSBO->unmapBuffer();
 }
 
-void gfx3D::DiffRendererProxy::copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const
+void visual::DiffRendererProxy::copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const
 {
 	framebuffer->bind();
 	renderEngine.setViewport(0, 0, framebuffer->getSize().x, framebuffer->getSize().y);

@@ -1,6 +1,6 @@
-#include "simulationGfx3DRenderer.h"
+#include "headers/simulationGfx3DRenderer.h"
 
-using namespace gfx3D;
+using namespace visual;
 
 SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::RenderEngine> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, 
@@ -101,7 +101,7 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-void gfx3D::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer,
+void visual::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	const std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>& data)
 {
 	auto ballGeometry = particlesGfx->drawable;
@@ -138,14 +138,14 @@ void gfx3D::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::F
 	paramCopyProgram->dispatchCompute(configData.screenSize.x, configData.screenSize.y, 1);
 }
 
-std::shared_ptr<renderer::StorageBuffer<ParamInterface::PixelParamData>> gfx3D::SimulationGfx3DRenderer::getParamBufferOut() const
+std::shared_ptr<renderer::StorageBuffer<ParamInterface::PixelParamData>> visual::SimulationGfx3DRenderer::getParamBufferOut() const
 {
 	if(fluidSurfaceGfx)
 		return fluidSurfaceGfx->getParamBufferOut();
 	return paramBufferOut;
 }
 
-void gfx3D::SimulationGfx3DRenderer::handleFluidRenderModeChange()
+void visual::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 {
 	if (fluidRenderMode.value == SURFACE)
 	{

@@ -3,11 +3,11 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
-#include "engine/framebuffer.h"
+#include <engine/framebuffer.h>
 #include <param.hpp>
 #include <manager/simulationManager.h>
 
-namespace gfx3D
+namespace visual
 {
 
 struct Gfx3DRenderData
@@ -54,4 +54,4 @@ public:
 	virtual void setConfigData(const ConfigData3D& config) = 0;
 };
 
-} // namespace gfx3D
+} // namespace visual

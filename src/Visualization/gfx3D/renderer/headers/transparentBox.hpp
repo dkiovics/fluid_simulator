@@ -12,7 +12,7 @@
 #include <geometries/basicGeometries.h>
 
 
-namespace gfx3D
+namespace visual
 {
 
 class TransparentBox {
@@ -94,4 +94,4 @@ public:
 	}
 };
 
-} //namespace gfx3D
+} //namespace visual

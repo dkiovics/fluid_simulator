@@ -11,11 +11,11 @@
 #include <engine/texture.h>
 #include <engineUtils/object.h>
 #include <param.hpp>
-#include "../renderer3DInterface.h"
 #include <compute/storageBuffer.h>
+#include "gfx3D/renderer3DInterface.h"
 #include "paramInterface.h"
 
-namespace gfx3D
+namespace visual
 {
 
 class FluidSurfaceGfx : public ParamInterface
@@ -90,4 +90,4 @@ private:
 	ConfigData3D config;
 };
 
-}	// namespace gfx3D
+}	// namespace visual

@@ -3,12 +3,15 @@
 #include <engine/renderEngine.h>
 #include <geometries/basicGeometries.h>
 #include <engineUtils/object.h>
-#include "manager/simulationManager.h"
-#include "glm/gtc/matrix_transform.hpp"
+#include <manager/simulationManager.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
-#include "../gfxInterface.hpp"
 #include <engineUtils/camera2D.hpp>
+#include "gfxInterface/gfxInterface.hpp"
 
+
+namespace visual
+{
 
 class SimulationGfx2D : public GfxInterface {
 private:
@@ -272,3 +275,5 @@ public:
 	}
 
 };
+
+} // namespace visual

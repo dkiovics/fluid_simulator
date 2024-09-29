@@ -10,13 +10,13 @@
 #include <engine/texture.h>
 #include <engine/shaderProgram.h>
 #include <engine/framebuffer.h>
-#include "manager/simulationManager.h"
-#include "../gfxInterface.hpp"
+#include <manager/simulationManager.h>
 #include <vector>
 #include "renderer3DInterface.h"
+#include "gfxInterface/gfxInterface.hpp"
 
 
-namespace gfx3D
+namespace visual
 {
 
 class SimulationGfx3DController : public GfxInterface
@@ -109,4 +109,4 @@ public:
 
 };
 
-} // namespace gfx3D
+} // namespace visual

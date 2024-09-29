@@ -6,14 +6,14 @@
 #include <stdio.h>
 #define GL_SILENCE_DEPRECATION
 #include <GLFW/glfw3.h>
-#include "../gfx/gfx2D/simulationGfx2D.hpp"
-#include "../gfx/gfx3D/simulationGfx3DController.h"
-#include "../gfx/gfxInterface.hpp"
+#include <chrono>
+#include <gfx2D/simulationGfx2D.hpp>
+#include <gfx3D/simulationGfx3DController.h>
+#include <gfxInterface/gfxInterface.hpp>
 #include "manager/simulationManager.h"
 #include "simParamsAdvanced.h"
-#include <chrono>
 
-using namespace gfx3D;
+using namespace visual;
 
 using namespace genericfsim::manager;
 using CellType = genericfsim::macgrid::MacGridCell::CellType;

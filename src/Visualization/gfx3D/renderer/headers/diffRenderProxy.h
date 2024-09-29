@@ -1,16 +1,16 @@
 #pragma once
 
-#include "../renderer3DInterface.h"
 #include <memory>
-#include "engine/framebuffer.h"
-#include "compute/computeTexture.h"
-#include "compute/computeProgram.h"
-#include "compute/storageBuffer.h"
-#include "geometries/basicGeometries.h"
+#include <engine/framebuffer.h>
+#include <compute/computeTexture.h>
+#include <compute/computeProgram.h>
+#include <compute/storageBuffer.h>
+#include <geometries/basicGeometries.h>
 #include <armadillo>
+#include "gfx3D/renderer3DInterface.h"
 #include "paramInterface.h"
 
-namespace gfx3D
+namespace visual
 {
 
 class DiffRendererProxy : public Renderer3DInterface
@@ -94,4 +94,4 @@ private:
 	void copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const;
 };
 
-} // namespace gfx3D
+} // namespace visual

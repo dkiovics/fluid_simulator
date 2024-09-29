@@ -1,6 +1,6 @@
-#include "fluidSurfaceGfx.h"
+#include "headers/fluidSurfaceGfx.h"
 
-using namespace gfx3D;
+using namespace visual;
 
 FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)

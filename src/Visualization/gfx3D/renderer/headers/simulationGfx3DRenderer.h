@@ -11,14 +11,14 @@
 #include <engine/shaderProgram.h>
 #include <engine/framebuffer.h>
 #include <vector>
-#include "transparentBox.hpp"
-#include "../renderer3DInterface.h"
 #include <param.hpp>
+#include <compute/computeProgram.h>
 #include "fluidSurfaceGfx.h"
 #include "paramInterface.h"
-#include <compute/computeProgram.h>
+#include "transparentBox.hpp"
+#include "gfx3D/renderer3DInterface.h"
 
-namespace gfx3D
+namespace visual
 {
 
 class SimulationGfx3DRenderer : public ParamInterface
@@ -84,4 +84,4 @@ private:
 	std::shared_ptr<renderer::StorageBuffer<PixelParamData>> getParamBufferOut() const override;
 };
 
-} // namespace gfx3D
+} // namespace visual
