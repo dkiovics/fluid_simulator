@@ -33,15 +33,14 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	resultSSBO->bindBuffer(2);
 	
 	stochaisticGradientSSBO = std::make_unique<renderer::StorageBuffer<glm::vec4>>(1000, GL_DYNAMIC_READ);
-	stochaisticGradientProgram = std::make_unique<renderer::ShaderProgram>("shaders/quad.vert", "shaders/diffRender/stochGradient.frag");
+	stochaisticGradientProgram = std::make_unique<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/diffRender/stochGradient.frag");
 	(*stochaisticGradientProgram)["referenceImage"] = *referenceFramebuffer->getColorAttachments()[0];
 	(*stochaisticGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getColorAttachments()[0];
 	(*stochaisticGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getColorAttachments()[0];
 	stochaisticGradientSSBO->bindBuffer(10);
 
 	showQuad = std::make_unique<renderer::Square>();
-	showProgram = std::make_unique<renderer::ShaderProgram>("shaders/quad.vert", "shaders/quad.frag");
-	showIntProgram = std::make_unique<renderer::ShaderProgram>("shaders/quad.vert", "shaders/quad_int.frag");
+	showProgram = std::make_unique<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/util/quad.frag");
 
 	addParamLine({ &showSim, &updateReference, &updateParams });
 	addParamLine({ &showReference, &randomizeParams, &adamEnabled, &resetAdamButton });

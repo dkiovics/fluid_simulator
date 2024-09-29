@@ -9,18 +9,18 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 	: engine(engine), camera(camera), lights(lights), obstacleGfxArray(obstacleGfxArray), configData(configData), 
 	maxParticleNum(maxParticleNum)
 {
-	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_textured.frag");
-	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_not_textured.frag");
-	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray.frag");
-	shaderProgramNotTexturedArrayWithId = std::make_shared<renderer::ShaderProgram>("shaders/3D_objectArray.vert", "shaders/3D_objectArray_id.frag");
+	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_object.vert", "shaders/3D/3D_object_textured.frag");
+	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_object.vert", "shaders/3D/3D_object_not_textured.frag");
+	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_objectArray.vert", "shaders/3D/3D_objectArray.frag");
+	shaderProgramNotTexturedArrayWithId = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_objectArray.vert", "shaders/3D/3D_objectArray_id.frag");
 
 	paramTmpTexture = std::make_shared<renderer::RenderTargetTexture>
 		(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32I, GL_RED_INTEGER, GL_INT);
 
-	paramCopyProgram = std::make_shared<renderer::ComputeProgram>("shaders/copyParams.comp");
+	paramCopyProgram = std::make_shared<renderer::ComputeProgram>("shaders/3D/util/copyParams.comp");
 	(*paramCopyProgram)["paramTexture"] = *paramTmpTexture;
 
-	auto floorTexture = std::make_shared<renderer::ColorTexture>("shaders/tiles.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, true);
+	auto floorTexture = std::make_shared<renderer::ColorTexture>("shaders/3D/tiles.jpg", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, true);
 	auto floor = std::make_shared<renderer::Square>();
 	planeGfx = std::make_unique<renderer::Object3D<renderer::Geometry>>(floor, shaderProgramTextured);
 	planeGfx->colorTextureScale = 5.0;

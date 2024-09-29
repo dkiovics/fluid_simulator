@@ -6,14 +6,14 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)
 	: engine(engine), camera(camera), lights(lights)
 {
-	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_depth.frag");
-	gaussianBlurShaderX = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian_x.frag");
-	gaussianBlurShaderY = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian_y.frag");
-	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/shadedDepth.frag");
-	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/bilateral.frag");
-	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/particle_sprites.vert", "shaders/particle_sprites_thickness.frag");
-	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/gaussian_thickness.frag");
-	normalAndDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/normal_depth.frag");
+	particleSpritesDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/surface/particle_sprites.vert", "shaders/3D/surface/particle_sprites_depth.frag");
+	gaussianBlurShaderX = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/gaussian_x.frag");
+	gaussianBlurShaderY = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/gaussian_y.frag");
+	shadedDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/shadedDepth.frag");
+	bilateralFilterShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/bilateral.frag");
+	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/surface/particle_sprites.vert", "shaders/3D/surface/particle_sprites_thickness.frag");
+	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/gaussian_thickness.frag");
+	normalAndDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/normal_depth.frag");
 
 	surfaceSquareArrayObject = std::make_unique<renderer::Object3D<renderer::ParticleGeometryArray>>
 		(std::make_shared<renderer::ParticleGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);

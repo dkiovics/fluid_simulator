@@ -75,7 +75,6 @@ private:
 
 	std::unique_ptr<renderer::Square> showQuad;
 	std::unique_ptr<renderer::ShaderProgram> showProgram;
-	std::unique_ptr<renderer::ShaderProgram> showIntProgram;
 
 	void initParameterAndPerturbationSSBO(const Gfx3DRenderData& data);
 

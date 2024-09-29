@@ -163,9 +163,9 @@ public:
 		auto dimensions = simulator->getDimensions();
 		camera = std::make_shared<renderer::Camera2D>(glm::vec2(dimensions.x, dimensions.y), glm::vec2(dimensions.x, dimensions.y) * 0.5f);
 
-		basicArrayProgram = std::make_shared<renderer::ShaderProgram>("shaders/basic2DArray.vert", "shaders/basic2D.frag");
-		basicArrayProgramSingleColor = std::make_shared<renderer::ShaderProgram>("shaders/basic2DArraySingleColor.vert", "shaders/basic2D.frag");
-		basicProgram = std::make_shared<renderer::ShaderProgram>("shaders/basic2D.vert", "shaders/basic2D.frag");
+		basicArrayProgram = std::make_shared<renderer::ShaderProgram>("shaders/2D/basic2DArray.vert", "shaders/2D/basic2D.frag");
+		basicArrayProgramSingleColor = std::make_shared<renderer::ShaderProgram>("shaders/2D/basic2DArraySingleColor.vert", "shaders/2D/basic2D.frag");
+		basicProgram = std::make_shared<renderer::ShaderProgram>("shaders/2D/basic2D.vert", "shaders/2D/basic2D.frag");
 		camera->addProgram({ basicArrayProgram, basicArrayProgramSingleColor, basicProgram });
 		camera->setUniformsForAllPrograms();
 

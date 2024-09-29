@@ -139,7 +139,7 @@ SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::R
 	glm::dvec3 dim = simulationManager->getDimensions();
 	modelRotationPoint = glm::vec3(dim.x, dim.y, dim.z) * 0.5f;
 
-	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D_object.vert", "shaders/3D_object_not_textured.frag");
+	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_object.vert", "shaders/3D/3D_object_not_textured.frag");
 
 	camera = std::make_unique<renderer::Camera3D>(glm::vec3(10, 10, 0), 40, float(screenSize.x) / screenSize.y);
 	camera->rotateAroundPoint(modelRotationPoint, cameraDistance, -20, 40);
