@@ -476,3 +476,8 @@ void renderer::GeometryArray::draw() const
 	}
 	geometry->unbindVao();
 }
+
+void renderer::InstancedGeometry::setInstanceNum(size_t instanceNum)
+{
+	this->instancesToDraw = instanceNum;
+}

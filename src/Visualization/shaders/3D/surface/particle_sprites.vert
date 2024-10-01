@@ -3,14 +3,12 @@ precision highp float;
 
 layout (location = 0) in vec4 pos;
 layout (location = 2) in vec2 texCoordIn;
-layout (location = 10) in vec4 instanceOffset;
-//layout (location = 11) in vec4 instanceColorIn;
 
 out vec2 texCoord;
 out vec3 eyeSpacePos;
-//out vec4 color;
 out mat3 billboardM;
 flat out unsigned int instanceID;
+flat out float density;
 
 uniform struct{
     mat4 viewMatrix;
@@ -20,10 +18,21 @@ uniform struct{
     vec4 position;
 } camera;
 
+struct ParticleShaderData
+{
+	vec4 posAndSpeed;
+	vec4 density;
+};
+
+layout(std430, binding = 80) restrict readonly buffer particleShaderDataSSBO {
+	ParticleShaderData particleShaderData[];
+};
+
 uniform float particleRadius;
 
 void main() {
-	eyeSpacePos = (camera.viewMatrix * vec4(instanceOffset.xyz, 1)).xyz;
+	density = particleShaderData[gl_InstanceID].density.x;
+	eyeSpacePos = (camera.viewMatrix * vec4(particleShaderData[gl_InstanceID].posAndSpeed.xyz, 1)).xyz;
 	vec3 z = normalize(eyeSpacePos);
 	vec3 x = normalize(cross(vec3(0, 1, 0), z));
 	vec3 y = normalize(cross(z, x));
@@ -36,19 +45,4 @@ void main() {
 	texCoord = texCoordIn;
 
 	instanceID = gl_InstanceID;
-	//color = instanceColorIn;
-	
-	/*
-	vec4 eyeSpacePosTmp = (camera.viewMatrix * vec4(instanceOffset.xyz, 1));
-	
-	eyeSpacePos = eyeSpacePosTmp.xyz;
-	
-	vec4 projectedQuad = camera.projectionMatrix * vec4(particleRadius, particleRadius, eyeSpacePos.z, eyeSpacePosTmp.w);
-	vec3 projectedSize = vec3(projectedQuad.xy / projectedQuad.w, 1);
-	
-	gl_Position = camera.projectionMatrix * vec4(eyeSpacePos, 1);
-	gl_Position.xyz += pos.xyz * projectedSize * 2.0 * gl_Position.w;
-	texCoord = texCoordIn;
-	color = instanceColorIn;
-	*/
 }

@@ -368,15 +368,28 @@ void SimulationGfx3DController::handleObstacleMovement()
 void SimulationGfx3DController::render()
 {
 	renderTargetFramebuffer->setSize(glm::ivec2(screenSize.x, screenSize.y));
+	auto data = simulationManager->getParticleGfxData();
+	if (!particleData || particleData->getSize() != data.size())
+	{
+		particleData = renderer::make_ssbo<ParticleShaderData>(data.size(), GL_DYNAMIC_DRAW);
+	}
 	camera->setAspectRatio(float(screenSize.x) / screenSize.y);
 
 	renderTargetFramebuffer->bind();
 
 	renderer3DInterface->setConfigData(getConfigData3D());
 
-	Gfx3DRenderData data(std::move(simulationManager->getParticleGfxData()));
+	particleData->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	for (unsigned int i = 0; i < data.size(); i++)
+	{
+		(*particleData)[i].posAndSpeed = glm::vec4(data[i].pos, data[i].v);
+		(*particleData)[i].density.x = data[i].density;
+	}
+	particleData->unmapBuffer();
 
-	renderer3DInterface->render(renderTargetFramebuffer, data);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+
+	renderer3DInterface->render(renderTargetFramebuffer, particleData);
 
 	engine->bindDefaultFramebuffer();
 	engine->setViewport(screenStart.x, engine->getScreenHeight() - (screenStart.y + screenSize.y), screenSize.x, screenSize.y);

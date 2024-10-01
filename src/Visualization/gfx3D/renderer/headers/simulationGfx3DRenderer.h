@@ -33,7 +33,9 @@ public:
 
 	void show(int screenWidth) override;
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data) override;
+	void render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data) override;
+
+	void invalidateParamBuffer() override;
 
 private:
 	const int maxParticleNum;
@@ -46,14 +48,14 @@ private:
 	const std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>>& obstacleGfxArray;
 
 	std::unique_ptr<renderer::Object3D<renderer::Geometry>> planeGfx;
-	std::unique_ptr<renderer::Object3D<renderer::BasicGeometryArray>> particlesGfx;
+	std::unique_ptr<renderer::Object3D<renderer::InstancedGeometry>> particlesGfx;
 
 	std::unique_ptr<TransparentBox> transparentBox;
 
 	std::shared_ptr<renderer::GpuProgram> shaderProgramTextured;
 	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTextured;
-	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArray;
-	std::shared_ptr<renderer::GpuProgram> shaderProgramNotTexturedArrayWithId;
+	std::shared_ptr<renderer::GpuProgram> particleProgram;
+	std::shared_ptr<renderer::GpuProgram> particleProgram_id;
 
 	std::shared_ptr<renderer::ComputeProgram> paramCopyProgram;
 
@@ -79,7 +81,7 @@ private:
 	void handleFluidRenderModeChange();
 
 	void renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer, 
-		const std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>& data);
+		renderer::ssbo_ptr<ParticleShaderData> data);
 
 	std::shared_ptr<renderer::StorageBuffer<PixelParamData>> getParamBufferOut() const override;
 };

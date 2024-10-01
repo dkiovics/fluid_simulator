@@ -20,7 +20,14 @@ public:
 		return paramBufferOut;
 	}
 
+	virtual void invalidateParamBuffer()
+	{
+		paramBufferValid = false;
+	}
+
 protected:
+	bool paramBufferValid = false;
+
 	void setBufferSize(glm::ivec2 screenSize)
 	{
 		unsigned int size = screenSize.x * screenSize.y;
@@ -28,7 +35,17 @@ protected:
 			return;
 		paramBufferOut = std::make_shared<renderer::StorageBuffer<PixelParamData>>
 			(screenSize.x * screenSize.y, GL_DYNAMIC_COPY);
+		paramBufferValid = false;
 	}
+
+	void deleteParamBuffer()
+	{
+		paramBufferValid = false;
+		if(paramBufferOut)
+			paramBufferOut.reset();
+	}
+
+private:
 	std::shared_ptr<renderer::StorageBuffer<PixelParamData>> paramBufferOut;
 };
 

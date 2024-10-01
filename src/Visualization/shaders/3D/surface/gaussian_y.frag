@@ -34,7 +34,7 @@ layout(std430, binding = 30) restrict writeonly buffer pixelParamsOutSSBO {
 	FragmentParamY pixelParamsOut[];
 };
 
-
+uniform bool calculateParams;
 
 vec3 uvToEye(vec2 texCoord, float depth) {
 	vec4 ndc = vec4(texCoord * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
@@ -56,7 +56,9 @@ void main() {
 	param.paramNum = 0;
 
 	if(texture(depthTexture, texCoord).x == 1.0){
-		pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
+		if(calculateParams){
+			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
+		}
 		discard;
 		return;
 	}
@@ -82,10 +84,13 @@ void main() {
 			weightSum += w;
 			depth += d * w;
 		}
+
+		if(!calculateParams)
+			continue;
+
 		int pixelIndex = (int(gl_FragCoord.y) + p) * int(textSize.x) + int(gl_FragCoord.x);
 		FragmentParamX paramIn = pixelParamsIn[pixelIndex];
 		for(int p = 0; p < paramIn.paramNum; p++){
-			//check if the param is already in the list
 			bool found = false;
 			for(int j = 0; j < param.paramNum; j++){
 				if(paramIn.paramIndexes[p] == param.paramIndexes[j]){
@@ -100,7 +105,9 @@ void main() {
 		}
 	}
 
-	pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
+	if(calculateParams){
+		pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
+	}
     
     gl_FragDepth = depth / weightSum;
 }

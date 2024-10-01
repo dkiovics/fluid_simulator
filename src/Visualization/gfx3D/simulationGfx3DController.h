@@ -48,6 +48,8 @@ private:
 	std::shared_ptr<renderer::RenderTargetTexture> renderTargetTexture;
 	std::shared_ptr<renderer::Framebuffer> renderTargetFramebuffer;
 
+	renderer::ssbo_ptr<ParticleShaderData> particleData;
+
 	int mouseCallbackId;
 	int mouseButtonCallbackId;
 	int scrollCallbackId;

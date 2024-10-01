@@ -24,7 +24,7 @@ public:
 	FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 		std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum);
 
-	void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data) override;
+	void render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data) override;
 
 	void setConfigData(const ConfigData3D& config) override;
 
@@ -46,8 +46,6 @@ public:
 	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317, 0.0f, 1.0f);
 
 private:
-	void updateParticleData(const Gfx3DRenderData& data);
-
 	std::shared_ptr<renderer::RenderEngine> engine;
 	std::shared_ptr<renderer::Camera3D> camera;
 	std::shared_ptr<renderer::Lights> lights;
@@ -61,8 +59,7 @@ private:
 	std::shared_ptr<renderer::GpuProgram> fluidThicknessBlurShader;
 	std::shared_ptr<renderer::GpuProgram> normalAndDepthShader;
 
-	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> surfaceSquareArrayObject;
-	std::unique_ptr<renderer::Object3D<renderer::ParticleGeometryArray>> spraySquareArrayObject;
+	std::unique_ptr<renderer::Object3D<renderer::InstancedGeometry>> instancedParticles;
 	std::unique_ptr<renderer::Square> square;
 	std::unique_ptr<renderer::Object3D<renderer::Square>> shadedSquareObject;
 

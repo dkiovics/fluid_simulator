@@ -6,6 +6,7 @@
 #include <engine/framebuffer.h>
 #include <param.hpp>
 #include <manager/simulationManager.h>
+#include <compute/storageBuffer.h>
 
 namespace visual
 {
@@ -23,6 +24,12 @@ struct Gfx3DRenderData
 	Gfx3DRenderData(Gfx3DRenderData&& other) = default;
 	Gfx3DRenderData& operator=(const Gfx3DRenderData& other) = default;
 	Gfx3DRenderData& operator=(Gfx3DRenderData&& other) = default;
+};
+
+struct ParticleShaderData
+{
+	glm::vec4 posAndSpeed;
+	glm::vec4 density;
 };
 
 struct ConfigData3D
@@ -49,7 +56,7 @@ class Renderer3DInterface : public ParamLineCollection
 public:
 	using ParamLineCollection::ParamLineCollection;
 
-	virtual void render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data) = 0;
+	virtual void render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data) = 0;
 
 	virtual void setConfigData(const ConfigData3D& config) = 0;
 };

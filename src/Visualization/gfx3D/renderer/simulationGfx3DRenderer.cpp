@@ -11,8 +11,13 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 {
 	shaderProgramTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_object.vert", "shaders/3D/3D_object_textured.frag");
 	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_object.vert", "shaders/3D/3D_object_not_textured.frag");
-	shaderProgramNotTexturedArray = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_objectArray.vert", "shaders/3D/3D_objectArray.frag");
-	shaderProgramNotTexturedArrayWithId = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_objectArray.vert", "shaders/3D/3D_objectArray_id.frag");
+	particleProgram = std::make_shared<renderer::ShaderProgram>("shaders/3D/particleArray.vert", "shaders/3D/particleArray.frag");
+	particleProgram_id = std::make_shared<renderer::ShaderProgram>("shaders/3D/particleArray.vert", "shaders/3D/particleArray_id.frag");
+
+	particlesGfx = std::make_unique<renderer::Object3D<renderer::InstancedGeometry>>
+		(std::make_shared<renderer::InstancedGeometry>(std::make_shared<renderer::Sphere>(8)), particleProgram);
+	particlesGfx->shininess = 80;
+	particlesGfx->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
 
 	paramTmpTexture = std::make_shared<renderer::RenderTargetTexture>
 		(1000, 1000, GL_NEAREST, GL_NEAREST, GL_R32I, GL_RED_INTEGER, GL_INT);
@@ -33,8 +38,8 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 
 	transparentBox = std::make_unique<TransparentBox>(camera, glm::vec4(0.5, 0.5, 0.65, 0.4), shaderProgramNotTextured);
 
-	camera->addProgram({ shaderProgramTextured, shaderProgramNotTextured, shaderProgramNotTexturedArray, shaderProgramNotTexturedArrayWithId });
-	lights->addProgram({ shaderProgramTextured, shaderProgramNotTextured, shaderProgramNotTexturedArray, shaderProgramNotTexturedArrayWithId });
+	camera->addProgram({ shaderProgramTextured, shaderProgramNotTextured, particleProgram, particleProgram_id });
+	lights->addProgram({ shaderProgramTextured, shaderProgramNotTextured, particleProgram, particleProgram_id });
 	camera->setUniformsForAllPrograms();
 	lights->setUniformsForAllPrograms();
 
@@ -55,7 +60,15 @@ void SimulationGfx3DRenderer::show(int screenWidth)
 		fluidSurfaceGfx->show(screenWidth);
 }
 
-void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data)
+void visual::SimulationGfx3DRenderer::invalidateParamBuffer()
+{
+	if (fluidSurfaceGfx)
+		fluidSurfaceGfx->invalidateParamBuffer();
+	else
+		invalidateParamBuffer();
+}
+
+void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
 {
 	handleFluidRenderModeChange();
 
@@ -86,7 +99,7 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 
 	if(fluidRenderMode.value == PARTICLES)
 	{
-		renderParticles(framebuffer, data.particleData);
+		renderParticles(framebuffer, data);
 	}
 	else if (fluidRenderMode.value == SURFACE)
 	{
@@ -102,17 +115,13 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 }
 
 void visual::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer,
-	const std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>& data)
+	renderer::ssbo_ptr<ParticleShaderData> data)
 {
-	auto ballGeometry = particlesGfx->drawable;
 	const float maxSpeedInv = 1.0f / configData.maxParticleSpeed;
-	const unsigned int numParticles = data.size();
-	ballGeometry->setActiveInstanceNum(data.size());
-	for (unsigned int i = 0; i < numParticles; i++)
-	{
-		ballGeometry->setOffset(i, glm::vec4(data[i].pos, 0));
-	}
-	if (configData.speedColorEnabled || configData.color != glm::vec3(ballGeometry->getColor(0)))
+	const unsigned int numParticles = data->getSize();
+	particlesGfx->drawable->setInstanceNum(numParticles);
+	particlesGfx->setScale(glm::vec3(configData.particleRadius, configData.particleRadius, configData.particleRadius));
+	/*if (configData.speedColorEnabled || configData.color != glm::vec3(ballGeometry->getColor(0)))
 	{
 		for (unsigned int i = 0; i < numParticles; i++)
 		{
@@ -120,37 +129,58 @@ void visual::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::
 			s = std::pow(s, 0.3f);
 			ballGeometry->setColor(i, glm::vec4((configData.color * (1.0f - s)) + (configData.speedColor * s), 1));
 		}
+	}*/
+
+	if (paramBufferValid)
+	{
+		particlesGfx->shaderProgram = particleProgram;
+	}
+	else
+	{
+		particlesGfx->shaderProgram = particleProgram_id;
 	}
 
-	ballGeometry->updateActiveInstanceParams();
-	particlesGfx->setScale(glm::vec3(configData.particleRadius, configData.particleRadius, configData.particleRadius));
-	particlesGfx->shaderProgram = shaderProgramNotTexturedArrayWithId;
-	auto colorAttachment = framebuffer->getColorAttachments()[0];
-	framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment, paramTmpTexture }));
-	framebuffer->clearColorAttachment(1, glm::ivec4(-1));
-	framebuffer->bind();
-	particlesGfx->draw();
-	framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment }));
-	framebuffer->bind();
-	
-	(*paramCopyProgram)["screenSize"] = configData.screenSize;
-	paramBufferOut->bindBuffer(30);
-	paramCopyProgram->dispatchCompute(configData.screenSize.x, configData.screenSize.y, 1);
+	data->bindBuffer(60);
+
+	(*particlesGfx->shaderProgram)["speedColorEnabled"] = configData.speedColorEnabled;
+	(*particlesGfx->shaderProgram)["maxSpeedInv"] = maxSpeedInv;
+	(*particlesGfx->shaderProgram)["color"] = configData.color;
+	(*particlesGfx->shaderProgram)["speedColor"] = configData.speedColor;
+
+	if (paramBufferValid)
+	{
+		framebuffer->bind();
+		particlesGfx->draw();
+	}
+	else
+	{
+		paramBufferValid = true;
+		auto colorAttachment = framebuffer->getColorAttachments()[0];
+		framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment, paramTmpTexture }));
+		framebuffer->clearColorAttachment(1, glm::ivec4(-1));
+		framebuffer->bind();
+		particlesGfx->draw();
+		framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment }));
+		framebuffer->bind();
+
+		(*paramCopyProgram)["screenSize"] = configData.screenSize;
+		ParamInterface::getParamBufferOut()->bindBuffer(30);
+		paramCopyProgram->dispatchCompute(configData.screenSize.x, configData.screenSize.y, 1);
+	}
 }
 
 std::shared_ptr<renderer::StorageBuffer<ParamInterface::PixelParamData>> visual::SimulationGfx3DRenderer::getParamBufferOut() const
 {
 	if(fluidSurfaceGfx)
 		return fluidSurfaceGfx->getParamBufferOut();
-	return paramBufferOut;
+	return ParamInterface::getParamBufferOut();
 }
 
 void visual::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 {
 	if (fluidRenderMode.value == SURFACE)
 	{
-		particlesGfx.reset();
-		paramBufferOut.reset();
+		deleteParamBuffer();
 		if (!fluidSurfaceGfx)
 		{
 			fluidSurfaceGfx = std::make_unique<FluidSurfaceGfx>(engine, camera, lights, maxParticleNum);
@@ -162,21 +192,11 @@ void visual::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 		fluidSurfaceGfx.reset();
 		setBufferSize(configData.screenSize);
 		paramTmpTexture->resizeTexture(configData.screenSize.x, configData.screenSize.y);
-		if (!particlesGfx)
-		{
-			fluidSurfaceGfx.reset();
-			auto spheres = std::make_shared<renderer::BasicGeometryArray>(std::make_shared<renderer::Sphere>(8));
-			spheres->setMaxInstanceNum(maxParticleNum);
-			particlesGfx = std::make_unique<renderer::Object3D<renderer::BasicGeometryArray>>(spheres, shaderProgramNotTexturedArray);
-			particlesGfx->shininess = 80;
-			particlesGfx->specularColor = glm::vec4(1.2, 1.2, 1.2, 1);
-		}
 	}
 	else
 	{
-		paramBufferOut.reset();
+		deleteParamBuffer();
 		fluidSurfaceGfx.reset();
-		particlesGfx.reset();
 	}
 }
 

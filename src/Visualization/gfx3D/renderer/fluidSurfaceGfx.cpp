@@ -15,13 +15,8 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/gaussian_thickness.frag");
 	normalAndDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/normal_depth.frag");
 
-	surfaceSquareArrayObject = std::make_unique<renderer::Object3D<renderer::ParticleGeometryArray>>
-		(std::make_shared<renderer::ParticleGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
-	surfaceSquareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
-
-	spraySquareArrayObject = std::make_unique<renderer::Object3D<renderer::ParticleGeometryArray>>
-		(std::make_shared<renderer::ParticleGeometryArray>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
-	spraySquareArrayObject->drawable->setMaxInstanceNum(maxParticleNum);
+	instancedParticles = std::make_unique<renderer::Object3D<renderer::InstancedGeometry>>
+		(std::make_shared<renderer::InstancedGeometry>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
 
 	shadedSquareObject = std::make_unique<renderer::Object3D<renderer::Square>>(std::make_shared<renderer::Square>(), shadedDepthShader);
 	shadedSquareObject->shininess = 80;
@@ -90,7 +85,7 @@ void FluidSurfaceGfx::setConfigData(const ConfigData3D& config)
 	this->config = config;
 }
 
-void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data)
+void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
 {
 	glm::ivec2 viewportSize = framebuffer->getSize();
 	if (viewportSize != depthFramebuffer->getSize())
@@ -107,12 +102,15 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	}
 
 	depthParamBufferBlurX->bindBuffer(20);
-	paramBufferOut->bindBuffer(30);
+	getParamBufferOut()->bindBuffer(30);
+	data->bindBuffer(80);
 
 	fluidThicknessFramebuffer->setDepthAttachment(framebuffer->getDepthAttachment());
 
-	updateParticleData(data);
 	(*particleSpritesDepthShader)["particleRadius"] = config.particleRadius;
+	(*particleSpritesDepthShader)["drawMode"] = sprayEnabled.value ? 1 : 0;
+	(*particleSpritesDepthShader)["sprayThreashold"] = sprayDensityThreashold.value;
+	instancedParticles->drawable->setInstanceNum(data->getSize());
 
 	depthFramebuffer->bind();
 	engine->setViewport(0, 0, viewportSize.x, viewportSize.y);
@@ -120,7 +118,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	depthFramebuffer->clearDepthAttachment(1.0f);
 	depthFramebuffer->clearColorAttachment(0, glm::ivec4(-1));
 
-	surfaceSquareArrayObject->draw();
+	instancedParticles->draw();
 
 	depthBlurTmpFramebuffer->bind();
 	engine->clearViewport(1.0f);
@@ -142,6 +140,17 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	}
 	else
 	{
+		if (paramBufferValid)
+		{
+			(*gaussianBlurShaderX)["calculateParams"] = false;
+			(*gaussianBlurShaderY)["calculateParams"] = false;
+		}
+		else
+		{
+			(*gaussianBlurShaderX)["calculateParams"] = true;
+			(*gaussianBlurShaderY)["calculateParams"] = true;
+			paramBufferValid = true;
+		}
 		gaussianBlurShaderX->activate();
 		(*gaussianBlurShaderX)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 		(*gaussianBlurShaderX)["smoothingKernelSize"] = smoothingSize.value;
@@ -160,7 +169,8 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	if (sprayEnabled.value)
 	{
 		depthFramebuffer->bind();
-		spraySquareArrayObject->draw();
+		(*particleSpritesDepthShader)["drawMode"] = 2;
+		instancedParticles->draw();
 	}
 
 	if (fluidTransparencyEnabled.value)
@@ -172,9 +182,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_ONE, GL_ONE);
 		glEnable(GL_BLEND);
-		surfaceSquareArrayObject->drawable->draw();
-		if (sprayEnabled.value)
-			spraySquareArrayObject->drawable->draw();
+		instancedParticles->drawable->draw();
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 
@@ -226,61 +234,6 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 
 	engine->bindDefaultFramebuffer();
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-}
-
-void FluidSurfaceGfx::updateParticleData(const Gfx3DRenderData& data)
-{
-	const int particleNum = data.particleData.size();
-	auto surfaceSquareArray = surfaceSquareArrayObject->drawable;
-	auto spraySquareArray = spraySquareArrayObject->drawable;
-
-	if (sprayEnabled.value)
-	{
-		int surfaceParticleCount = 0;
-		int sprayParticleCount = 0;
-		for (int p = 0; p < particleNum; p++)
-		{
-
-			if (data.particleData[p].density < sprayDensityThreashold.value)
-			{
-				spraySquareArray->setOffset(sprayParticleCount, glm::vec4(data.particleData[p].pos, 1.0f));
-				/*if (fluidSurfaceNoiseEnabled.value)
-				{
-					spraySquareArray->setSpeed(sprayParticleCount, particles[p].v);
-					spraySquareArray->setId(sprayParticleCount, p);
-				}*/
-				sprayParticleCount++;
-			}
-			else
-			{
-				surfaceSquareArray->setOffset(surfaceParticleCount, glm::vec4(data.particleData[p].pos, 1.0f));
-				/*if (fluidSurfaceNoiseEnabled.value)
-				{
-					surfaceSquareArray->setSpeed(surfaceParticleCount, particles[p].v);
-					surfaceSquareArray->setId(surfaceParticleCount, p);
-				}*/
-				surfaceParticleCount++;
-			}
-		}
-		spraySquareArray->setActiveInstanceNum(sprayParticleCount);
-		surfaceSquareArray->setActiveInstanceNum(surfaceParticleCount);
-		spraySquareArray->updateActiveInstanceParams();
-		surfaceSquareArray->updateActiveInstanceParams();
-	}
-	else
-	{
-		for (int p = 0; p < particleNum; p++)
-		{
-			surfaceSquareArray->setOffset(p, glm::vec4(data.particleData[p].pos, 1.0f));
-			/*if (fluidSurfaceNoiseEnabled.value)
-			{
-				surfaceSquareArray->setSpeed(p, particles[p].v);
-				surfaceSquareArray->setId(p, p);
-			}*/
-		}
-		surfaceSquareArray->setActiveInstanceNum(particleNum);
-		surfaceSquareArray->updateActiveInstanceParams();
-	}
 }
 
 

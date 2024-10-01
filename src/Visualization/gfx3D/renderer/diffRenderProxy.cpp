@@ -48,9 +48,9 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	addParamLine({ &posPerturbation });
 }
 
-void DiffRendererProxy::render(std::shared_ptr<renderer::Framebuffer> framebuffer, const Gfx3DRenderData& data)
+void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
 {
-	if (updateReference.value)
+	/*if (updateReference.value)
 	{
 		renderer3D->render(referenceFramebuffer, data);
 	}
@@ -102,7 +102,7 @@ void DiffRendererProxy::render(std::shared_ptr<renderer::Framebuffer> framebuffe
 			runAdamIteration();
 
 		copytextureToFramebuffer(*currentParamFramebuffer->getColorAttachments()[0], framebuffer);
-	}
+	}*/
 }
 
 void DiffRendererProxy::setConfigData(const ConfigData3D& data)
@@ -173,7 +173,7 @@ void visual::DiffRendererProxy::computeStochaisticGradient()
 
 void visual::DiffRendererProxy::perturbateAndRenderParams()
 {
-	paramDataTmp = paramData;
+	/*paramDataTmp = paramData;
 	resultSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
 	for (unsigned int i = 0; i < parameterSSBO->getSize(); i++)
 	{
@@ -202,7 +202,7 @@ void visual::DiffRendererProxy::perturbateAndRenderParams()
 		paramDataTmp.particleData[i].pos.z = (*parameterSSBO)[i].z;
 	}
 	parameterSSBO->unmapBuffer();
-	renderer3D->render(currentParamFramebuffer, paramDataTmp);
+	renderer3D->render(currentParamFramebuffer, paramDataTmp);*/
 }
 
 void visual::DiffRendererProxy::updateSSBOFromParams(const Gfx3DRenderData& data)

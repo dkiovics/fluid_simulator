@@ -1,7 +1,7 @@
 #version 460 core
 precision highp float;
 
-layout(location = 0) out ivec4 geometryId;
+layout(location = 0) out int geometryId;
 
 //out vec4 fragmentColor;
 in vec2 texCoord;
@@ -9,6 +9,7 @@ in vec3 eyeSpacePos;
 //in vec4 color;
 in mat3 billboardM;
 flat in unsigned int instanceID;
+flat in float density;
 
 uniform ivec2 resolution;
 
@@ -30,8 +31,15 @@ layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
 };
 
 uniform float particleRadius;
+uniform float sprayThreashold;
+uniform int drawMode;
 
 void main(void) {
+	if((drawMode == 1 && density < sprayThreashold) || (drawMode == 2 && density >= sprayThreashold)){
+		discard;
+		return;
+	}
+
 	vec3 N;
 	N.xy = texCoord*2.0-1.0;
 	float r2 = dot(N.xy, N.xy);
@@ -51,7 +59,7 @@ void main(void) {
 	pixelParams[index].paramIndexes[0] = int(instanceID);
 	pixelParams[index].paramNum = 1;
 
-	geometryId = ivec4(instanceID, 0, 0, 0);
+	geometryId = int(instanceID);
 	
 	//vec3 lightDir = normalize(vec3(1, 1, -1));
 	

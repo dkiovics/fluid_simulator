@@ -245,10 +245,17 @@ protected:
 			glVertexAttribDivisor(attrib.id, 1);
 		}
 		geometry->unbindVao();
-		return vboId;
-
 		spdlog::debug("Per instance VBO created with id: {}", vboId);
+		return vboId;
 	}
+};
+
+class InstancedGeometry : public GeometryArray
+{
+public:
+	using GeometryArray::GeometryArray;
+
+	void setInstanceNum(size_t instanceNum);
 };
 
 class BasicGeometryArray : public GeometryArray

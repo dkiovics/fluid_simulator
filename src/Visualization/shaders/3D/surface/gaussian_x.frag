@@ -25,6 +25,8 @@ layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
 	FragmentParam pixelParams[];
 };
 
+uniform bool calculateParams;
+
 
 vec3 uvToEye(vec2 texCoord, float depth) {
 	vec4 ndc = vec4(texCoord * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
@@ -72,19 +74,21 @@ void main() {
 			weightSum += w;
 			depth += d * w;
 		}
-		int paramIndex = texture(paramTexture, coord).x;
-		if(paramIndex >= 0){
-			//check if the param is already in the list
-			bool found = false;
-			for(int j = 0; j < param.paramNum; j++){
-				if(paramIndex == param.paramIndexes[j]){
-					found = true;
-					break;
+
+		if(calculateParams) {
+			int paramIndex = texture(paramTexture, coord).x;
+			if(paramIndex >= 0){
+				bool found = false;
+				for(int j = 0; j < param.paramNum; j++){
+					if(paramIndex == param.paramIndexes[j]){
+						found = true;
+						break;
+					}
 				}
-			}
-			if(!found && param.paramNum < PARAM_NUM){
-				param.paramIndexes[param.paramNum] = paramIndex;
-				param.paramNum++;
+				if(!found && param.paramNum < PARAM_NUM){
+					param.paramIndexes[param.paramNum] = paramIndex;
+					param.paramNum++;
+				}
 			}
 		}
 	}
