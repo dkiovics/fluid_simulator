@@ -71,5 +71,10 @@ public:
 	ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName);
 };
 
+typedef std::shared_ptr<ShaderProgram> shader_ptr;
+inline shader_ptr make_shader(const std::string& vertexShaderName, const std::string& fragmentShaderName)
+{
+	return std::make_shared<ShaderProgram>(vertexShaderName, fragmentShaderName);
+}
 
 } // namespace renderer

@@ -28,4 +28,10 @@ private:
 	static GLint maxComputeWorkGroupCount[3];
 };
 
+typedef std::shared_ptr<ComputeProgram> compute_ptr;
+inline compute_ptr make_compute(const std::string& computeShaderPath)
+{
+	return std::make_shared<ComputeProgram>(computeShaderPath);
+}
+
 }

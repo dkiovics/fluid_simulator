@@ -215,4 +215,12 @@ private:
 	RenderEngine& renderEngine;
 };
 
+template <typename T>
+using ssbo_ptr = std::shared_ptr<StorageBuffer<T>>;
+template <typename T>
+inline ssbo_ptr<T> make_ssbo(unsigned int size, GLenum usage)
+{
+	return std::make_shared<StorageBuffer<T>>(size, usage);
+}
+
 } // namespace renderer

@@ -108,6 +108,16 @@ private:
 	glm::ivec2 size;
 };
 
+typedef std::shared_ptr<Framebuffer> fb_ptr;
+inline fb_ptr make_fb(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments,
+	std::shared_ptr<RenderTargetTexture> depthAttachment, bool hasStencil = true)
+{
+	return std::make_shared<Framebuffer>(colorAttachments, depthAttachment, hasStencil);
+}
+inline fb_ptr make_fb(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments)
+{
+	return std::make_shared<Framebuffer>(colorAttachments);
+}
 
 } // namespace renderer
 
