@@ -379,6 +379,7 @@ void SimulationGfx3DController::render()
 
 	renderer3DInterface->setConfigData(getConfigData3D());
 
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 	particleData->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	for (unsigned int i = 0; i < data.size(); i++)
 	{
@@ -386,8 +387,7 @@ void SimulationGfx3DController::render()
 		(*particleData)[i].density.x = data[i].density;
 	}
 	particleData->unmapBuffer();
-
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	renderer3DInterface->render(renderTargetFramebuffer, particleData);
 

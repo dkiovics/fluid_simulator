@@ -9,6 +9,7 @@
 #include <armadillo>
 #include "gfx3D/renderer3DInterface.h"
 #include "paramInterface.h"
+#include "gfx3D/adam/adam.h"
 
 namespace visual
 {
@@ -29,27 +30,15 @@ private:
 	std::shared_ptr<ParamInterface> renderer3D;
 	renderer::RenderEngine& renderEngine;
 
-	Gfx3DRenderData paramData;
-	Gfx3DRenderData paramDataTmp;
-	ConfigData3D prevConfigData;
-	bool configChanged = true;
+	std::unique_ptr<AdamOptimizer> adam;
 
-	arma::fvec currentParams;
-	arma::fvec mVec;
-	arma::fvec vVec;
-	arma::fvec gradientVec;
-	int gradientVecIndex = 0;
-	float t = 0;
+	renderer::fb_ptr referenceFramebuffer;
+	renderer::fb_ptr pertPlusFramebuffer;
+	renderer::fb_ptr pertMinusFramebuffer;
+	renderer::fb_ptr currentParamFramebuffer;
 
-	std::shared_ptr<renderer::Framebuffer> referenceFramebuffer;
-
-	std::shared_ptr<renderer::Framebuffer> pertPlusFramebuffer;
-	std::shared_ptr<renderer::Framebuffer> pertMinusFramebuffer;
-	std::shared_ptr<renderer::Framebuffer> currentParamFramebuffer;
-
-	ParamFloat speedPerturbation = ParamFloat("Speed perturbation", 0.2f, 0.01f, 5.0f);
+	ParamFloat speedPerturbation = ParamFloat("Speed perturbation", 0.2f, 0.0f, 5.0f);
 	ParamFloat posPerturbation = ParamFloat("Pos perturbation", 0.05f, 0.0f, 0.5f);
-	ParamInt stochaisticGradientSamples = ParamInt("Stochaistic gradient samples", 1, 1, 10);
 	ParamBool showSim = ParamBool("Show simulation", false);
 	ParamButton updateReference = ParamButton("Update reference");
 	ParamButton updateParams = ParamButton("Update params");
@@ -58,37 +47,31 @@ private:
 	ParamBool adamEnabled = ParamBool("Adam enabled", false);
 	ParamButton resetAdamButton = ParamButton("Reset Adam");
 
-	struct ResultSSBOData
-	{
-		glm::vec4 signedPerturbation;
-		glm::vec4 paramPositiveOffset;
-		glm::vec4 paramNegativeOffset;
-	};
-	std::unique_ptr<renderer::StorageBuffer<glm::vec4>> parameterSSBO;
-	std::unique_ptr<renderer::StorageBuffer<glm::vec4>> perturbationSSBO;
-	std::unique_ptr<renderer::StorageBuffer<ResultSSBOData>> resultSSBO;
+	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
+	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
+	renderer::ssbo_ptr<ParticleShaderData> paramPositiveOffsetSSBO;
+	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
+	
+	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
 
-	std::unique_ptr<renderer::ComputeProgram> perturbationProgram;
-
-	std::unique_ptr<renderer::StorageBuffer<glm::vec4>> stochaisticGradientSSBO;
-	std::unique_ptr<renderer::ShaderProgram> stochaisticGradientProgram;
+	renderer::compute_ptr perturbationProgram;
+	renderer::compute_ptr stochaisticGradientProgram;
+	renderer::compute_ptr particleDataToFloatProgram;
+	renderer::compute_ptr floatToParticleDataProgram;
 
 	std::unique_ptr<renderer::Square> showQuad;
-	std::unique_ptr<renderer::ShaderProgram> showProgram;
+	std::shared_ptr<renderer::ShaderProgram> showProgram;
 
-	void initParameterAndPerturbationSSBO(const Gfx3DRenderData& data);
+	void reset(renderer::ssbo_ptr<ParticleShaderData> data);
+	void randomizeParamValues(renderer::ssbo_ptr<ParticleShaderData> baselineData);
 
-	void resetStochaisticGradientSSBO();
 	void computePerturbation();
 	void computeStochaisticGradient();
+
+	void updateAdamParams(renderer::ssbo_ptr<ParticleShaderData> data);
+	void updateOptimizedParamsFromAdam();
 	
-	void perturbateAndRenderParams();
-
-	void updateSSBOFromParams(const Gfx3DRenderData& data);
-	void randomizeParamValues();
-
-	void resetAdam();
-	void runAdamIteration();
+	void renderParams();
 
 	void copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const;
 };

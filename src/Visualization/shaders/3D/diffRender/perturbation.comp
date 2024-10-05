@@ -4,22 +4,25 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 uniform int seed;
 
-struct ResultSSBOData {
-	float signedPerturbation[4];
-	float paramPositiveOffset[4];
-	float paramNegativeOffset[4];
+struct ParticleData {
+    vec4 posAndSpeed;
+	vec4 density;
 };
 
-layout(std430, binding = 0) restrict readonly buffer parameterSSBO {
-	vec4 parameters[];
+layout(std430, binding = 0) restrict readonly buffer optimizedParametersSSBO {
+	ParticleData optimizedParameters[];
 };
 
-layout(std430, binding = 1) restrict readonly buffer perturbationSSBO {
-	vec4 perturbations[];
+layout(std430, binding = 1) restrict readonly buffer perturbationPresetsSSBO {
+	ParticleData perturbationPresets[];
 };
 
-layout(std430, binding = 2) restrict writeonly buffer resultSSBO {
-	ResultSSBOData result[];
+layout(std430, binding = 2) restrict writeonly buffer negativeOffsetsSSBO {
+	ParticleData negativeOffsets[];
+};
+
+layout(std430, binding = 3) restrict writeonly buffer positiveOffsetsSSBO {
+	ParticleData positiveOffsets[];
 };
 
 uvec4 pcg4d(uvec4 v) {
@@ -31,23 +34,25 @@ uvec4 pcg4d(uvec4 v) {
 }
 
 
-
 void main() {
 	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
-	if (index >= parameters.length()) {
+	if (index >= optimizedParameters.length()) {
 		return;
 	}
 
-	vec4 parameter = parameters[index];
-	vec4 perturbation = perturbations[index];
-	ResultSSBOData resultData;
+	ParticleData parameter = optimizedParameters[index];
+	ParticleData perturbation = perturbationPresets[index];
 	uvec4 perturbationSign = pcg4d(uvec4(seed * index, 2 * seed * index, 3 * seed * index, 4 * seed * index));
 
-	for (int i = 0; i < 4; i++) {
-		resultData.signedPerturbation[i] = perturbation[i] * (perturbationSign[i] % 2 == 0 ? 1.0 : -1.0);
-		resultData.paramPositiveOffset[i] = parameter[i] + resultData.signedPerturbation[i];
-		resultData.paramNegativeOffset[i] = parameter[i] - resultData.signedPerturbation[i];
-	}
+	ParticleData negativeData = parameter;
+	ParticleData positiveData = parameter;
+	
+	vec4 signs = vec4(perturbationSign.x % 2 == 0 ? 1.0 : -1.0, perturbationSign.y % 2 == 0 ? 1.0 : -1.0,
+						perturbationSign.z % 2 == 0 ? 1.0 : -1.0, perturbationSign.w % 2 == 0 ? 1.0 : -1.0);
 
-	result[index] = resultData;
+	negativeData.posAndSpeed -= perturbation.posAndSpeed * signs;
+	positiveData.posAndSpeed += perturbation.posAndSpeed * signs;
+
+	negativeOffsets[index] = negativeData;
+	positiveOffsets[index] = positiveData;
 }

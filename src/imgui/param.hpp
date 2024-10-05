@@ -24,19 +24,20 @@ protected:
 class ParamFloat : public Param
 {
 public:
-    ParamFloat(const std::string& name, const float value, const float min, const float max) 
-        : Param(name), value(value), min(min), max(max) { }
+    ParamFloat(const std::string& name, const float value, const float min, const float max, const char* precision = "%.3f")
+        : Param(name), value(value), min(min), max(max), precisionStr(precision) { }
 
     float value;
 
     void show(int screenWidth) override
     {
 		ImGui::SetNextItemWidth(screenWidth / 5);
-		ImGui::SliderFloat(name.c_str(), &value, min, max, "%.3f");
+		ImGui::SliderFloat(name.c_str(), &value, min, max, precisionStr.c_str());
 	}
 
 private:
     const float min, max;
+    const std::string precisionStr;
 };
 
 class ParamInt : public Param

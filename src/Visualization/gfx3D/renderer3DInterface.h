@@ -30,6 +30,7 @@ struct ParticleShaderData
 {
 	glm::vec4 posAndSpeed;
 	glm::vec4 density;
+	static constexpr size_t paramCount = 4;
 };
 
 struct ConfigData3D

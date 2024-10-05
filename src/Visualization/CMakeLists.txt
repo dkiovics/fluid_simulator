@@ -12,6 +12,8 @@ set(SOURCES
     "gfx3D/renderer/fluidSurfaceGfx.cpp"
     "gfx3D/simulationGfx3DController.h"
     "gfx3D/simulationGfx3DController.cpp"
+    "gfx3D/adam/adam.h"
+    "gfx3D/adam/adam.cpp"
 )
 
 

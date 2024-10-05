@@ -65,7 +65,7 @@ void visual::SimulationGfx3DRenderer::invalidateParamBuffer()
 	if (fluidSurfaceGfx)
 		fluidSurfaceGfx->invalidateParamBuffer();
 	else
-		invalidateParamBuffer();
+		ParamInterface::invalidateParamBuffer();
 }
 
 void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
