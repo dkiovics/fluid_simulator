@@ -37,6 +37,8 @@ public:
 
 	void invalidateParamBuffer() override;
 
+	std::shared_ptr<renderer::Camera3D> getCamera() const override;
+
 private:
 	const int maxParticleNum;
 

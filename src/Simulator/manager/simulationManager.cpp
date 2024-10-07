@@ -167,6 +167,13 @@ SimulationManager::~SimulationManager() {
 		simulationThread->join();
 }
 
+std::shared_ptr<HashedParticles> SimulationManager::getHashedParticlesCopy()
+{
+	std::unique_lock lock(sharedDataMutex);
+	std::unique_lock lock2(simulationResourceLock);
+	return std::make_shared<HashedParticles>(*hashedParticles);
+}
+
 void SimulationManager::simulationThreadWorker() {
 	while (!terminationRequest) {
 		double dt = autoDt ? lastIterationDuration : dtVal;
@@ -238,6 +245,7 @@ void SimulationManager::simulationThreadWorker() {
 		if (terminationRequest)
 			break;
 
+		std::unique_lock lock(simulationResourceLock);
 		auto start = std::chrono::high_resolution_clock::now();
 		simulator->simulate(dt);
 		lastIterationDuration = lastIterationDuration * 0.8 + 0.2 * std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1e6;

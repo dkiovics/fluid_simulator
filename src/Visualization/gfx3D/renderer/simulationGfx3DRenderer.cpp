@@ -68,6 +68,11 @@ void visual::SimulationGfx3DRenderer::invalidateParamBuffer()
 		ParamInterface::invalidateParamBuffer();
 }
 
+std::shared_ptr<renderer::Camera3D> visual::SimulationGfx3DRenderer::getCamera() const
+{
+	return camera;
+}
+
 void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
 {
 	handleFluidRenderModeChange();

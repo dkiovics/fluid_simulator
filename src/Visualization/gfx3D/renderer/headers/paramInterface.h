@@ -1,6 +1,7 @@
 #pragma once
 
 #include <compute/storageBuffer.h>
+#include <engineUtils/camera3D.hpp>
 #include "gfx3D/renderer3DInterface.h"
 
 namespace visual
@@ -23,6 +24,11 @@ public:
 	virtual void invalidateParamBuffer()
 	{
 		paramBufferValid = false;
+	}
+
+	virtual std::shared_ptr<renderer::Camera3D> getCamera() const
+	{
+		return nullptr;
 	}
 
 protected:

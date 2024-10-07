@@ -210,6 +210,12 @@ public:
 	 */
 	glm::dvec3 getCellD();
 
+	/**
+	* Returns the copy of the HashedParticles object.
+	* 
+	* \return - the copy of the HashedParticles object
+	*/
+	std::shared_ptr<genericfsim::particles::HashedParticles> getHashedParticlesCopy();
 
 	const bool twoD;
 
@@ -226,6 +232,8 @@ private:
 private:
 	//Shared variables between the two threads
 	std::mutex sharedDataMutex;
+
+	std::mutex simulationResourceLock;
 
 	std::condition_variable simulationStepVar;
 	

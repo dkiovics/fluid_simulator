@@ -27,6 +27,8 @@ public:
 private:
 	glm::ivec2 prevScreenSize = glm::ivec2(1000, 1000);
 
+	ConfigData3D configData;
+
 	std::shared_ptr<ParamInterface> renderer3D;
 	renderer::RenderEngine& renderEngine;
 
@@ -46,6 +48,11 @@ private:
 	ParamBool showReference = ParamBool("Show reference", false);
 	ParamBool adamEnabled = ParamBool("Adam enabled", false);
 	ParamButton resetAdamButton = ParamButton("Reset Adam");
+	ParamBool autoPushApart = ParamBool("Auto push apart", false);
+	ParamInt pushApartUpdatePeriod = ParamInt("Push apart update period", 80, 20, 1000);
+	ParamButton pushApartButton = ParamButton("Push apart");
+	ParamBool useDepthImage = ParamBool("Use depth image", false);
+	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
 
 	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
 	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
@@ -55,7 +62,8 @@ private:
 	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
 
 	renderer::compute_ptr perturbationProgram;
-	renderer::compute_ptr stochaisticGradientProgram;
+	renderer::compute_ptr stochaisticColorGradientProgram;
+	renderer::compute_ptr stochaisticDepthGradientProgram;
 	renderer::compute_ptr particleDataToFloatProgram;
 	renderer::compute_ptr floatToParticleDataProgram;
 
@@ -74,6 +82,8 @@ private:
 	void renderParams();
 
 	void copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const;
+
+	void pushApartOptimizedParams();
 };
 
 } // namespace visual

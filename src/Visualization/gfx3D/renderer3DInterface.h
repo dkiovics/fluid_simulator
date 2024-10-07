@@ -11,21 +11,6 @@
 namespace visual
 {
 
-struct Gfx3DRenderData
-{
-	std::vector<genericfsim::manager::SimulationManager::ParticleGfxData> particleData;
-
-	Gfx3DRenderData(std::vector<genericfsim::manager::SimulationManager::ParticleGfxData>&& data)
-		: particleData(std::move(data))
-	{
-	}
-	Gfx3DRenderData() { }
-	Gfx3DRenderData(const Gfx3DRenderData& other) = default;
-	Gfx3DRenderData(Gfx3DRenderData&& other) = default;
-	Gfx3DRenderData& operator=(const Gfx3DRenderData& other) = default;
-	Gfx3DRenderData& operator=(Gfx3DRenderData&& other) = default;
-};
-
 struct ParticleShaderData
 {
 	glm::vec4 posAndSpeed;
@@ -43,12 +28,13 @@ struct ConfigData3D
 	bool speedColorEnabled;
 	glm::vec3 color;
 	glm::vec3 speedColor;
+	std::shared_ptr<genericfsim::manager::SimulationManager> simManager;
 
 	bool operator==(const ConfigData3D& other) const
 	{
 		return screenSize == other.screenSize && sceneCenter == other.sceneCenter && boxSize == other.boxSize 
 			&& maxParticleSpeed == other.maxParticleSpeed && particleRadius == other.particleRadius 
-			&& speedColor == other.speedColor;
+			&& speedColor == other.speedColor && simManager.get() == other.simManager.get();
 	}
 };
 

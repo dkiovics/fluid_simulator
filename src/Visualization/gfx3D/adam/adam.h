@@ -20,7 +20,9 @@ public:
 
 	void setParamNum(size_t paramNum);
 
-	void reset(const renderer::ssbo_ptr<float> initialData);
+	void reset();
+
+	void set(const renderer::ssbo_ptr<float> data);
 
 	bool updateGradient(const renderer::ssbo_ptr<float> g);
 

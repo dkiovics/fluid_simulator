@@ -27,16 +27,21 @@ void visual::AdamOptimizer::setParamNum(size_t paramNum)
 	}
 }
 
-void visual::AdamOptimizer::reset(const renderer::ssbo_ptr<float> initialData)
+void visual::AdamOptimizer::reset()
 {
-	if(initialData->getSize() != optimizedData->getSize())
-		throw std::runtime_error("AdamOptimizer::reset: initialData size does not match the current param num");
-	gradientSampleCount = 0;
 	t = 0.0f;
 	gradientSum->fillWithZeros();
 	mVec->fillWithZeros();
 	vVec->fillWithZeros();
-	optimizedData = initialData;
+	gradientSampleCount = 0;
+}
+
+void visual::AdamOptimizer::set(const renderer::ssbo_ptr<float> data)
+{
+	if (data->getSize() != optimizedData->getSize())
+		throw std::runtime_error("AdamOptimizer::reset: initialData size does not match the current param num");
+	gradientSampleCount = 0;
+	optimizedData = data;
 }
 
 bool visual::AdamOptimizer::updateGradient(const renderer::ssbo_ptr<float> g)

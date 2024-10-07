@@ -126,6 +126,7 @@ ConfigData3D SimulationGfx3DController::getConfigData3D()
 	config.speedColor = particleSpeedColor.value;
 	config.color = particleColor.value;
 	config.speedColorEnabled = particleSpeedColorEnabled.value;
+	config.simManager = simulationManager;
 	return config;
 }
 
