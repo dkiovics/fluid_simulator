@@ -38,7 +38,6 @@ target_link_libraries(visualization
         simulator
         imgui
         spdlog
-        arma
 )
 
 add_custom_command(TARGET visualization POST_BUILD

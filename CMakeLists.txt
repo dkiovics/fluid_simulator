@@ -24,7 +24,6 @@ set(CMAKE_PREFIX_PATH "${CPP_LIB_DIR}")
 
 find_package(glm REQUIRED)
 find_package(glfw REQUIRED)
-find_package(arma REQUIRED)
 find_package(stb_image REQUIRED)
 find_package(spdlog REQUIRED)
 

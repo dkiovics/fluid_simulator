@@ -23,6 +23,5 @@ target_link_libraries(Application
         simulator
         imgui
         spdlog
-        arma
         visualization
 )
