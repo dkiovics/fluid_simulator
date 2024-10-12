@@ -9,7 +9,8 @@
 #include <armadillo>
 #include "gfx3D/renderer3DInterface.h"
 #include "paramInterface.h"
-#include "gfx3D/adam/adam.h"
+#include "gfx3D/optimizer/adam.h"
+#include "gfx3D/optimizer/densityControl.h"
 
 namespace visual
 {
@@ -33,6 +34,7 @@ private:
 	renderer::RenderEngine& renderEngine;
 
 	std::unique_ptr<AdamOptimizer> adam;
+	std::unique_ptr<DensityControl> densityControl;
 
 	renderer::fb_ptr referenceFramebuffer;
 	renderer::fb_ptr pertPlusFramebuffer;
@@ -53,12 +55,16 @@ private:
 	ParamButton pushApartButton = ParamButton("Push apart");
 	ParamBool useDepthImage = ParamBool("Use depth image", false);
 	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
+	ParamBool enableDensityControl = ParamBool("Enable density control", false);
+	ParamBool showMovementAbs = ParamBool("Show avg movement", false);
+	ParamButton updateSimulatorButton = ParamButton("Update simulator");
 
 	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
 	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
 	renderer::ssbo_ptr<ParticleShaderData> paramPositiveOffsetSSBO;
 	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
-	
+	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
+
 	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
 
 	renderer::compute_ptr perturbationProgram;
@@ -84,6 +90,8 @@ private:
 	void copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const;
 
 	void pushApartOptimizedParams();
+
+	void updateSimulator();
 };
 
 } // namespace visual

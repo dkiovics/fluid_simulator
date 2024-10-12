@@ -174,6 +174,14 @@ std::shared_ptr<HashedParticles> SimulationManager::getHashedParticlesCopy()
 	return std::make_shared<HashedParticles>(*hashedParticles);
 }
 
+void SimulationManager::setHashedParticles(std::shared_ptr<HashedParticles> hashedParticles)
+{
+	std::unique_lock lock(sharedDataMutex);
+	std::unique_lock lock2(simulationResourceLock);
+	this->hashedParticles = hashedParticles;
+	simulator->setNewHashedParticles(hashedParticles);
+}
+
 void SimulationManager::simulationThreadWorker() {
 	while (!terminationRequest) {
 		double dt = autoDt ? lastIterationDuration : dtVal;

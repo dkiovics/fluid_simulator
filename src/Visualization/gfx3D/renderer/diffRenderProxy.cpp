@@ -42,6 +42,7 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	paramPositiveOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(1000, GL_DYNAMIC_COPY);
 	optimizedParamsSSBO = renderer::make_ssbo<ParticleShaderData>(1000, GL_DYNAMIC_COPY);
 	stochaisticGradientSSBO = renderer::make_ssbo<float>(1000, GL_DYNAMIC_COPY);
+	particleMovementAbsSSBO = renderer::make_ssbo<float>(1000, GL_DYNAMIC_COPY);
 
 	perturbationProgram = renderer::make_compute("shaders/3D/diffRender/perturbation.comp");
 	stochaisticColorGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_color.comp");
@@ -60,14 +61,16 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	showProgram = renderer::make_shader("shaders/3D/util/quad.vert", "shaders/3D/util/quad.frag");
 
 	adam = std::make_unique<AdamOptimizer>(1);
+	densityControl = std::make_unique<DensityControl>();
 
-	addParamLine({ &showSim, &updateReference, &updateParams, &useDepthImage });
+	addParamLine({ &showSim, &updateReference, &updateParams, &updateSimulatorButton, &useDepthImage });
 	addParamLine(ParamLine({ &depthErrorScale }, &useDepthImage ));
 	addParamLine({ &showReference, &randomizeParams, &adamEnabled, &resetAdamButton });
 	addParamLine({ &speedPerturbation });
 	addParamLine({ &posPerturbation });
 	addParamLine(ParamLine({ &autoPushApart, &pushApartButton }));
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
+	addParamLine({ &enableDensityControl, &showMovementAbs });
 
 	auto camera = this->renderer3D->getCamera();
 	camera->addProgram({ stochaisticDepthGradientProgram });
@@ -89,9 +92,16 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		paramPositiveOffsetSSBO->setSize(data->getSize());
 		optimizedParamsSSBO->setSize(data->getSize());
 		perturbationPresetSSBO->setSize(data->getSize());
+		particleMovementAbsSSBO->setSize(data->getSize());
 		stochaisticGradientSSBO->setSize(data->getSize() * ParticleShaderData::paramCount);
 		adam->setParamNum(data->getSize() * ParticleShaderData::paramCount);
+		densityControl->setParamNum(data->getSize());
 		reset(data);
+	}
+
+	if (updateSimulatorButton.value)
+	{
+		updateSimulator();
 	}
 
 	if (pushApartButton.value)
@@ -109,6 +119,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		updateAdamParams(optimizedParamsSSBO);
 		adam->reset();
+		densityControl->reset();
 	}
 
 	if(updateParams.value)
@@ -139,6 +150,15 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			if (adam->updateGradient(stochaisticGradientSSBO))
 			{
 				updateOptimizedParamsFromAdam();
+				if (enableDensityControl.value)
+				{
+					glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+					if (densityControl->updateAvgMovement(particleMovementAbsSSBO))
+					{
+						densityControl->updatePositions(optimizedParamsSSBO);
+						updateAdamParams(optimizedParamsSSBO);
+					}
+				}
 				
 				static int pushApartCounter = 0;
 				if (autoPushApart.value)
@@ -179,6 +199,11 @@ void DiffRendererProxy::show(int screenWidth)
 	ParamLineCollection::show(screenWidth);
 	ImGui::SeparatorText("Adam");
 	adam->show(screenWidth * 2);
+	if (enableDensityControl.value)
+	{
+		ImGui::SeparatorText("Density control");
+		densityControl->show(screenWidth);
+	}
 	renderer3D->show(screenWidth);
 }
 
@@ -201,6 +226,7 @@ void visual::DiffRendererProxy::reset(renderer::ssbo_ptr<ParticleShaderData> dat
 	perturbationPresetSSBO->unmapBuffer();
 	updateAdamParams(data);
 	adam->reset();
+	densityControl->reset();
 }
 
 void visual::DiffRendererProxy::randomizeParamValues(renderer::ssbo_ptr<ParticleShaderData> baselineData)
@@ -218,15 +244,18 @@ void visual::DiffRendererProxy::randomizeParamValues(renderer::ssbo_ptr<Particle
 	baselineData->unmapBuffer();
 	updateAdamParams(optimizedParamsSSBO);
 	adam->reset();
+	densityControl->reset();
 }
 
 void visual::DiffRendererProxy::computePerturbation()
 {
 	(*perturbationProgram)["seed"] = std::rand() % 1000;
+	(*perturbationProgram)["showMovement"] = showMovementAbs.value;
 	optimizedParamsSSBO->bindBuffer(0);
 	perturbationPresetSSBO->bindBuffer(1);
 	paramNegativeOffsetSSBO->bindBuffer(2);
 	paramPositiveOffsetSSBO->bindBuffer(3);
+	particleMovementAbsSSBO->bindBuffer(4);
 	perturbationProgram->dispatchCompute(optimizedParamsSSBO->getSize() / 64 + 1, 1, 1);
 }
 
@@ -265,6 +294,7 @@ void visual::DiffRendererProxy::updateOptimizedParamsFromAdam()
 	auto floatData = adam->getOptimizedFloatData();
 	floatData->bindBuffer(0);
 	optimizedParamsSSBO->bindBuffer(1);
+	particleMovementAbsSSBO->bindBuffer(2);
 	floatToParticleDataProgram->dispatchCompute(optimizedParamsSSBO->getSize() / 64 + 1, 1, 1);
 }
 
@@ -309,5 +339,26 @@ void visual::DiffRendererProxy::pushApartOptimizedParams()
 	});
 	optimizedParamsSSBO->unmapBuffer();
 	updateAdamParams(optimizedParamsSSBO);
+}
+
+void visual::DiffRendererProxy::updateSimulator()
+{
+	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
+	auto particles = configData.simManager->getHashedParticlesCopy();
+	particles->setParticleNum(optimizedParamsSSBO->getSize());
+	const double r = particles->getParticleR();
+	const glm::dvec3 cellD = configData.simManager->getCellD();
+	const glm::dvec3 lowerLimit = cellD + r;
+	const glm::dvec3 upperLimit = configData.simManager->getDimensions() - cellD - r;
+	particles->forEach(true, [&](auto& particle, int index) {
+		particle.pos = glm::vec3((*optimizedParamsSSBO)[index].posAndSpeed);
+		particle.pos = glm::clamp(particle.pos, lowerLimit, upperLimit);
+		particle.v = glm::dvec3(0.0);
+		particle.c[0] = particle.c[1] = particle.c[2] = glm::dvec3(0.0);
+	});
+	optimizedParamsSSBO->unmapBuffer();
+	particles->updateParticleIntersectionHash(true);
+	configData.simManager->setHashedParticles(std::move(particles));
 }
 

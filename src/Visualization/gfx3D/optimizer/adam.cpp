@@ -6,8 +6,8 @@ using namespace visual;
 visual::AdamOptimizer::AdamOptimizer(size_t paramNum)
 {
 	setParamNum(paramNum);
-	gradientSumCompute = renderer::make_compute("shaders/3D/diffRender/gradientSum.comp");
-	adamOptimizerCompute = renderer::make_compute("shaders/3D/diffRender/adamOptimizer.comp");
+	gradientSumCompute = renderer::make_compute("shaders/3D/adam/gradientSum.comp");
+	adamOptimizerCompute = renderer::make_compute("shaders/3D/adam/adamOptimizer.comp");
 	
 	addParamLine(ParamLine({ &gradientSampleNum }));
 	addParamLine(ParamLine({ &alpha }));

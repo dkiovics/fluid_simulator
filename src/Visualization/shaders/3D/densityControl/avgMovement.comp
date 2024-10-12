@@ -1,0 +1,33 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+struct AvgMovement
+{
+	float avgMovement;
+	int index;
+};
+
+layout(std430, binding = 0) restrict buffer avgMovementSSBO {
+	AvgMovement avgMovement[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer movementSSBO {
+	float movement[];
+};
+
+uniform float rollingAvgAlpha;
+
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= avgMovement.length()) {
+		return;
+	}
+
+	float currentMovement = movement[index];
+	AvgMovement avg = avgMovement[index];
+	avg.avgMovement = rollingAvgAlpha * currentMovement + (1.0 - rollingAvgAlpha) * avg.avgMovement;
+	avgMovement[index] = avg;
+}

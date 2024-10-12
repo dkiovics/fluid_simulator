@@ -12,8 +12,10 @@ set(SOURCES
     "gfx3D/renderer/fluidSurfaceGfx.cpp"
     "gfx3D/simulationGfx3DController.h"
     "gfx3D/simulationGfx3DController.cpp"
-    "gfx3D/adam/adam.h"
-    "gfx3D/adam/adam.cpp"
+    "gfx3D/optimizer/adam.h"
+    "gfx3D/optimizer/adam.cpp"
+    "gfx3D/optimizer/densityControl.h"
+    "gfx3D/optimizer/densityControl.cpp"
 )
 
 
@@ -40,5 +42,6 @@ target_link_libraries(visualization
 )
 
 add_custom_command(TARGET visualization POST_BUILD
-				   COMMAND ${CMAKE_COMMAND} -E copy_directory
-				   ${CMAKE_CURRENT_SOURCE_DIR}/shaders ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders)
+	COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders"
+	COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/shaders" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders"
+)

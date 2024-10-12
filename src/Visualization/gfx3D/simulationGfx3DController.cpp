@@ -157,7 +157,7 @@ SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::R
 	mouseButtonCallbackId = engine->mouseButtonCallback.onCallback([this](int a, int b, int c) { mouseButtonCallback(a, b, c); });
 	scrollCallbackId = engine->scrollCallback.onCallback([this](double a, double b) { scrollCallback(a, b); });
 
-	showShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/quad.vert", "shaders/quad.frag");
+	showShaderProgram = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/util/quad.frag");
 	showSquare = std::make_shared<renderer::Square>();
 	renderTargetTexture = std::make_shared<renderer::RenderTargetTexture>(screenSize.x, screenSize.y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
 	(*showShaderProgram)["colorTexture"] = *renderTargetTexture;

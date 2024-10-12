@@ -34,7 +34,7 @@ out vec2 textureCoords;
 out vec4 diffuseColor;
 flat out unsigned int instanceID;
 
-uniform int speedColorEnabled;
+uniform bool speedColorEnabled;
 uniform float maxSpeedInv;
 uniform vec3 color;
 uniform vec3 speedColor;
@@ -45,7 +45,14 @@ void main() {
 	gl_Position = camera.projectionMatrix * camera.viewMatrix * worldPosition;
 	worldNormal = object.modelMatrixInverse * normal;
 	textureCoords = texCoordIn;
-	float coeff = float(speedColorEnabled) * pow(data.posAndSpeed.w * maxSpeedInv, 0.2);
-	diffuseColor = vec4(color * (1.0 - coeff) + speedColor * coeff, 1.0);
+	if(speedColorEnabled)
+	{
+		float coeff = pow(data.posAndSpeed.w * maxSpeedInv, 0.2);
+		diffuseColor = vec4(color * (1.0 - coeff) + speedColor * coeff, 1.0);
+	}
+	else
+	{
+		diffuseColor = vec4(color, 1.0);
+	}
 	instanceID = gl_InstanceID;
 }

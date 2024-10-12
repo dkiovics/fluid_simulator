@@ -30,7 +30,7 @@ public:
 
 private:
 	ParamInt gradientSampleNum = ParamInt("Gradient sample size", 10, 1, 100);
-	ParamFloat alpha = ParamFloat("Alpha", 0.004f, 0.001f, 0.5f, "%.3f");
+	ParamFloat alpha = ParamFloat("Alpha", 0.016f, 0.001f, 0.5f, "%.3f");
 	ParamFloat beta1 = ParamFloat("Beta1", 0.9f, 0.1f, 0.99f);
 	ParamFloat beta2 = ParamFloat("Beta2", 0.999f, 0.9f, 0.9999f, "%.4f");
 	ParamFloat epsilon = ParamFloat("Epsilon", 1e-8f, 1e-10f, 1e-6f, "%e");

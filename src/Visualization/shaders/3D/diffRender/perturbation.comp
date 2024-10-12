@@ -3,13 +3,14 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 uniform int seed;
+uniform bool showMovement;
 
 struct ParticleData {
     vec4 posAndSpeed;
 	vec4 density;
 };
 
-layout(std430, binding = 0) restrict readonly buffer optimizedParametersSSBO {
+layout(std430, binding = 0) restrict buffer optimizedParametersSSBO {
 	ParticleData optimizedParameters[];
 };
 
@@ -23,6 +24,10 @@ layout(std430, binding = 2) restrict writeonly buffer negativeOffsetsSSBO {
 
 layout(std430, binding = 3) restrict writeonly buffer positiveOffsetsSSBO {
 	ParticleData positiveOffsets[];
+};
+
+layout(std430, binding = 4) restrict readonly buffer particleMovementAbsSSBO {
+	float particleMovementAbs[];
 };
 
 uvec4 pcg4d(uvec4 v) {
@@ -55,4 +60,7 @@ void main() {
 
 	negativeOffsets[index] = negativeData;
 	positiveOffsets[index] = positiveData;
+
+	if(showMovement)
+		optimizedParameters[index].posAndSpeed.w = particleMovementAbs[index] * 100.0;
 }

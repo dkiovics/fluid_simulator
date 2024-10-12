@@ -1,0 +1,52 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct AvgMovement
+{
+	float avgMovement;
+	int index;
+};
+
+struct ParticleData {
+    vec4 posAndSpeed;
+	vec4 density;
+};
+
+layout(std430, binding = 0) restrict readonly buffer avgMovementSSBO {
+	AvgMovement avgMovement[];
+};
+
+layout(std430, binding = 1) restrict buffer particleDataSSBO {
+	ParticleData particleData[];
+};
+
+uniform float particleSpread;
+uniform float seedX;
+uniform float seedY;
+
+float randX(int index){
+	vec2 c = vec2(float(index) / float(avgMovement.length()), seedX);
+    return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float randY(int index){
+	vec2 c = vec2(float(index) / float(avgMovement.length()), seedY);
+    return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+void moveParticle(int moveIndex, int targetIndex){
+	vec3 target = particleData[targetIndex].posAndSpeed.xyz;
+	float theta = randX(moveIndex) * 2.0 * 3.14159265359;
+	float phi = (randY(moveIndex) - 0.5) * 3.14159265359;
+	vec3 offset = vec3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
+	particleData[moveIndex].posAndSpeed.xyz = target + offset * particleSpread;
+}
+
+void main() {
+	int index = int(gl_GlobalInvocationID.x);
+	int moveIndex = avgMovement[index].index;
+	int targetIndex = avgMovement[avgMovement.length() - 1 - index].index;
+	moveParticle(moveIndex, targetIndex);
+}

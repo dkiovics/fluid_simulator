@@ -11,8 +11,12 @@ struct ParticleData {
 	vec4 density;
 };
 
-layout(std430, binding = 1) restrict writeonly buffer optimizedParticleDataSSBO {
+layout(std430, binding = 1) restrict buffer optimizedParticleDataSSBO {
 	ParticleData optimizedParticleData[];
+};
+
+layout(std430, binding = 2) restrict writeonly buffer particleMovementAbsSSBO {
+	float particleMovementAbs[];
 };
 
 
@@ -23,5 +27,7 @@ void main() {
 	}
 
 	unsigned int floatDataIndex = index * 4;
-	optimizedParticleData[index].posAndSpeed = vec4(floatData[floatDataIndex], floatData[floatDataIndex + 1], floatData[floatDataIndex + 2], floatData[floatDataIndex + 3]);
+	vec4 newPosAndSpeed = vec4(floatData[floatDataIndex], floatData[floatDataIndex + 1], floatData[floatDataIndex + 2], floatData[floatDataIndex + 3]);
+	particleMovementAbs[index] = length(newPosAndSpeed.xyz - optimizedParticleData[index].posAndSpeed.xyz);
+	optimizedParticleData[index].posAndSpeed = newPosAndSpeed;
 }
