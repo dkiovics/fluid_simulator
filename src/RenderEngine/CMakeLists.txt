@@ -56,4 +56,5 @@ target_link_libraries(render_engine
         glad
         spdlog
         stb_image
+        tiny_obj_loader
 )

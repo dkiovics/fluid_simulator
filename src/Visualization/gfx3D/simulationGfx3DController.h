@@ -99,6 +99,8 @@ public:
 
 	void addRectengularObstacle(glm::vec3 color, glm::vec3 size) override;
 
+	void addMeshObstacle(const std::string& path, glm::vec3 color, float scale) override;
+
 	void addParticleSource(glm::vec3 color, float r, float particleSpawnRate, float particleSpawnSpeed);
 
 	void addParticleSink(glm::vec3 color, float r);

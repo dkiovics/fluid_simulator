@@ -255,6 +255,22 @@ void SimulationGfx3DController::addRectengularObstacle(glm::vec3 color, glm::vec
 	addObstacle(std::move(obj), std::make_unique<genericfsim::obstacle::RectengularObstacle>(size), size);
 }
 
+void SimulationGfx3DController::addMeshObstacle(const std::string& path, glm::vec3 color, float scale)
+{
+	try
+	{
+		auto obj = std::make_unique<renderer::Object3D<renderer::Geometry>>
+			(renderer::loadGeometry(path), shaderProgramNotTextured);
+		obj->setScale(glm::vec3(scale, scale, scale));
+		obj->diffuseColor = glm::vec4(color, 1);
+		addObstacle(std::move(obj), std::make_unique<genericfsim::obstacle::SphericalObstacle>(4.0f), glm::vec3(4.0f, 4.0f, 4.0f));
+	}
+	catch (std::exception& e)
+	{
+		spdlog::error("SimulationGfx3DController::addMeshObstacle: {}", e.what());
+	}
+}
+
 void SimulationGfx3DController::removeObstacle()
 {
 	if (lastSelectedObstacle == -1)

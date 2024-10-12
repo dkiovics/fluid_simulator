@@ -250,6 +250,13 @@ void startSimulatorGui() {
             if (ImGui::Button("Remove")) {
                 simulatorRenderer->removeObstacle();
             }
+            static char meshPath[128] = "meshes/";
+            if (ImGui::Button("Add mesh"))
+            {
+                simulatorRenderer->addMeshObstacle(meshPath, obstacleColor, obstacleRadius);
+            }
+            ImGui::SameLine();
+            ImGui::InputText("Mesh path", meshPath, IM_ARRAYSIZE(meshPath));
 
             ImGui::ColorEdit3("color", (float*)&obstacleColor, ImGuiColorEditFlags_NoInputs);
             ImGui::SameLine();

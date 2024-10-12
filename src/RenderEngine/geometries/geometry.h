@@ -37,6 +37,11 @@ struct BasicVertex
 	glm::vec4 position;
 	glm::vec4 normal;
 	glm::vec2 texCoord;
+
+	bool operator==(const BasicVertex& other) const
+	{
+		return position == other.position && normal == other.normal && texCoord == other.texCoord;
+	}
 };
 
 class Drawable
@@ -200,6 +205,14 @@ private:
 	std::map<GLuint, VboData> vboSizes;
 
 };
+
+class MeshGeometry : public Geometry
+{
+public:
+	MeshGeometry(GLenum drawType, const std::vector<BasicVertex>& vertices, const std::vector<unsigned int>& indices);
+};
+
+std::shared_ptr<MeshGeometry> loadGeometry(const std::string& path);
 
 class GeometryArray : public Drawable
 {

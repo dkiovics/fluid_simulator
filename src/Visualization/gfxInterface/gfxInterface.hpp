@@ -31,6 +31,7 @@ public:
 
 	virtual void addSphericalObstacle(glm::vec3 color, float r) { }
 	virtual void addRectengularObstacle(glm::vec3 color, glm::vec3 size) { }
+	virtual void addMeshObstacle(const std::string& path, glm::vec3 color, float scale) { }
 	virtual void removeObstacle() { }
 
 	virtual ~GfxInterface() = default;
