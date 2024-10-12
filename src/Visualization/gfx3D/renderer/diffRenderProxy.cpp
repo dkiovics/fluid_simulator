@@ -1,5 +1,4 @@
 #include "headers/diffRenderProxy.h"
-#include <armadillo>
 #include <iostream>
 
 using namespace visual;
@@ -197,14 +196,16 @@ void DiffRendererProxy::show(int screenWidth)
 {
 	ImGui::SeparatorText("DiffRendererProxy");
 	ParamLineCollection::show(screenWidth);
-	ImGui::SeparatorText("Adam");
+	renderer3D->show(screenWidth);
+	ImGui::Begin("Adam");
 	adam->show(screenWidth * 2);
+	ImGui::End();
 	if (enableDensityControl.value)
 	{
-		ImGui::SeparatorText("Density control");
+		ImGui::Begin("Density control");
 		densityControl->show(screenWidth);
+		ImGui::End();
 	}
-	renderer3D->show(screenWidth);
 }
 
 void visual::DiffRendererProxy::reset(renderer::ssbo_ptr<ParticleShaderData> data)

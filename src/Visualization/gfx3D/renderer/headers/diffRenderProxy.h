@@ -6,7 +6,6 @@
 #include <compute/computeProgram.h>
 #include <compute/storageBuffer.h>
 #include <geometries/basicGeometries.h>
-#include <armadillo>
 #include "gfx3D/renderer3DInterface.h"
 #include "paramInterface.h"
 #include "gfx3D/optimizer/adam.h"
