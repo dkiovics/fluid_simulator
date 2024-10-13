@@ -14,6 +14,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	fluidThicknessShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/surface/particle_sprites.vert", "shaders/3D/surface/particle_sprites_thickness.frag");
 	fluidThicknessBlurShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/gaussian_thickness.frag");
 	normalAndDepthShader = std::make_shared<renderer::ShaderProgram>("shaders/3D/util/quad.vert", "shaders/3D/surface/normal_depth.frag");
+	paramCopyCompute = renderer::make_compute("shaders/3D/util/copyParams_non_zero.comp");
 
 	instancedParticles = std::make_unique<renderer::Object3D<renderer::InstancedGeometry>>
 		(std::make_shared<renderer::InstancedGeometry>(std::make_shared<renderer::FlipSquare>()), particleSpritesDepthShader);
@@ -61,6 +62,7 @@ FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
 	(*fluidThicknessShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 	(*normalAndDepthShader)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
 	(*gaussianBlurShaderX)["paramTexture"] = *depthFramebuffer->getColorAttachments()[0];
+	(*paramCopyCompute)["paramTexture"] = *depthFramebuffer->getColorAttachments()[0];
 
 	camera->addProgram({ particleSpritesDepthShader, gaussianBlurShaderX, gaussianBlurShaderY,
 		bilateralFilterShader, shadedDepthShader, fluidThicknessShader, fluidThicknessBlurShader, normalAndDepthShader });
@@ -149,7 +151,6 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		{
 			(*gaussianBlurShaderX)["calculateParams"] = true;
 			(*gaussianBlurShaderY)["calculateParams"] = true;
-			paramBufferValid = true;
 		}
 		gaussianBlurShaderX->activate();
 		(*gaussianBlurShaderX)["depthTexture"] = *depthFramebuffer->getDepthAttachment();
@@ -169,9 +170,18 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	if (sprayEnabled.value)
 	{
 		depthFramebuffer->bind();
+		depthFramebuffer->clearColorAttachment(0, glm::ivec4(-1));
 		(*particleSpritesDepthShader)["drawMode"] = 2;
 		instancedParticles->draw();
+		if (!paramBufferValid)
+		{
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+			(*paramCopyCompute)["screenSize"] = viewportSize;
+			paramCopyCompute->dispatchCompute(viewportSize.x, viewportSize.y, 1);
+		}
 	}
+
+	paramBufferValid = true;
 
 	if (fluidTransparencyEnabled.value)
 	{

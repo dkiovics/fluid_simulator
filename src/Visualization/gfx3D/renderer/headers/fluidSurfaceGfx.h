@@ -14,6 +14,7 @@
 #include <compute/storageBuffer.h>
 #include "gfx3D/renderer3DInterface.h"
 #include "paramInterface.h"
+#include <compute/computeProgram.h>
 
 namespace visual
 {
@@ -58,6 +59,7 @@ private:
 	std::shared_ptr<renderer::GpuProgram> fluidThicknessShader;
 	std::shared_ptr<renderer::GpuProgram> fluidThicknessBlurShader;
 	std::shared_ptr<renderer::GpuProgram> normalAndDepthShader;
+	renderer::compute_ptr paramCopyCompute;
 
 	std::unique_ptr<renderer::Object3D<renderer::InstancedGeometry>> instancedParticles;
 	std::unique_ptr<renderer::Square> square;

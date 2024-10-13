@@ -64,7 +64,7 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 
 	addParamLine({ &showSim, &updateReference, &updateParams, &updateSimulatorButton, &useDepthImage });
 	addParamLine(ParamLine({ &depthErrorScale }, &useDepthImage ));
-	addParamLine({ &showReference, &randomizeParams, &adamEnabled, &resetAdamButton });
+	addParamLine({ &showReference, &randomizeParams, &adamEnabled, &resetAdamButton, &updateDensities });
 	addParamLine({ &speedPerturbation });
 	addParamLine({ &posPerturbation });
 	addParamLine(ParamLine({ &autoPushApart, &pushApartButton }));
@@ -149,6 +149,11 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			if (adam->updateGradient(stochaisticGradientSSBO))
 			{
 				updateOptimizedParamsFromAdam();
+				if (updateDensities.value)
+				{
+					glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+					updateParticleDensities();
+				}
 				if (enableDensityControl.value)
 				{
 					glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -340,6 +345,22 @@ void visual::DiffRendererProxy::pushApartOptimizedParams()
 	});
 	optimizedParamsSSBO->unmapBuffer();
 	updateAdamParams(optimizedParamsSSBO);
+}
+
+void visual::DiffRendererProxy::updateParticleDensities()
+{
+	auto hashedParticles = configData.simManager->getHashedParticlesCopy();
+	hashedParticles->setParticleNum(optimizedParamsSSBO->getSize());
+	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+	hashedParticles->forEach(true, [&](auto& particle, int index) {
+		particle.pos = glm::vec3((*optimizedParamsSSBO)[index].posAndSpeed);
+	});
+	auto densities = configData.simManager->calculateParticleDensity(hashedParticles);
+	for (int i = 0; i < densities.size(); i++)
+	{
+		(*optimizedParamsSSBO)[i].density = glm::vec4(densities[i]);
+	}
+	optimizedParamsSSBO->unmapBuffer();
 }
 
 void visual::DiffRendererProxy::updateSimulator()

@@ -217,6 +217,8 @@ public:
 	*/
 	std::shared_ptr<genericfsim::particles::HashedParticles> getHashedParticlesCopy();
 
+	std::vector<float> calculateParticleDensity(std::shared_ptr<genericfsim::particles::HashedParticles> particles);
+
 	void setHashedParticles(std::shared_ptr<genericfsim::particles::HashedParticles> hashedParticles);
 
 	const bool twoD;

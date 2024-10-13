@@ -182,6 +182,49 @@ void SimulationManager::setHashedParticles(std::shared_ptr<HashedParticles> hash
 	simulator->setNewHashedParticles(hashedParticles);
 }
 
+std::vector<float> SimulationManager::calculateParticleDensity(std::shared_ptr<genericfsim::particles::HashedParticles> particles)
+{
+	std::vector<float> densities;
+	densities.reserve(particles->getParticleNum());
+	const double r = particles->getParticleR();
+	const glm::dvec3 cellD = getCellD();
+	const glm::dvec3 lowerLimit = cellD + r;
+	const glm::dvec3 upperLimit = getDimensions() - cellD - r;
+	const glm::dvec3 cellDInv = macGrid->cellDInv;
+
+	std::unique_lock lock(sharedDataMutex);
+	std::unique_lock lock2(simulationResourceLock);
+	macGrid->backupGrid();
+	macGrid->resetGridValues(true);
+
+	particles->forEach(true, [&](Particle& particle, int) {
+		if (particle.pos.x < lowerLimit.x || particle.pos.y < lowerLimit.y || particle.pos.z < lowerLimit.z ||
+						particle.pos.x > upperLimit.x || particle.pos.y > upperLimit.y || particle.pos.z > upperLimit.z)
+			return;
+		auto cells = macGrid->getCellsAround(particle.pos);
+		for (int p = 0; p < cells.size(); p++)
+		{
+			double weight = trilinearInterpoll(cells[p].cell.pos, particle.pos, cellDInv);
+			cells[p].cell.avgPNum += weight;
+		}
+	});
+
+	particles->forEach(false, [&](Particle& particle, int index) {
+		float density = 0;
+		if (particle.pos.x >= lowerLimit.x && particle.pos.y >= lowerLimit.y && particle.pos.z >= lowerLimit.z &&
+			particle.pos.x <= upperLimit.x && particle.pos.y <= upperLimit.y && particle.pos.z <= upperLimit.z)
+		{
+			auto cells = macGrid->getCellsAround(particle.pos);
+			for (auto& c : cells)
+				density += trilinearInterpoll(particle.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum;
+		}
+		densities.push_back(density);
+	});
+	macGrid->restoreGrid();
+
+	return densities;
+}
+
 void SimulationManager::simulationThreadWorker() {
 	while (!terminationRequest) {
 		double dt = autoDt ? lastIterationDuration : dtVal;

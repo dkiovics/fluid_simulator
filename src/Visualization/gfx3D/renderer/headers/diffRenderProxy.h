@@ -57,6 +57,7 @@ private:
 	ParamBool enableDensityControl = ParamBool("Enable density control", false);
 	ParamBool showMovementAbs = ParamBool("Show avg movement", false);
 	ParamButton updateSimulatorButton = ParamButton("Update simulator");
+	ParamBool updateDensities = ParamBool("Update densities", false);
 
 	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
 	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
@@ -89,6 +90,8 @@ private:
 	void copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const;
 
 	void pushApartOptimizedParams();
+
+	void updateParticleDensities();
 
 	void updateSimulator();
 };
