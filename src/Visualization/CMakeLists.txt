@@ -1,13 +1,13 @@
 set(SOURCES
     "gfxInterface/gfxInterface.hpp"
 	"gfx2D/simulationGfx2D.hpp"
-    "gfx3D/renderer/headers/diffRenderProxy.h"
+    "gfx3D/diffRenderer/diffRenderProxy.h"
     "gfx3D/renderer3DInterface.h"
     "gfx3D/renderer/headers/simulationGfx3DRenderer.h"
     "gfx3D/renderer/headers/fluidSurfaceGfx.h"
     "gfx3D/renderer/headers/paramInterface.h"
     "gfx3D/renderer/headers/transparentBox.hpp"
-    "gfx3D/renderer/diffRenderProxy.cpp"
+    "gfx3D/diffRenderer/diffRenderProxy.cpp"
     "gfx3D/renderer/simulationGfx3DRenderer.cpp"
     "gfx3D/renderer/fluidSurfaceGfx.cpp"
     "gfx3D/simulationGfx3DController.h"
@@ -16,7 +16,7 @@ set(SOURCES
     "gfx3D/optimizer/adam.cpp"
     "gfx3D/optimizer/densityControl.h"
     "gfx3D/optimizer/densityControl.cpp"
-)
+ "gfx3D/diffRenderer/gradientCalculatorInterface.h")
 
 
 add_library(visualization STATIC

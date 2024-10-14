@@ -7,7 +7,7 @@
 #include <compute/storageBuffer.h>
 #include <geometries/basicGeometries.h>
 #include "gfx3D/renderer3DInterface.h"
-#include "paramInterface.h"
+#include "gfx3D/renderer/headers/paramInterface.h"
 #include "gfx3D/optimizer/adam.h"
 #include "gfx3D/optimizer/densityControl.h"
 

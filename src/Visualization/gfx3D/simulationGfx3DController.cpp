@@ -3,7 +3,7 @@
 #include <map>
 #include "simulationGfx3DController.h"
 #include "renderer/headers/simulationGfx3DRenderer.h"
-#include "renderer/headers/diffRenderProxy.h"
+#include "diffRenderer/diffRenderProxy.h"
 
 using namespace visual;
 

@@ -1,4 +1,4 @@
-#include "headers/diffRenderProxy.h"
+#include "diffRenderProxy.h"
 #include <iostream>
 
 using namespace visual;
