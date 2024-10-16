@@ -31,9 +31,9 @@ public:
 
 	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0, 0.4, 0.95));
 	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", false);
-	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 0.8f, 0.01f, 6.0f);
-	ParamFloat blurScale = ParamFloat("Blur scale", 0.083f, 0.01f, 0.4f);
-	ParamFloat blurDepthFalloff = ParamFloat("Blur depth falloff", 1100.0f, 100.0f, 10000.0f);
+	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 1.7f, 0.01f, 6.0f);
+	ParamFloat blurScale = ParamFloat("Blur scale", 0.06f, 0.01f, 0.4f);
+	ParamFloat blurDepthFalloff = ParamFloat("Blur depth falloff", 1900.0f, 100.0f, 10000.0f);
 	ParamBool sprayEnabled = ParamBool("Spray", false);
 	ParamFloat sprayDensityThreashold = ParamFloat("Spray density threashold", 1.2f, 0.0f, 10.0f);
 
@@ -54,7 +54,8 @@ private:
 	std::shared_ptr<renderer::GpuProgram> particleSpritesDepthShader;
 	std::shared_ptr<renderer::GpuProgram> gaussianBlurShaderX;
 	std::shared_ptr<renderer::GpuProgram> gaussianBlurShaderY;
-	std::shared_ptr<renderer::GpuProgram> bilateralFilterShader;
+	std::shared_ptr<renderer::GpuProgram> bilateralFilterShaderX;
+	std::shared_ptr<renderer::GpuProgram> bilateralFilterShaderY;
 	std::shared_ptr<renderer::GpuProgram> shadedDepthShader;
 	std::shared_ptr<renderer::GpuProgram> fluidThicknessShader;
 	std::shared_ptr<renderer::GpuProgram> fluidThicknessBlurShader;

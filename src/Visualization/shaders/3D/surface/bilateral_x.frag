@@ -5,7 +5,9 @@ in vec2 texCoord;
 
 uniform sampler2D depthTexture;
 uniform isampler2D paramTexture;
-uniform float smoothingKernelSize;	//in world coordinates
+uniform float blurScale;
+uniform float blurDepthFalloff;
+uniform float smoothingKernelSize;
 
 uniform struct CameraStruct {
     mat4 viewMatrix;
@@ -43,36 +45,41 @@ void main() {
 	const vec2 textSize = textureSize(depthTexture, 0);
 	float depth = 0.0;
 	float weightSum = 0.0;
+	const float curDepth = texture(depthTexture, texCoord).x;
 	
 	FragmentParam param;
 	param.paramNum = 0;
 
-	if(texture(depthTexture, texCoord).x == 1.0){
+	if(curDepth == 1.0){
 		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
 		discard;
 		return;
 	}
+
 	const vec4 offsetOnScreen = camera.projectionMatrix * vec4(eyeSpacePos + vec3(smoothingKernelSize * 0.5, 0, 0), 1.0);
 	const float offsetOnScreenSize = offsetOnScreen.x / offsetOnScreen.w * 0.5 + 0.5 - texCoord.x;
 
 	const float texelSize = 1.0 / textSize.x;
-	int kernelSize = int(offsetOnScreenSize * textSize.x) * 2 + 1;
-	if(kernelSize > 51)
-		kernelSize = 51;
-	if(kernelSize < 3)
-		kernelSize = 3;
-		
-	const float standardDev = (kernelSize - 1) / 6.0;
-	const float standardDev2 = standardDev * standardDev;
-	const int r = kernelSize  / 2;
+	int filterRadius = int(offsetOnScreenSize * textSize.x);
+	if(filterRadius > 35)
+		filterRadius = 35;
+	if(filterRadius < 1)
+		filterRadius = 1;
 
-	for(int p = -r; p <= r; p++){
-		vec2 coord = texCoord + vec2(texelSize, 0.0) * float(p);
-		float d = texture(depthTexture, coord).x;
-		if(d < 1.0){
-			float w = exp(-p*p / standardDev2 * 0.5);
-			weightSum += w;
-			depth += d * w;
+	float blurScaleCorrected = blurScale / float(filterRadius) * 35.0;
+			
+	for(float x=-filterRadius; x<=filterRadius; x+=1.0) {
+		vec2 coord = texCoord + vec2(texelSize, 0.0) * float(x);
+		float sampleDepth = texture(depthTexture, coord).x;
+		if(sampleDepth < 1.0){
+			// spatial domain
+			float r = x * blurScaleCorrected;
+			float w = exp(-r*r);
+			// range domain
+			float r2 = (sampleDepth - curDepth) * blurDepthFalloff;
+			float g = exp(-r2*r2);
+			depth += sampleDepth * w * g;
+			weightSum += w * g;
 
 			if(calculateParams) {
 				int paramIndex = texture(paramTexture, coord).x;
@@ -92,8 +99,13 @@ void main() {
 			}
 		}
 	}
-
-	pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
+	
+	if(weightSum == 0.0){
+		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
+		discard;
+		return;
+	}
     
+	pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
     gl_FragDepth = depth / weightSum;
 }
