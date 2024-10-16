@@ -205,6 +205,20 @@ public:
 		glBindBufferRange(GL_SHADER_STORAGE_BUFFER, bindingId, bufferId, offset * sizeof(T), size * sizeof(T));
 	}
 
+	/**
+	* \brief Copies the data from this buffer to the other buffer. Both buffers must have the same size.
+	* 
+	* \param other - The buffer to copy the data to.
+	*/
+	void copyTo(StorageBuffer& other) const
+	{
+		if (size != other.size)
+		{
+			throw std::runtime_error("Buffer sizes do not match.");
+		}
+		glCopyNamedBufferSubData(bufferId, other.bufferId, 0, 0, size * sizeof(T));
+	}
+
 private:
 	GLuint bufferId = 0;
 	unsigned int size = 0;

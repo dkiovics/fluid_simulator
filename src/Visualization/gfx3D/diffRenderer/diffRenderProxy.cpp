@@ -1,5 +1,6 @@
 #include "diffRenderProxy.h"
 #include <iostream>
+#include "gradientCalculatorPos.h"
 
 using namespace visual;
 
@@ -14,66 +15,20 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 		false
 	);
 
-	pertPlusFramebuffer = renderer::make_fb(
-		renderer::Framebuffer::toArray({ 
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) 
-		}),
-		renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
-		false
-	);
-
-	pertMinusFramebuffer = std::make_shared<renderer::Framebuffer>(
-		renderer::Framebuffer::toArray({ 
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) 
-		}),
-		renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
-		false
-	);
-
-	currentParamFramebuffer = std::make_shared<renderer::Framebuffer>(
-		renderer::Framebuffer::toArray({ 
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE) 
-		})
-	);
-
-	perturbationPresetSSBO = renderer::make_ssbo<ParticleShaderData>(1000, GL_STATIC_DRAW);
-	paramNegativeOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(1000, GL_DYNAMIC_COPY);
-	paramPositiveOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(1000, GL_DYNAMIC_COPY);
-	optimizedParamsSSBO = renderer::make_ssbo<ParticleShaderData>(1000, GL_DYNAMIC_COPY);
-	stochaisticGradientSSBO = renderer::make_ssbo<float>(1000, GL_DYNAMIC_COPY);
 	particleMovementAbsSSBO = renderer::make_ssbo<float>(1000, GL_DYNAMIC_COPY);
-
-	perturbationProgram = renderer::make_compute("shaders/3D/diffRender/perturbation.comp");
-	stochaisticColorGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_color.comp");
-	stochaisticDepthGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_depth.comp");
-	particleDataToFloatProgram = renderer::make_compute("shaders/3D/diffRender/particleDataToFloat.comp");
-	floatToParticleDataProgram = renderer::make_compute("shaders/3D/diffRender/floatToParticleData.comp");
-
-	(*stochaisticColorGradientProgram)["referenceImage"] = *referenceFramebuffer->getColorAttachments()[0];
-	(*stochaisticColorGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getColorAttachments()[0];
-	(*stochaisticColorGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getColorAttachments()[0];
-	(*stochaisticDepthGradientProgram)["referenceImage"] = *referenceFramebuffer->getDepthAttachment();
-	(*stochaisticDepthGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getDepthAttachment();
-	(*stochaisticDepthGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getDepthAttachment();
 
 	showQuad = std::make_unique<renderer::Square>();
 	showProgram = renderer::make_shader("shaders/3D/util/quad.vert", "shaders/3D/util/quad.frag");
 
 	adam = std::make_unique<AdamOptimizer>(1);
 	densityControl = std::make_unique<DensityControl>();
+	gradientCalculator = std::make_unique<GradientCalculatorPos>(this->renderer3D);
 
-	addParamLine({ &showSim, &updateReference, &updateParams, &updateSimulatorButton, &useDepthImage });
-	addParamLine(ParamLine({ &depthErrorScale }, &useDepthImage ));
+	addParamLine({ &showSim, &updateReference, &updateParams, &updateSimulatorButton });
 	addParamLine({ &showReference, &randomizeParams, &adamEnabled, &resetAdamButton, &updateDensities });
-	addParamLine({ &speedPerturbation });
-	addParamLine({ &posPerturbation });
 	addParamLine(ParamLine({ &autoPushApart, &pushApartButton }));
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
-	addParamLine({ &enableDensityControl, &showMovementAbs });
-
-	auto camera = this->renderer3D->getCamera();
-	camera->addProgram({ stochaisticDepthGradientProgram });
-	camera->setUniformsForAllPrograms();
+	addParamLine({ &enableDensityControl });
 }
 
 void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
@@ -83,17 +38,13 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	if(updateReference.value)
 	{
 		renderer3D->render(referenceFramebuffer, data);
+		return;
 	}
 
-	if(data->getSize() != paramNegativeOffsetSSBO->getSize())
+	if(!particleMovementAbsSSBO || data->getSize() != particleMovementAbsSSBO->getSize())
 	{
-		paramNegativeOffsetSSBO->setSize(data->getSize());
-		paramPositiveOffsetSSBO->setSize(data->getSize());
-		optimizedParamsSSBO->setSize(data->getSize());
-		perturbationPresetSSBO->setSize(data->getSize());
 		particleMovementAbsSSBO->setSize(data->getSize());
-		stochaisticGradientSSBO->setSize(data->getSize() * ParticleShaderData::paramCount);
-		adam->setParamNum(data->getSize() * ParticleShaderData::paramCount);
+		adam->setParamNum(data->getSize() * gradientCalculator->getOptimizedParamCountPerParticle());
 		densityControl->setParamNum(data->getSize());
 		reset(data);
 	}
@@ -115,8 +66,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 
 	if(resetAdamButton.value)
 	{
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-		updateAdamParams(optimizedParamsSSBO);
+		adam->set(gradientCalculator->getFloatParams());
 		adam->reset();
 		densityControl->reset();
 	}
@@ -136,31 +86,26 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	}
 	else
 	{
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-		computePerturbation();
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-		renderParams();
-
+		auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 		if(adamEnabled.value)
 		{
-			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-			computeStochaisticGradient();
-			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-			if (adam->updateGradient(stochaisticGradientSSBO))
+			renderer3D->invalidateParamBuffer();
+			renderer3D->render(framebuffer, optimizedParamsSSBO);
+
+			auto gradient = gradientCalculator->calculateGradient(referenceFramebuffer);
+			if (adam->updateGradient(gradient))
 			{
-				updateOptimizedParamsFromAdam();
+				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
 				if (updateDensities.value)
 				{
-					glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 					updateParticleDensities();
 				}
 				if (enableDensityControl.value)
 				{
-					glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 					if (densityControl->updateAvgMovement(particleMovementAbsSSBO))
 					{
 						densityControl->updatePositions(optimizedParamsSSBO);
-						updateAdamParams(optimizedParamsSSBO);
+						updateOptimizedParams(optimizedParamsSSBO);
 					}
 				}
 				
@@ -170,7 +115,6 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 					pushApartCounter++;
 					if (pushApartCounter >= pushApartUpdatePeriod.value)
 					{
-						glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 						pushApartOptimizedParams();
 						pushApartCounter = 0;
 					}
@@ -181,8 +125,10 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 				}
 			}
 		}
-
-		copytextureToFramebuffer(*currentParamFramebuffer->getColorAttachments()[0], framebuffer);
+		else
+		{
+			renderer3D->render(framebuffer, optimizedParamsSSBO);
+		}
 	}
 }
 
@@ -190,17 +136,14 @@ void DiffRendererProxy::setConfigData(const ConfigData3D& data)
 {
 	renderer3D->setConfigData(data);
 	configData = data;
-
 	referenceFramebuffer->setSize(data.screenSize);
-	pertPlusFramebuffer->setSize(data.screenSize);
-	pertMinusFramebuffer->setSize(data.screenSize);
-	currentParamFramebuffer->setSize(data.screenSize);
 }
 
 void DiffRendererProxy::show(int screenWidth)
 {
 	ImGui::SeparatorText("DiffRendererProxy");
 	ParamLineCollection::show(screenWidth);
+	gradientCalculator->show(screenWidth);
 	renderer3D->show(screenWidth);
 	ImGui::Begin("Adam");
 	adam->show(screenWidth * 2);
@@ -215,22 +158,9 @@ void DiffRendererProxy::show(int screenWidth)
 
 void visual::DiffRendererProxy::reset(renderer::ssbo_ptr<ParticleShaderData> data)
 {
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
-	data->mapBuffer(0, -1, GL_MAP_READ_BIT);
-	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-	memcpy(&(*optimizedParamsSSBO)[0], &(*data)[0], data->getSize() * sizeof(ParticleShaderData));
-	optimizedParamsSSBO->unmapBuffer();
-	data->unmapBuffer();
-	perturbationPresetSSBO->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-	unsigned int paramNum = perturbationPresetSSBO->getSize();
-	for (unsigned int i = 0; i < paramNum; i++)
-	{
-		(*perturbationPresetSSBO)[i].posAndSpeed = 
-			glm::vec4(posPerturbation.value, posPerturbation.value, posPerturbation.value, speedPerturbation.value);
-		(*perturbationPresetSSBO)[i].density = glm::vec4(0.0f);
-	}
-	perturbationPresetSSBO->unmapBuffer();
-	updateAdamParams(data);
+	gradientCalculator->updateParticleParams(data);
+	gradientCalculator->reset();
+	adam->set(gradientCalculator->getFloatParams());
 	adam->reset();
 	densityControl->reset();
 }
@@ -238,6 +168,7 @@ void visual::DiffRendererProxy::reset(renderer::ssbo_ptr<ParticleShaderData> dat
 void visual::DiffRendererProxy::randomizeParamValues(renderer::ssbo_ptr<ParticleShaderData> baselineData)
 {
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+	auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 	unsigned int paramNum = optimizedParamsSSBO->getSize();
 	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	baselineData->mapBuffer(0, -1, GL_MAP_READ_BIT);
@@ -248,76 +179,13 @@ void visual::DiffRendererProxy::randomizeParamValues(renderer::ssbo_ptr<Particle
 	}
 	optimizedParamsSSBO->unmapBuffer();
 	baselineData->unmapBuffer();
-	updateAdamParams(optimizedParamsSSBO);
-	adam->reset();
-	densityControl->reset();
+	reset(optimizedParamsSSBO);
 }
 
-void visual::DiffRendererProxy::computePerturbation()
+void visual::DiffRendererProxy::updateOptimizedParams(renderer::ssbo_ptr<ParticleShaderData> data)
 {
-	(*perturbationProgram)["seed"] = std::rand() % 1000;
-	(*perturbationProgram)["showMovement"] = showMovementAbs.value;
-	optimizedParamsSSBO->bindBuffer(0);
-	perturbationPresetSSBO->bindBuffer(1);
-	paramNegativeOffsetSSBO->bindBuffer(2);
-	paramPositiveOffsetSSBO->bindBuffer(3);
-	particleMovementAbsSSBO->bindBuffer(4);
-	perturbationProgram->dispatchCompute(optimizedParamsSSBO->getSize() / 64 + 1, 1, 1);
-}
-
-void visual::DiffRendererProxy::computeStochaisticGradient()
-{
-	paramNegativeOffsetSSBO->bindBuffer(0);
-	paramPositiveOffsetSSBO->bindBuffer(1);
-	renderer3D->getParamBufferOut()->bindBuffer(2);
-	stochaisticGradientSSBO->fillWithZeros();
-	stochaisticGradientSSBO->bindBuffer(3);
-	if (useDepthImage.value)
-	{
-		(*stochaisticDepthGradientProgram)["screenSize"] = referenceFramebuffer->getSize();
-		(*stochaisticDepthGradientProgram)["depthErrorScale"] = depthErrorScale.value;
-		stochaisticDepthGradientProgram->dispatchCompute(referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y, 1);
-	}
-	else
-	{
-		(*stochaisticColorGradientProgram)["screenSize"] = referenceFramebuffer->getSize();
-		stochaisticColorGradientProgram->dispatchCompute(referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y, 1);
-	}
-}
-
-void visual::DiffRendererProxy::updateAdamParams(renderer::ssbo_ptr<ParticleShaderData> data)
-{
-	renderer::ssbo_ptr<float> floatData = renderer::make_ssbo<float>(data->getSize() * ParticleShaderData::paramCount, GL_DYNAMIC_COPY);
-	data->bindBuffer(0);
-	floatData->bindBuffer(1);
-	particleDataToFloatProgram->dispatchCompute(data->getSize() / 64 + 1, 1, 1);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	adam->set(floatData);
-}
-
-void visual::DiffRendererProxy::updateOptimizedParamsFromAdam()
-{
-	auto floatData = adam->getOptimizedFloatData();
-	floatData->bindBuffer(0);
-	optimizedParamsSSBO->bindBuffer(1);
-	particleMovementAbsSSBO->bindBuffer(2);
-	floatToParticleDataProgram->dispatchCompute(optimizedParamsSSBO->getSize() / 64 + 1, 1, 1);
-}
-
-void visual::DiffRendererProxy::renderParams()
-{
-	renderer3D->invalidateParamBuffer();
-	currentParamFramebuffer->bind();
-	renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
-	renderer3D->render(currentParamFramebuffer, optimizedParamsSSBO);
-
-	pertPlusFramebuffer->bind();
-	renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
-	renderer3D->render(pertPlusFramebuffer, paramPositiveOffsetSSBO);
-
-	pertMinusFramebuffer->bind();
-	renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
-	renderer3D->render(pertMinusFramebuffer, paramNegativeOffsetSSBO);
+	gradientCalculator->updateParticleParams(data);
+	adam->set(gradientCalculator->getFloatParams());
 }
 
 void visual::DiffRendererProxy::copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const
@@ -332,6 +200,8 @@ void visual::DiffRendererProxy::copytextureToFramebuffer(const renderer::Texture
 
 void visual::DiffRendererProxy::pushApartOptimizedParams()
 {
+	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 	auto hashedParticles = configData.simManager->getHashedParticlesCopy();
 	hashedParticles->setParticleNum(optimizedParamsSSBO->getSize());
 	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
@@ -344,12 +214,14 @@ void visual::DiffRendererProxy::pushApartOptimizedParams()
 		(*optimizedParamsSSBO)[index].posAndSpeed = glm::vec4(particle.pos, (*optimizedParamsSSBO)[index].posAndSpeed.w);
 	});
 	optimizedParamsSSBO->unmapBuffer();
-	updateAdamParams(optimizedParamsSSBO);
+	updateOptimizedParams(optimizedParamsSSBO);
 }
 
 void visual::DiffRendererProxy::updateParticleDensities()
 {
+	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	auto hashedParticles = configData.simManager->getHashedParticlesCopy();
+	auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 	hashedParticles->setParticleNum(optimizedParamsSSBO->getSize());
 	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 	hashedParticles->forEach(true, [&](auto& particle, int index) {
@@ -361,11 +233,13 @@ void visual::DiffRendererProxy::updateParticleDensities()
 		(*optimizedParamsSSBO)[i].density = glm::vec4(densities[i]);
 	}
 	optimizedParamsSSBO->unmapBuffer();
+	updateOptimizedParams(optimizedParamsSSBO);
 }
 
 void visual::DiffRendererProxy::updateSimulator()
 {
 	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
 	auto particles = configData.simManager->getHashedParticlesCopy();
 	particles->setParticleNum(optimizedParamsSSBO->getSize());

@@ -10,6 +10,7 @@
 #include "gfx3D/renderer/headers/paramInterface.h"
 #include "gfx3D/optimizer/adam.h"
 #include "gfx3D/optimizer/densityControl.h"
+#include "gradientCalculatorInterface.h"
 
 namespace visual
 {
@@ -35,13 +36,11 @@ private:
 	std::unique_ptr<AdamOptimizer> adam;
 	std::unique_ptr<DensityControl> densityControl;
 
+	std::unique_ptr<GradientCalculatorInterface> gradientCalculator;
+
 	renderer::fb_ptr referenceFramebuffer;
-	renderer::fb_ptr pertPlusFramebuffer;
-	renderer::fb_ptr pertMinusFramebuffer;
 	renderer::fb_ptr currentParamFramebuffer;
 
-	ParamFloat speedPerturbation = ParamFloat("Speed perturbation", 0.2f, 0.0f, 5.0f);
-	ParamFloat posPerturbation = ParamFloat("Pos perturbation", 0.05f, 0.0f, 0.5f);
 	ParamBool showSim = ParamBool("Show simulation", false);
 	ParamButton updateReference = ParamButton("Update reference");
 	ParamButton updateParams = ParamButton("Update params");
@@ -52,26 +51,11 @@ private:
 	ParamBool autoPushApart = ParamBool("Auto push apart", false);
 	ParamInt pushApartUpdatePeriod = ParamInt("Push apart update period", 80, 20, 1000);
 	ParamButton pushApartButton = ParamButton("Push apart");
-	ParamBool useDepthImage = ParamBool("Use depth image", false);
-	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
 	ParamBool enableDensityControl = ParamBool("Enable density control", false);
-	ParamBool showMovementAbs = ParamBool("Show avg movement", false);
 	ParamButton updateSimulatorButton = ParamButton("Update simulator");
 	ParamBool updateDensities = ParamBool("Update densities", false);
 
-	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
-	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
-	renderer::ssbo_ptr<ParticleShaderData> paramPositiveOffsetSSBO;
-	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
-
-	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
-
-	renderer::compute_ptr perturbationProgram;
-	renderer::compute_ptr stochaisticColorGradientProgram;
-	renderer::compute_ptr stochaisticDepthGradientProgram;
-	renderer::compute_ptr particleDataToFloatProgram;
-	renderer::compute_ptr floatToParticleDataProgram;
 
 	std::unique_ptr<renderer::Square> showQuad;
 	std::shared_ptr<renderer::ShaderProgram> showProgram;
@@ -79,13 +63,7 @@ private:
 	void reset(renderer::ssbo_ptr<ParticleShaderData> data);
 	void randomizeParamValues(renderer::ssbo_ptr<ParticleShaderData> baselineData);
 
-	void computePerturbation();
-	void computeStochaisticGradient();
-
-	void updateAdamParams(renderer::ssbo_ptr<ParticleShaderData> data);
-	void updateOptimizedParamsFromAdam();
-	
-	void renderParams();
+	void updateOptimizedParams(renderer::ssbo_ptr<ParticleShaderData> data);
 
 	void copytextureToFramebuffer(const renderer::Texture& texture, std::shared_ptr<renderer::Framebuffer> framebuffer) const;
 
