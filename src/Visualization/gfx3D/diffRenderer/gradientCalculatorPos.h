@@ -25,15 +25,10 @@ public:
 	size_t getOptimizedParamCountPerParticle() const override;
 
 private:
-	renderer::fb_ptr pertPlusFramebuffer;
-	renderer::fb_ptr pertMinusFramebuffer;
+	ParamFloat speedAbsPerturbation = ParamFloat("Speed abs perturbation", 0.2f, 0.0f, 5.0f);
+	ParamFloat posPerturbation = ParamFloat("Pos perturbation", 0.05f, 0.0f, 0.5f);
 
 	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
-	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
-	renderer::ssbo_ptr<ParticleShaderData> paramPositiveOffsetSSBO;
-	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
-
-	renderer::ssbo_ptr<float> stochaisticGradientSSBO; 
 
 	renderer::compute_ptr perturbationProgram;
 	renderer::compute_ptr stochaisticColorGradientProgram;

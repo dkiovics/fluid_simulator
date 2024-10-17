@@ -38,6 +38,13 @@ struct SimulationConfig {
 	GridSolverType gridSolverType = GridSolverType::BRIDSON;
 };
 
+struct SimulatorCopy
+{
+	std::shared_ptr<genericfsim::simulator::Simulator> simulator;
+	std::shared_ptr<genericfsim::macgrid::MacGrid> macGrid;
+	std::shared_ptr<genericfsim::particles::HashedParticles> hashedParticles;
+};
+
 /**
  * A class that represents a simulation (in 2D mode or in full 3D), it manages all the objects necessary for the simulation.
  * The simulation is being run by a threadworker, so the class also manages all the communication between the external and internal thread.
@@ -220,6 +227,8 @@ public:
 	std::vector<float> calculateParticleDensity(std::shared_ptr<genericfsim::particles::HashedParticles> particles);
 
 	void setHashedParticles(std::shared_ptr<genericfsim::particles::HashedParticles> hashedParticles);
+
+	SimulatorCopy getSimulatorCopy();
 
 	const bool twoD;
 

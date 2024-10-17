@@ -16,7 +16,12 @@ set(SOURCES
     "gfx3D/optimizer/adam.cpp"
     "gfx3D/optimizer/densityControl.h"
     "gfx3D/optimizer/densityControl.cpp"
- "gfx3D/diffRenderer/gradientCalculatorInterface.h" "gfx3D/diffRenderer/gradientCalculatorPos.h" "gfx3D/diffRenderer/gradientCalculatorPos.cpp")
+    "gfx3D/diffRenderer/gradientCalculatorInterface.h" 
+    "gfx3D/diffRenderer/gradientCalculatorPos.h" 
+    "gfx3D/diffRenderer/gradientCalculatorPos.cpp" 
+    "gfx3D/diffRenderer/gradientCalculatorSpeed.h" 
+    "gfx3D/diffRenderer/gradientCalculatorSpeed.cpp"
+)
 
 
 add_library(visualization STATIC

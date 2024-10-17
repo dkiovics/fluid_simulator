@@ -36,6 +36,7 @@ public:
 		bool particleSpawningEnabled = false;
 		bool particleDespawningEnabled = false;
 		bool stopParticles = false;
+		bool onlyMoveParticles = false;
 	};
 
 	/**

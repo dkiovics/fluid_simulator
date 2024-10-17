@@ -1,6 +1,7 @@
 #include "diffRenderProxy.h"
 #include <iostream>
 #include "gradientCalculatorPos.h"
+#include "gradientCalculatorSpeed.h"
 
 using namespace visual;
 
@@ -24,11 +25,10 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	densityControl = std::make_unique<DensityControl>();
 	gradientCalculator = std::make_unique<GradientCalculatorPos>(this->renderer3D);
 
-	addParamLine({ &showSim, &updateReference, &updateParams, &updateSimulatorButton });
-	addParamLine({ &showReference, &randomizeParams, &adamEnabled, &resetAdamButton, &updateDensities });
+	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
+	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
 	addParamLine(ParamLine({ &autoPushApart, &pushApartButton }));
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
-	addParamLine({ &enableDensityControl });
 }
 
 void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
@@ -41,7 +41,25 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		return;
 	}
 
-	if(!particleMovementAbsSSBO || data->getSize() != particleMovementAbsSSBO->getSize())
+	bool gradientCalcChanged = false;
+	if (doSimulatorGradientCalc.value)
+	{
+		if (!dynamic_cast<GradientCalculatorSpeed*>(gradientCalculator.get()))
+		{
+			gradientCalculator = std::make_unique<GradientCalculatorSpeed>(renderer3D, configData.simManager);
+			gradientCalcChanged = true;
+		}
+	}
+	else
+	{
+		if (!dynamic_cast<GradientCalculatorPos*>(gradientCalculator.get()))
+		{
+			gradientCalculator = std::make_unique<GradientCalculatorPos>(renderer3D);
+			gradientCalcChanged = true;
+		}
+	}
+
+	if(!particleMovementAbsSSBO || data->getSize() != particleMovementAbsSSBO->getSize() || gradientCalcChanged)
 	{
 		particleMovementAbsSSBO->setSize(data->getSize());
 		adam->setParamNum(data->getSize() * gradientCalculator->getOptimizedParamCountPerParticle());
@@ -92,9 +110,11 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			renderer3D->invalidateParamBuffer();
 			renderer3D->render(framebuffer, optimizedParamsSSBO);
 
+			gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
 			auto gradient = gradientCalculator->calculateGradient(referenceFramebuffer);
 			if (adam->updateGradient(gradient))
 			{
+				gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
 				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
 				if (updateDensities.value)
 				{

@@ -6,6 +6,7 @@
 #include <functional>
 #include <utility>
 #include <atomic>
+#include <memory>
 #include "macGridCell.h"
 #include "obstacles.hpp"
 #include "../util/glmExtraOps.h"
@@ -160,6 +161,8 @@ public:
 	 * \return - the number of iterations needed to solve the incompressibility
 	 */
 	virtual int solveIncompressibility(bool parallel, double dt) = 0;
+
+	virtual std::shared_ptr<MacGrid> clone() const = 0;
 
 	void backupGrid();
 

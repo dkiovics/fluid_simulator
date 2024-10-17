@@ -54,6 +54,7 @@ private:
 	ParamBool enableDensityControl = ParamBool("Enable density control", false);
 	ParamButton updateSimulatorButton = ParamButton("Update simulator");
 	ParamBool updateDensities = ParamBool("Update densities", false);
+	ParamBool doSimulatorGradientCalc = ParamBool("Do simulator gradient calc", false);
 
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
 

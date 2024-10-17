@@ -4,22 +4,6 @@ visual::GradientCalculatorPos::GradientCalculatorPos(std::shared_ptr<ParamInterf
 {
 	renderer3D = renderer;
 
-	pertPlusFramebuffer = renderer::make_fb(
-		renderer::Framebuffer::toArray({
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE)
-		}),
-		renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
-		false
-	);
-
-	pertMinusFramebuffer = std::make_shared<renderer::Framebuffer>(
-		renderer::Framebuffer::toArray({
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE)
-		}),
-		renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
-		false
-	);
-
 	perturbationProgram = renderer::make_compute("shaders/3D/diffRender/perturbation.comp");
 	stochaisticColorGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_color.comp");
 	stochaisticDepthGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_depth.comp");
@@ -34,6 +18,9 @@ visual::GradientCalculatorPos::GradientCalculatorPos(std::shared_ptr<ParamInterf
 	auto camera = renderer3D->getCamera();
 	camera->addProgram({ stochaisticDepthGradientProgram });
 	camera->setUniformsForAllPrograms();
+
+	addParamLine({ &speedAbsPerturbation });
+	addParamLine({ &posPerturbation });
 }
 
 void visual::GradientCalculatorPos::updateOptimizedFloats(renderer::ssbo_ptr<float> data, renderer::ssbo_ptr<float> particleMovementAbs)

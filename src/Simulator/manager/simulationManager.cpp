@@ -182,6 +182,17 @@ void SimulationManager::setHashedParticles(std::shared_ptr<HashedParticles> hash
 	simulator->setNewHashedParticles(hashedParticles);
 }
 
+SimulatorCopy SimulationManager::getSimulatorCopy()
+{
+	std::unique_lock lock(sharedDataMutex);
+	std::unique_lock lock2(simulationResourceLock);
+	SimulatorCopy copy;
+	copy.hashedParticles = std::make_shared<HashedParticles>(*hashedParticles);
+	copy.macGrid = macGrid->clone();
+	copy.simulator = std::make_shared<Simulator>(config.simulatorConfig, copy.hashedParticles, copy.macGrid);
+	return copy;
+}
+
 std::vector<float> SimulationManager::calculateParticleDensity(std::shared_ptr<genericfsim::particles::HashedParticles> particles)
 {
 	std::vector<float> densities;

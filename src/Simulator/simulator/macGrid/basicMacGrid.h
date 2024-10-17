@@ -10,6 +10,8 @@ public:
 
 	int solveIncompressibility(bool parallel, double dt) override;
 
+	std::shared_ptr<MacGrid> clone() const override;
+
 private:
 	void solveIncompressibilityParallel();
 	void solveIncompressibilitySingleThreaded();

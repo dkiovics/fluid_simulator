@@ -16,10 +16,24 @@ class GradientCalculatorInterface : public ParamLineCollection
 public:
 	GradientCalculatorInterface() : renderEngine(renderer::RenderEngine::getInstance()), renderer3D(nullptr)
 	{
+		pertPlusFramebuffer = renderer::make_fb(
+			renderer::Framebuffer::toArray({
+				renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE)
+				}),
+			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
+			false
+		);
+
+		pertMinusFramebuffer = std::make_shared<renderer::Framebuffer>(
+			renderer::Framebuffer::toArray({
+				renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE)
+				}),
+			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
+			false
+		);
+
 		addParamLine({ &useDepthImage });
 		addParamLine(ParamLine( { &depthErrorScale }, &useDepthImage ));
-		addParamLine({ &speedAbsPerturbation });
-		addParamLine({ &posPerturbation });
 	}
 
 	/**
@@ -65,15 +79,25 @@ public:
 	 */
 	virtual size_t getOptimizedParamCountPerParticle() const = 0;
 
+	virtual void formatFloatParamsPreUpdate(renderer::ssbo_ptr<float> data) const { }
+
+	virtual void formatFloatParamsPostUpdate(renderer::ssbo_ptr<float> data) const { }
+
 	std::shared_ptr<ParamInterface> renderer3D;
 
 protected:
 	ParamBool useDepthImage = ParamBool("Use depth image", false);
 	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
-	ParamFloat speedAbsPerturbation = ParamFloat("Speed abs perturbation", 0.2f, 0.0f, 5.0f);
-	ParamFloat posPerturbation = ParamFloat("Pos perturbation", 0.05f, 0.0f, 0.5f);
 
 	renderer::RenderEngine& renderEngine;
+
+	renderer::fb_ptr pertPlusFramebuffer;
+	renderer::fb_ptr pertMinusFramebuffer;
+
+	renderer::ssbo_ptr<ParticleShaderData> paramNegativeOffsetSSBO;
+	renderer::ssbo_ptr<ParticleShaderData> paramPositiveOffsetSSBO;
+	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
+	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
 };
 
 } // namespace visual
