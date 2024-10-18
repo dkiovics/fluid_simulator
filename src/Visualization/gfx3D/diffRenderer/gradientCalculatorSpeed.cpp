@@ -24,6 +24,7 @@ visual::GradientCalculatorSpeed::GradientCalculatorSpeed(std::shared_ptr<ParamIn
 	addParamLine({ &simulationIterationCount });
 	addParamLine({ &resetSpeedsAfterIteration, &speedCapEnabled, &simulatorEnabled, &gravityEnabled });
 	addParamLine(ParamLine({ &speedCap }, &speedCapEnabled));
+	addParamLine(ParamLine({ &gravityValue }, &gravityEnabled));
 }
 
 void visual::GradientCalculatorSpeed::updateOptimizedFloats(renderer::ssbo_ptr<float> data, renderer::ssbo_ptr<float> particleMovementAbs)
@@ -65,6 +66,7 @@ void visual::GradientCalculatorSpeed::reset()
 	perturbationPresetSSBO->unmapBuffer();
 	simulatorCopy = manager->getSimulatorCopy();
 	simulatorCopy.simulator->config.gravityEnabled = false;
+	simulatorCopy.simulator->config.gravity = gravityValue.value;
 	speedSSBO->fillWithZeros();
 }
 

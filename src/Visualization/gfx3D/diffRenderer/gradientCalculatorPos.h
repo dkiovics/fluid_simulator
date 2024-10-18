@@ -8,7 +8,7 @@ namespace visual
 class GradientCalculatorPos : public GradientCalculatorInterface
 {
 public:
-	GradientCalculatorPos(std::shared_ptr<ParamInterface> renderer);
+	GradientCalculatorPos(std::shared_ptr<ParamInterface> renderer, std::shared_ptr<genericfsim::manager::SimulationManager> manager);
 
 	void updateOptimizedFloats(renderer::ssbo_ptr<float> data, renderer::ssbo_ptr<float> particleMovementAbs) override;
 
@@ -24,9 +24,12 @@ public:
 
 	size_t getOptimizedParamCountPerParticle() const override;
 
+	void formatFloatParamsPostUpdate(renderer::ssbo_ptr<float> data) const override;
+
 private:
 	ParamFloat speedAbsPerturbation = ParamFloat("Speed abs perturbation", 0.2f, 0.0f, 5.0f);
 	ParamFloat posPerturbation = ParamFloat("Pos perturbation", 0.05f, 0.0f, 0.5f);
+	ParamBool capPositionsToBox = ParamBool("Cap positions to box", true);
 
 	renderer::ssbo_ptr<ParticleShaderData> perturbationPresetSSBO;
 
@@ -35,6 +38,9 @@ private:
 	renderer::compute_ptr stochaisticDepthGradientProgram;
 	renderer::compute_ptr particleDataToFloatProgram;
 	renderer::compute_ptr floatToParticleDataProgram;
+	renderer::compute_ptr floatPosClamperProgram;
+
+	std::pair<glm::vec3, glm::vec3> getBoxBounds() const;
 };
 
 

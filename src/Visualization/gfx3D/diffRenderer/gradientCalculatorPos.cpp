@@ -1,14 +1,17 @@
 #include "gradientCalculatorPos.h"
 
-visual::GradientCalculatorPos::GradientCalculatorPos(std::shared_ptr<ParamInterface> renderer)
+visual::GradientCalculatorPos::GradientCalculatorPos(std::shared_ptr<ParamInterface> renderer, 
+	std::shared_ptr<genericfsim::manager::SimulationManager> manager)
 {
 	renderer3D = renderer;
+	this->manager = manager;
 
 	perturbationProgram = renderer::make_compute("shaders/3D/diffRender/perturbation.comp");
 	stochaisticColorGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_color.comp");
 	stochaisticDepthGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_depth.comp");
 	particleDataToFloatProgram = renderer::make_compute("shaders/3D/diffRender/particleDataToFloat.comp");
 	floatToParticleDataProgram = renderer::make_compute("shaders/3D/diffRender/floatToParticleData.comp");
+	floatPosClamperProgram = renderer::make_compute("shaders/3D/diffRender/floatPosClamper.comp");
 
 	(*stochaisticColorGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getColorAttachments()[0];
 	(*stochaisticColorGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getColorAttachments()[0];
@@ -21,6 +24,7 @@ visual::GradientCalculatorPos::GradientCalculatorPos(std::shared_ptr<ParamInterf
 
 	addParamLine({ &speedAbsPerturbation });
 	addParamLine({ &posPerturbation });
+	addParamLine({ &capPositionsToBox });
 }
 
 void visual::GradientCalculatorPos::updateOptimizedFloats(renderer::ssbo_ptr<float> data, renderer::ssbo_ptr<float> particleMovementAbs)
@@ -67,6 +71,10 @@ renderer::ssbo_ptr<float> visual::GradientCalculatorPos::calculateGradient(rende
 	pertMinusFramebuffer->setSize(referenceFramebuffer->getSize());
 
 	(*perturbationProgram)["seed"] = std::rand() % 1000;
+	auto boxBounds = getBoxBounds();
+	(*perturbationProgram)["boxLowerBound"] = boxBounds.first; 
+	(*perturbationProgram)["boxUpperBound"] = boxBounds.second;
+	(*perturbationProgram)["posClampEnabled"] = capPositionsToBox.value;
 	optimizedParamsSSBO->bindBuffer(0);
 	perturbationPresetSSBO->bindBuffer(1);
 	paramNegativeOffsetSSBO->bindBuffer(2);
@@ -123,5 +131,24 @@ renderer::ssbo_ptr<visual::ParticleShaderData> visual::GradientCalculatorPos::ge
 size_t visual::GradientCalculatorPos::getOptimizedParamCountPerParticle() const
 {
 	return ParticleShaderData::paramCount;
+}
+
+void visual::GradientCalculatorPos::formatFloatParamsPostUpdate(renderer::ssbo_ptr<float> data) const
+{
+	if(!capPositionsToBox.value)
+		return;
+	data->bindBuffer(0);
+	auto boxBounds = getBoxBounds();
+	(*floatPosClamperProgram)["boxLowerBound"] = boxBounds.first;
+	(*floatPosClamperProgram)["boxUpperBound"] = boxBounds.second;
+	floatPosClamperProgram->dispatchCompute(optimizedParamsSSBO->getSize() / 64 + 1, 1, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+std::pair<glm::vec3, glm::vec3> visual::GradientCalculatorPos::getBoxBounds() const
+{
+	const glm::vec3 cellD = manager->getCellD();
+	const float particleRadius = manager->getConfig().particleRadius;
+	return std::make_pair(cellD + particleRadius, glm::vec3(manager->getDimensions()) - cellD - particleRadius);
 }
 

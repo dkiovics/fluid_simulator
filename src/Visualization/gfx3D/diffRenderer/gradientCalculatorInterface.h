@@ -90,6 +90,7 @@ protected:
 	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
 
 	renderer::RenderEngine& renderEngine;
+	std::shared_ptr<genericfsim::manager::SimulationManager> manager;
 
 	renderer::fb_ptr pertPlusFramebuffer;
 	renderer::fb_ptr pertMinusFramebuffer;

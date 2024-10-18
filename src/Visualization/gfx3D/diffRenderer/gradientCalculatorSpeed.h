@@ -39,8 +39,8 @@ private:
 	ParamFloat speedCap = ParamFloat("Speed cap", 10.0f, 0.0f, 100.0f);
 	ParamBool simulatorEnabled = ParamBool("Simulator enabled", true);
 	ParamBool gravityEnabled = ParamBool("Gravity enabled", true);
+	ParamFloat gravityValue = ParamFloat("Gravity value", -250.0f, 0.0f, -300.0f);
 
-	std::shared_ptr<genericfsim::manager::SimulationManager> manager;
 	genericfsim::manager::SimulatorCopy simulatorCopy;
 
 	struct ParticleShaderDataSpeed

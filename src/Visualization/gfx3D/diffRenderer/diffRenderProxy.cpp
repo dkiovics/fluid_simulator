@@ -23,7 +23,6 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 
 	adam = std::make_unique<AdamOptimizer>(1);
 	densityControl = std::make_unique<DensityControl>();
-	gradientCalculator = std::make_unique<GradientCalculatorPos>(this->renderer3D);
 
 	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
 	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
@@ -44,7 +43,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	bool gradientCalcChanged = false;
 	if (doSimulatorGradientCalc.value)
 	{
-		if (!dynamic_cast<GradientCalculatorSpeed*>(gradientCalculator.get()))
+		if (!gradientCalculator || !dynamic_cast<GradientCalculatorSpeed*>(gradientCalculator.get()))
 		{
 			gradientCalculator = std::make_unique<GradientCalculatorSpeed>(renderer3D, configData.simManager);
 			gradientCalcChanged = true;
@@ -52,9 +51,9 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	}
 	else
 	{
-		if (!dynamic_cast<GradientCalculatorPos*>(gradientCalculator.get()))
+		if (!gradientCalculator || !dynamic_cast<GradientCalculatorPos*>(gradientCalculator.get()))
 		{
-			gradientCalculator = std::make_unique<GradientCalculatorPos>(renderer3D);
+			gradientCalculator = std::make_unique<GradientCalculatorPos>(renderer3D, configData.simManager);
 			gradientCalcChanged = true;
 		}
 	}
@@ -163,7 +162,8 @@ void DiffRendererProxy::show(int screenWidth)
 {
 	ImGui::SeparatorText("DiffRendererProxy");
 	ParamLineCollection::show(screenWidth);
-	gradientCalculator->show(screenWidth);
+	if(gradientCalculator)
+		gradientCalculator->show(screenWidth);
 	renderer3D->show(screenWidth);
 	ImGui::Begin("Adam");
 	adam->show(screenWidth * 2);

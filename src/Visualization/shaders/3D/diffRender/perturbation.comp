@@ -3,6 +3,9 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 uniform int seed;
+uniform bool posClampEnabled;
+uniform vec3 boxLowerBound;
+uniform vec3 boxUpperBound;
 
 struct ParticleData {
     vec4 posAndSpeed;
@@ -52,6 +55,11 @@ void main() {
 
 	negativeData.posAndSpeed -= perturbation.posAndSpeed * signs;
 	positiveData.posAndSpeed += perturbation.posAndSpeed * signs;
+
+	if(posClampEnabled) {
+		negativeData.posAndSpeed.xyz = clamp(negativeData.posAndSpeed.xyz, boxLowerBound, boxUpperBound);
+		positiveData.posAndSpeed.xyz = clamp(positiveData.posAndSpeed.xyz, boxLowerBound, boxUpperBound);
+	}
 
 	negativeOffsets[index] = negativeData;
 	positiveOffsets[index] = positiveData;
