@@ -16,6 +16,13 @@ namespace renderer
 class Camera3D : public UniformGatherer, public UniformGathererGlobal
 {
 public:
+    struct CameraData
+    {
+        glm::vec3 position;
+        float pitch;
+        float yaw;
+    };
+
     Camera3D(const glm::vec3& position, float fov, float aspectRatio)
         : UniformGatherer("camera.", true, this->position, viewMatrix, projectionMatrix, projectionMatrixInverse, viewMatrixInverse),
         fov(fov), pitch(0.0f), yaw(0.0f), aspectRatio(aspectRatio)
@@ -74,6 +81,19 @@ public:
 
     glm::vec3 getPosition() const {
         return *position;
+    }
+
+    CameraData getCameraData() const
+    {
+		return { *position, pitch, yaw };
+	}
+
+    void setCameraData(const CameraData& data)
+    {
+        position = glm::vec4(data.position, 1);
+        pitch = data.pitch;
+        yaw = data.yaw;
+        updateViewMatrix();
     }
 
     glm::vec3 getMouseRayDir(const glm::vec2& mousePos) const

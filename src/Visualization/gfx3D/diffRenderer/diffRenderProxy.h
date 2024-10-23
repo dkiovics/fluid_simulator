@@ -6,11 +6,14 @@
 #include <compute/computeProgram.h>
 #include <compute/storageBuffer.h>
 #include <geometries/basicGeometries.h>
+#include <engineUtils/object.h>
 #include "gfx3D/renderer3DInterface.h"
 #include "gfx3D/renderer/headers/paramInterface.h"
 #include "gfx3D/optimizer/adam.h"
 #include "gfx3D/optimizer/densityControl.h"
+#include "gfx3D/renderer/headers/simulationGfx3DRenderer.h"
 #include "gradientCalculatorInterface.h"
+#include <optional>
 
 namespace visual
 {
@@ -30,7 +33,7 @@ private:
 
 	ConfigData3D configData;
 
-	std::shared_ptr<ParamInterface> renderer3D;
+	std::shared_ptr<SimulationGfx3DRenderer> renderer3D;
 	renderer::RenderEngine& renderEngine;
 
 	std::unique_ptr<AdamOptimizer> adam;
@@ -40,6 +43,8 @@ private:
 
 	renderer::fb_ptr referenceFramebuffer;
 	renderer::fb_ptr currentParamFramebuffer;
+
+	std::optional<renderer::Camera3D::CameraData> backupCamera;
 
 	ParamBool showSim = ParamBool("Show simulation", false);
 	ParamButton updateReference = ParamButton("Update reference");
@@ -55,11 +60,19 @@ private:
 	ParamButton updateSimulatorButton = ParamButton("Update simulator");
 	ParamBool updateDensities = ParamBool("Update densities", false);
 	ParamBool doSimulatorGradientCalc = ParamBool("Do simulator gradient calc", false);
+	ParamBool gradientVisualization = ParamBool("Gradient visualization", false);
+	ParamButton backupCameraPos = ParamButton("Backup camera pos");
+	ParamButton restoreCameraPos = ParamButton("Restore camera pos");
+	ParamFloat arrowDensityThreshold = ParamFloat("Arrow density threshold", 0.8f, 0.5f, 5.0f);
 
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
+	renderer::ssbo_ptr<GradientCalculatorInterface::ParticleGradientData> particleGradientSSBO;
+	bool particleGradientValid = false;
 
 	std::unique_ptr<renderer::Square> showQuad;
 	std::shared_ptr<renderer::ShaderProgram> showProgram;
+	std::unique_ptr<renderer::InstancedGeometry> gradientArrows;
+	renderer::shader_ptr gradientArrowShader;
 
 	void reset(renderer::ssbo_ptr<ParticleShaderData> data);
 	void randomizeParamValues(renderer::ssbo_ptr<ParticleShaderData> baselineData);

@@ -26,6 +26,10 @@ public:
 
 	bool updateGradient(const renderer::ssbo_ptr<float> g);
 
+	renderer::ssbo_ptr<float> getSmoothedGradient() const;
+
+	void resetSmoothedGradient();
+
 	renderer::ssbo_ptr<float> getOptimizedFloatData() const;
 
 private:

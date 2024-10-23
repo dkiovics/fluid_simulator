@@ -58,7 +58,6 @@ bool visual::AdamOptimizer::updateGradient(const renderer::ssbo_ptr<float> g)
 	if (gradientSampleCount >= gradientSampleNum.value)
 	{
 		t = t + 1.0f;
-		gradientSampleCount = 0;
 		(*adamOptimizerCompute)["gradientSampleNum"] = gradientSampleNum.value;
 		(*adamOptimizerCompute)["alpha"] = alpha.value;
 		(*adamOptimizerCompute)["beta1"] = beta1.value;
@@ -71,10 +70,20 @@ bool visual::AdamOptimizer::updateGradient(const renderer::ssbo_ptr<float> g)
 
 		adamOptimizerCompute->dispatchCompute(optimizedData->getSize() / 64 + 1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-		gradientSum->fillWithZeros();
 		return true;
 	}
 	return false;
+}
+
+renderer::ssbo_ptr<float> visual::AdamOptimizer::getSmoothedGradient() const
+{
+	return gradientSum;
+}
+
+void visual::AdamOptimizer::resetSmoothedGradient()
+{
+	gradientSum->fillWithZeros();
+	gradientSampleCount = 0;
 }
 
 renderer::ssbo_ptr<float> visual::AdamOptimizer::getOptimizedFloatData() const

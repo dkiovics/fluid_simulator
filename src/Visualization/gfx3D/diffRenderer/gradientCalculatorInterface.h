@@ -34,6 +34,8 @@ public:
 
 		addParamLine({ &useDepthImage });
 		addParamLine(ParamLine( { &depthErrorScale }, &useDepthImage ));
+
+		adamGradientToParticleGradientProgram = renderer::make_compute("shaders/3D/diffRender/adamGradientToParticleGradient.comp");
 	}
 
 	/**
@@ -83,6 +85,22 @@ public:
 
 	virtual void formatFloatParamsPostUpdate(renderer::ssbo_ptr<float> data) const { }
 
+	struct ParticleGradientData
+	{
+		glm::vec4 position;
+		glm::vec4 gradient;
+	};
+
+	virtual void convertAdamGradientToParticleGradient(renderer::ssbo_ptr<float> adamGradient, 
+		renderer::ssbo_ptr<ParticleGradientData> particleGradient) const 
+	{
+		adamGradient->bindBuffer(0);
+		optimizedParamsSSBO->bindBuffer(1);
+		particleGradient->bindBuffer(2);
+		adamGradientToParticleGradientProgram->dispatchCompute(particleGradient->getSize() / 64 + 1, 1, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
+
 	std::shared_ptr<ParamInterface> renderer3D;
 
 protected:
@@ -99,6 +117,8 @@ protected:
 	renderer::ssbo_ptr<ParticleShaderData> paramPositiveOffsetSSBO;
 	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
 	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
+
+	renderer::compute_ptr adamGradientToParticleGradientProgram;
 };
 
 } // namespace visual

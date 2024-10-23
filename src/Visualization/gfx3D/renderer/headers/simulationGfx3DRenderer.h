@@ -33,11 +33,17 @@ public:
 
 	void show(int screenWidth) override;
 
+	bool renderBoxFrontEnabled = true;
+
 	void render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data) override;
+
+	void showBoxFront(renderer::fb_ptr framebuffer);
 
 	void invalidateParamBuffer() override;
 
 	std::shared_ptr<renderer::Camera3D> getCamera() const override;
+
+	std::shared_ptr<renderer::Lights> getLights() const override;
 
 private:
 	const int maxParticleNum;

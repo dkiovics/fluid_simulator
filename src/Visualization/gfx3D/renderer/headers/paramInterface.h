@@ -2,6 +2,7 @@
 
 #include <compute/storageBuffer.h>
 #include <engineUtils/camera3D.hpp>
+#include <engineUtils/lights.hpp>
 #include "gfx3D/renderer3DInterface.h"
 
 namespace visual
@@ -27,6 +28,11 @@ public:
 	}
 
 	virtual std::shared_ptr<renderer::Camera3D> getCamera() const
+	{
+		return nullptr;
+	}
+
+	virtual std::shared_ptr<renderer::Lights> getLights() const
 	{
 		return nullptr;
 	}

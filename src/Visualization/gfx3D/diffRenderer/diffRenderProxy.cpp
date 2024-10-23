@@ -6,7 +6,7 @@
 using namespace visual;
 
 DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> renderer3D)
-	:renderer3D(std::static_pointer_cast<ParamInterface>(renderer3D)), renderEngine(renderer::RenderEngine::getInstance())
+	:renderer3D(std::static_pointer_cast<SimulationGfx3DRenderer>(renderer3D)), renderEngine(renderer::RenderEngine::getInstance())
 {
 	referenceFramebuffer = renderer::make_fb(
 		renderer::Framebuffer::toArray({ 
@@ -17,17 +17,35 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	);
 
 	particleMovementAbsSSBO = renderer::make_ssbo<float>(1000, GL_DYNAMIC_COPY);
+	particleGradientSSBO = renderer::make_ssbo<GradientCalculatorInterface::ParticleGradientData>(1000, GL_DYNAMIC_COPY);
 
 	showQuad = std::make_unique<renderer::Square>();
 	showProgram = renderer::make_shader("shaders/3D/util/quad.vert", "shaders/3D/util/quad.frag");
+	
+	gradientArrowShader = renderer::make_shader("shaders/3D/util/arrow.vert", "shaders/3D/util/arrow.frag");
+	gradientArrows = std::make_unique<renderer::InstancedGeometry>(std::make_shared<renderer::Arrow4>(0.1f, 1.2f, 0.6f));
 
 	adam = std::make_unique<AdamOptimizer>(1);
 	densityControl = std::make_unique<DensityControl>();
 
 	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
 	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
-	addParamLine(ParamLine({ &autoPushApart, &pushApartButton }));
+	addParamLine({ &autoPushApart, &pushApartButton, &backupCameraPos, &restoreCameraPos, &gradientVisualization });
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
+	addParamLine(ParamLine({ &arrowDensityThreshold }, &gradientVisualization));
+
+	auto camera = this->renderer3D->getCamera();
+	auto lights = this->renderer3D->getLights();
+	if (camera)
+	{
+		camera->addProgram({ gradientArrowShader });
+		camera->setUniformsForAllPrograms();
+	}
+	if (lights)
+	{
+		lights->addProgram({ gradientArrowShader });
+		lights->setUniformsForAllPrograms();
+	}
 }
 
 void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
@@ -61,9 +79,20 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	if(!particleMovementAbsSSBO || data->getSize() != particleMovementAbsSSBO->getSize() || gradientCalcChanged)
 	{
 		particleMovementAbsSSBO->setSize(data->getSize());
+		particleGradientSSBO->setSize(data->getSize());
 		adam->setParamNum(data->getSize() * gradientCalculator->getOptimizedParamCountPerParticle());
 		densityControl->setParamNum(data->getSize());
 		reset(data);
+		particleGradientValid = false;
+	}
+
+	if (backupCameraPos.value)
+	{
+		backupCamera = renderer3D->getCamera()->getCameraData();
+	}
+	if (restoreCameraPos.value && backupCamera)
+	{
+		renderer3D->getCamera()->setCameraData(*backupCamera);
 	}
 
 	if (updateSimulatorButton.value)
@@ -79,6 +108,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	if(randomizeParams.value)
 	{
 		randomizeParamValues(data);
+		particleGradientValid = false;
 	}
 
 	if(resetAdamButton.value)
@@ -91,6 +121,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	if(updateParams.value)
 	{
 		reset(data);
+		particleGradientValid = false;
 	}
 
 	if (showSim.value)
@@ -107,7 +138,9 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		if(adamEnabled.value)
 		{
 			renderer3D->invalidateParamBuffer();
+			renderer3D->renderBoxFrontEnabled = false;
 			renderer3D->render(framebuffer, optimizedParamsSSBO);
+			renderer3D->renderBoxFrontEnabled = true;
 
 			gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
 			auto gradient = gradientCalculator->calculateGradient(referenceFramebuffer);
@@ -115,10 +148,18 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			{
 				gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
 				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
+				if (gradientVisualization.value)
+				{
+					particleGradientValid = true;
+					gradientCalculator->convertAdamGradientToParticleGradient(adam->getSmoothedGradient(), particleGradientSSBO);
+				}
+				adam->resetSmoothedGradient();
+
 				if (updateDensities.value)
 				{
 					updateParticleDensities();
 				}
+
 				if (enableDensityControl.value)
 				{
 					if (densityControl->updateAvgMovement(particleMovementAbsSSBO))
@@ -146,8 +187,20 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		}
 		else
 		{
+			renderer3D->renderBoxFrontEnabled = false;
 			renderer3D->render(framebuffer, optimizedParamsSSBO);
+			renderer3D->renderBoxFrontEnabled = true;
 		}
+		if (gradientVisualization.value && particleGradientValid)
+		{
+			gradientArrows->setInstanceNum(particleGradientSSBO->getSize());
+			particleGradientSSBO->bindBuffer(8);
+			gradientArrowShader->activate();
+			(*gradientArrowShader)["densityThreshold"] = arrowDensityThreshold.value;
+			framebuffer->bind();
+			gradientArrows->draw();
+		}
+		renderer3D->showBoxFront(framebuffer);
 	}
 }
 

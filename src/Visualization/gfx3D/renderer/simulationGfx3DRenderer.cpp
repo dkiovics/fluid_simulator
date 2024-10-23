@@ -60,6 +60,15 @@ void SimulationGfx3DRenderer::show(int screenWidth)
 		fluidSurfaceGfx->show(screenWidth);
 }
 
+void visual::SimulationGfx3DRenderer::showBoxFront(renderer::fb_ptr framebuffer)
+{
+	framebuffer->bind();
+	if (showBox.value)
+	{
+		transparentBox->draw(configData.sceneCenter, configData.boxSize, false, true);
+	}
+}
+
 void visual::SimulationGfx3DRenderer::invalidateParamBuffer()
 {
 	if (fluidSurfaceGfx)
@@ -73,7 +82,13 @@ std::shared_ptr<renderer::Camera3D> visual::SimulationGfx3DRenderer::getCamera()
 	return camera;
 }
 
-void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
+std::shared_ptr<renderer::Lights> visual::SimulationGfx3DRenderer::getLights() const
+{
+	return lights;
+}
+
+void SimulationGfx3DRenderer::render
+	(std::shared_ptr<renderer::Framebuffer> framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
 {
 	handleFluidRenderModeChange();
 
@@ -112,7 +127,7 @@ void SimulationGfx3DRenderer::render(std::shared_ptr<renderer::Framebuffer> fram
 	}
 
 	framebuffer->bind();
-	if (showBox.value)
+	if (showBox.value && renderBoxFrontEnabled)
 	{
 		transparentBox->draw(configData.sceneCenter, configData.boxSize, false, true);
 	}

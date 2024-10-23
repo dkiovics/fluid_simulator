@@ -367,3 +367,275 @@ Sphere::Sphere(int vertexNum) : Geometry(GL_TRIANGLES)
 	createVbo(vertexes, attributes);
 	createIndexBuffer(indexes);
 }
+
+// Creates a rectangle with the bottom in the origo and pointing upwards, at the top there is a 4 sided pyramid pointing upwards.
+renderer::Arrow4::Arrow4(float width, float baseHeight, float tipHeight) : Geometry(GL_TRIANGLES)
+{
+	std::vector<BasicVertex> vertexes;
+	width *= 0.5f;
+
+	vertexes.push_back({
+		{-width,0.0,-width,1},
+		{0,-1,0,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{-width,0.0,width,1},
+		{0,-1,0,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{width,0.0,width,1},
+		{0,-1,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{width,0.0,width,1},
+		{0,-1,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{width,0.0,-width,1},
+		{0,-1,0,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{-width,0.0,-width,1},
+		{0,-1,0,0},
+		{0,0}
+		});
+
+	vertexes.push_back({
+		{-width,0.0,-width,1},
+		{0,0,-1,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{width,0.0,-width,1},
+		{0,0,-1,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{width,baseHeight,-width,1},
+		{0,0,-1,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{width,baseHeight,-width,1},
+		{0,0,-1,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{-width,baseHeight,-width,1},
+		{0,0,-1,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{-width,0.0,-width,1},
+		{0,0,-1,0},
+		{1,0}
+		});
+
+	vertexes.push_back({
+		{-width,0.0,width,1},
+		{0,0,1,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{width,0.0,width,1},
+		{0,0,1,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{width,baseHeight,width,1},
+		{0,0,1,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{width,baseHeight,width,1},
+		{0,0,1,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{-width,baseHeight,width,1},
+		{0,0,1,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{-width,0.0,width,1},
+		{0,0,1,0},
+		{0,0}
+		});
+
+	vertexes.push_back({
+		{-width,0.0,-width,1},
+		{-1,0,0,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{-width,0.0,width,1},
+		{-1,0,0,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{-width,baseHeight,width,1},
+		{-1,0,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{-width,baseHeight,width,1},
+		{-1,0,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{-width,baseHeight,-width,1},
+		{-1,0,0,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{-width,0.0,-width,1},
+		{-1,0,0,0},
+		{0,0}
+		});
+
+	vertexes.push_back({
+		{width,0.0,-width,1},
+		{1,0,0,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{width,0.0,width,1},
+		{1,0,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{width,baseHeight,width,1},
+		{1,0,0,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{width,baseHeight,width,1},
+		{1,0,0,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{width,baseHeight,-width,1},
+		{1,0,0,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{width,0.0,-width,1},
+		{1,0,0,0},
+		{1,0}
+		});
+
+	// Tip
+	const float tipWidth = width * 2.0f;
+	vertexes.push_back({
+		{-tipWidth,baseHeight,-tipWidth,1},
+		{0,-1,0,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{-tipWidth,baseHeight,tipWidth,1},
+		{0,-1,0,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,tipWidth,1},
+		{0,-1,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,tipWidth,1},
+		{0,-1,0,0},
+		{1,1}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,-tipWidth,1},
+		{0,-1,0,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{-tipWidth,baseHeight,-tipWidth,1},
+		{0,-1,0,0},
+		{0,0}
+		});
+
+	const float tipNormalAngle = PI * 0.5f - std::atanf(tipHeight / tipWidth);
+	const glm::vec2 tipNormal = glm::vec2(std::cosf(tipNormalAngle), std::sinf(tipNormalAngle));
+
+	vertexes.push_back({
+		{0,baseHeight + tipHeight,0,1},
+		{tipNormal.x,tipNormal.y,0,0},
+		{0.5f,0.5f}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,-tipWidth,1},
+		{tipNormal.x,tipNormal.y,0,0},
+		{1,0}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,tipWidth,1},
+		{tipNormal.x,tipNormal.y,0,0},
+		{1,1}
+		});
+
+	vertexes.push_back({
+		{0,baseHeight + tipHeight,0,1},
+		{-tipNormal.x,tipNormal.y,0,0},
+		{0.5f,0.5f}
+		});
+	vertexes.push_back({
+		{-tipWidth,baseHeight,-tipWidth,1},
+		{-tipNormal.x,tipNormal.y,0,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{-tipWidth,baseHeight,tipWidth,1},
+		{-tipNormal.x,tipNormal.y,0,0},
+		{0,1}
+		});
+
+	vertexes.push_back({
+		{0,baseHeight + tipHeight,0,1},
+		{0,tipNormal.y,tipNormal.x,0},
+		{0.5f,0.5f}
+		});
+	vertexes.push_back({
+		{-tipWidth,baseHeight,tipWidth,1},
+		{0,tipNormal.y,tipNormal.x,0},
+		{0,1}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,tipWidth,1},
+		{0,tipNormal.y,tipNormal.x,0},
+		{1,1}
+		});
+
+	vertexes.push_back({
+		{0,baseHeight + tipHeight,0,1},
+		{0,tipNormal.y,-tipNormal.x,0},
+		{0.5f,0.5f}
+		});
+	vertexes.push_back({
+		{-tipWidth,baseHeight,-tipWidth,1},
+		{0,tipNormal.y,-tipNormal.x,0},
+		{0,0}
+		});
+	vertexes.push_back({
+		{tipWidth,baseHeight,-tipWidth,1},
+		{0,tipNormal.y,-tipNormal.x,0},
+		{1,0}
+		});
+
+	std::vector<ArrayAttribute> attributes = {
+		ArrayAttribute{0, 4, GL_FLOAT, 0},
+		ArrayAttribute{1, 4, GL_FLOAT, sizeof(float) * 4},
+		ArrayAttribute{2, 2, GL_FLOAT, sizeof(float) * 8}
+	};
+
+	createVbo(vertexes, attributes);
+	setVertexNum(vertexes.size());
+
+}
