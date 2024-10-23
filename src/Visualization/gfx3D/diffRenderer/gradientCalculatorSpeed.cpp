@@ -39,16 +39,13 @@ void visual::GradientCalculatorSpeed::updateOptimizedFloats(renderer::ssbo_ptr<f
 
 void visual::GradientCalculatorSpeed::updateParticleParams(renderer::ssbo_ptr<ParticleShaderData> data)
 {
+	GradientCalculatorInterface::updateParticleParams(data);
 	if (!perturbationPresetSSBO || perturbationPresetSSBO->getSize() != data->getSize())
 	{
 		perturbationPresetSSBO = renderer::make_ssbo<ParticleShaderDataSpeed>(data->getSize(), GL_DYNAMIC_COPY);
-		optimizedParamsSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
 		speedSSBO = renderer::make_ssbo<float>(data->getSize() * ParticleShaderDataSpeed::paramCount, GL_DYNAMIC_COPY);
 		speedPositiveOffsetSSBO = renderer::make_ssbo<float>(data->getSize() * ParticleShaderDataSpeed::paramCount, GL_DYNAMIC_COPY);
 		speedNegativeOffsetSSBO = renderer::make_ssbo<float>(data->getSize() * ParticleShaderDataSpeed::paramCount, GL_DYNAMIC_COPY);
-		stochaisticGradientSSBO = renderer::make_ssbo<float>(data->getSize() * ParticleShaderDataSpeed::paramCount, GL_DYNAMIC_COPY);
-		paramPositiveOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
-		paramNegativeOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
 	}
 	data->copyTo(*optimizedParamsSSBO);
 }
@@ -67,11 +64,19 @@ void visual::GradientCalculatorSpeed::reset()
 	simulatorCopy = manager->getSimulatorCopy();
 	simulatorCopy.simulator->config.gravityEnabled = false;
 	simulatorCopy.simulator->config.gravity = gravityValue.value;
+	stochaisticGradientSSBO->fillWithZeros();
+	gradientSampleCount = 0;
 	speedSSBO->fillWithZeros();
 }
 
-renderer::ssbo_ptr<float> visual::GradientCalculatorSpeed::calculateGradient(renderer::fb_ptr referenceFramebuffer)
+bool visual::GradientCalculatorSpeed::calculateGradient(renderer::fb_ptr referenceFramebuffer)
 {
+	if (gradientSampleCount >= gradientSampleNum.value)
+	{
+		stochaisticGradientSSBO->fillWithZeros();
+		gradientSampleCount = 0;
+	}
+
 	pertPlusFramebuffer->setSize(referenceFramebuffer->getSize());
 	pertMinusFramebuffer->setSize(referenceFramebuffer->getSize());
 	simulatorCopy.simulator->config.onlyMoveParticles = !simulatorEnabled.value;
@@ -109,7 +114,6 @@ renderer::ssbo_ptr<float> visual::GradientCalculatorSpeed::calculateGradient(ren
 	speedNegativeOffsetSSBO->bindBuffer(0);
 	speedPositiveOffsetSSBO->bindBuffer(1);
 	renderer3D->getParamBufferOut()->bindBuffer(2);
-	stochaisticGradientSSBO->fillWithZeros();
 	stochaisticGradientSSBO->bindBuffer(3);
 	if (useDepthImage.value)
 	{
@@ -125,7 +129,8 @@ renderer::ssbo_ptr<float> visual::GradientCalculatorSpeed::calculateGradient(ren
 		stochaisticColorGradientProgram->dispatchCompute(referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y, 1);
 	}
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	return stochaisticGradientSSBO;
+	gradientSampleCount++;
+	return gradientSampleCount >= gradientSampleNum.value;
 }
 
 renderer::ssbo_ptr<float> visual::GradientCalculatorSpeed::getFloatParams()

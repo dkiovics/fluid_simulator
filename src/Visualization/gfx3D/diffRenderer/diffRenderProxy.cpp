@@ -137,23 +137,29 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 		if(adamEnabled.value)
 		{
-			renderer3D->invalidateParamBuffer();
+			if (newFluidParamsNeeded)
+			{
+				renderer3D->invalidateParamBuffer();
+				newFluidParamsNeeded = false;
+			}
 			renderer3D->renderBoxFrontEnabled = false;
 			renderer3D->render(framebuffer, optimizedParamsSSBO);
 			renderer3D->renderBoxFrontEnabled = true;
 
 			gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
-			auto gradient = gradientCalculator->calculateGradient(referenceFramebuffer);
-			if (adam->updateGradient(gradient))
+			if (gradientCalculator->calculateGradient(referenceFramebuffer))
 			{
+				newFluidParamsNeeded = true;
+				adam->optimize(gradientCalculator->getStochaisticGradient());
+
 				gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
 				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
+
 				if (gradientVisualization.value)
 				{
 					particleGradientValid = true;
-					gradientCalculator->convertAdamGradientToParticleGradient(adam->getSmoothedGradient(), particleGradientSSBO);
+					gradientCalculator->getParticleGradient(particleGradientSSBO);
 				}
-				adam->resetSmoothedGradient();
 
 				if (updateDensities.value)
 				{

@@ -18,7 +18,7 @@ public:
 
 	void reset() override;
 
-	renderer::ssbo_ptr<float> calculateGradient(renderer::fb_ptr referenceFramebuffer) override;
+	bool calculateGradient(renderer::fb_ptr referenceFramebuffer) override;
 
 	renderer::ssbo_ptr<float> getFloatParams() override;
 

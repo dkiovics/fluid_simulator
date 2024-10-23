@@ -68,6 +68,7 @@ private:
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
 	renderer::ssbo_ptr<GradientCalculatorInterface::ParticleGradientData> particleGradientSSBO;
 	bool particleGradientValid = false;
+	bool newFluidParamsNeeded = true;
 
 	std::unique_ptr<renderer::Square> showQuad;
 	std::shared_ptr<renderer::ShaderProgram> showProgram;

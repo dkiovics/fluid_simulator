@@ -34,8 +34,10 @@ public:
 
 		addParamLine({ &useDepthImage });
 		addParamLine(ParamLine( { &depthErrorScale }, &useDepthImage ));
+		addParamLine({ &gradientSampleNum });
 
-		adamGradientToParticleGradientProgram = renderer::make_compute("shaders/3D/diffRender/adamGradientToParticleGradient.comp");
+		particleGradientProgram = renderer::make_compute("shaders/3D/diffRender/particleGradient.comp");
+		gradientMultCompute = renderer::make_compute("shaders/3D/adam/gradientMult.comp");
 	}
 
 	/**
@@ -49,7 +51,19 @@ public:
 	 * \brief Update the particle parameters that are being optimized.
 	 * \param data The data to update
 	 */
-	virtual void updateParticleParams(renderer::ssbo_ptr<ParticleShaderData> data) = 0;
+	virtual void updateParticleParams(renderer::ssbo_ptr<ParticleShaderData> data)
+	{
+		if (!paramNegativeOffsetSSBO || paramNegativeOffsetSSBO->getSize() != data->getSize())
+		{
+			paramNegativeOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
+			paramPositiveOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
+			optimizedParamsSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
+			stochaisticGradientSSBO = renderer::make_ssbo<float>
+				(data->getSize() * getOptimizedParamCountPerParticle(), GL_DYNAMIC_COPY);
+		}
+		stochaisticGradientSSBO->fillWithZeros();
+		gradientSampleCount = 0;
+	}
 
 	/**
 	* \brief Reset the gradient calculator.
@@ -59,9 +73,23 @@ public:
 	/**
 	* \brief Calculate the gradient of the current frame - must be called with after the parameter framebuffer is valid.
 	* \param referenceFramebuffer The reference frame to compare with
-	* \return The gradient that must be inputed to the optimizer
+	* \return True if there is a valid gradient to read
 	*/
-	virtual renderer::ssbo_ptr<float> calculateGradient(renderer::fb_ptr referenceFramebuffer) = 0;
+	virtual bool calculateGradient(renderer::fb_ptr referenceFramebuffer) = 0;
+
+	renderer::ssbo_ptr<float> getStochaisticGradient() const
+	{
+		if(!stochaisticGradientSSBO)
+			throw std::runtime_error("GradientCalculatorInterface::getStochaisticGradient: stochaisticGradientSSBO is not initialized");
+		if(gradientSampleCount < gradientSampleNum.value)
+			throw std::runtime_error("GradientCalculatorInterface::getStochaisticGradient: gradientSampleCount is less than gradientSampleNum");
+		
+		(*gradientMultCompute)["gradientMult"] = 1.0f / gradientSampleCount;
+		stochaisticGradientSSBO->bindBuffer(0);
+		gradientMultCompute->dispatchCompute(stochaisticGradientSSBO->getSize() / 64 + 1, 1, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+		return stochaisticGradientSSBO;
+	}
 
 	/**
 	 * \brief Get the float parameters that are being optimized.
@@ -91,13 +119,14 @@ public:
 		glm::vec4 gradient;
 	};
 
-	virtual void convertAdamGradientToParticleGradient(renderer::ssbo_ptr<float> adamGradient, 
-		renderer::ssbo_ptr<ParticleGradientData> particleGradient) const 
+	void getParticleGradient(renderer::ssbo_ptr<ParticleGradientData> particleGradient) const 
 	{
-		adamGradient->bindBuffer(0);
+		if (gradientSampleCount < gradientSampleNum.value)
+			throw std::runtime_error("GradientCalculatorInterface::getParticleGradient: gradientSampleCount is less than gradientSampleNum");
+		stochaisticGradientSSBO->bindBuffer(0);
 		optimizedParamsSSBO->bindBuffer(1);
 		particleGradient->bindBuffer(2);
-		adamGradientToParticleGradientProgram->dispatchCompute(particleGradient->getSize() / 64 + 1, 1, 1);
+		particleGradientProgram->dispatchCompute(particleGradient->getSize() / 64 + 1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}
 
@@ -106,6 +135,7 @@ public:
 protected:
 	ParamBool useDepthImage = ParamBool("Use depth image", false);
 	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
+	ParamInt gradientSampleNum = ParamInt("Gradient sample size", 10, 1, 100);
 
 	renderer::RenderEngine& renderEngine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> manager;
@@ -118,7 +148,10 @@ protected:
 	renderer::ssbo_ptr<ParticleShaderData> optimizedParamsSSBO;
 	renderer::ssbo_ptr<float> stochaisticGradientSSBO;
 
-	renderer::compute_ptr adamGradientToParticleGradientProgram;
+	int gradientSampleCount = 0;
+
+	renderer::compute_ptr gradientMultCompute;
+	renderer::compute_ptr particleGradientProgram;
 };
 
 } // namespace visual

@@ -40,13 +40,10 @@ void visual::GradientCalculatorPos::updateOptimizedFloats(renderer::ssbo_ptr<flo
 
 void visual::GradientCalculatorPos::updateParticleParams(renderer::ssbo_ptr<ParticleShaderData> data)
 {
+	GradientCalculatorInterface::updateParticleParams(data);
 	if (!perturbationPresetSSBO || perturbationPresetSSBO->getSize() != data->getSize())
 	{
 		perturbationPresetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
-		paramNegativeOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
-		paramPositiveOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
-		optimizedParamsSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
-		stochaisticGradientSSBO = renderer::make_ssbo<float>(data->getSize() * ParticleShaderData::paramCount, GL_DYNAMIC_COPY);
 	}
 	data->copyTo(*optimizedParamsSSBO);
 }
@@ -63,10 +60,18 @@ void visual::GradientCalculatorPos::reset()
 		(*perturbationPresetSSBO)[i].density = glm::vec4(0.0f);
 	}
 	perturbationPresetSSBO->unmapBuffer();
+	stochaisticGradientSSBO->fillWithZeros();
+	gradientSampleCount = 0;
 }
 
-renderer::ssbo_ptr<float> visual::GradientCalculatorPos::calculateGradient(renderer::fb_ptr referenceFramebuffer)
+bool visual::GradientCalculatorPos::calculateGradient(renderer::fb_ptr referenceFramebuffer)
 {
+	if (gradientSampleCount >= gradientSampleNum.value)
+	{
+		stochaisticGradientSSBO->fillWithZeros();
+		gradientSampleCount = 0;
+	}
+
 	pertPlusFramebuffer->setSize(referenceFramebuffer->getSize());
 	pertMinusFramebuffer->setSize(referenceFramebuffer->getSize());
 
@@ -93,7 +98,6 @@ renderer::ssbo_ptr<float> visual::GradientCalculatorPos::calculateGradient(rende
 	paramNegativeOffsetSSBO->bindBuffer(0);
 	paramPositiveOffsetSSBO->bindBuffer(1);
 	renderer3D->getParamBufferOut()->bindBuffer(2);
-	stochaisticGradientSSBO->fillWithZeros();
 	stochaisticGradientSSBO->bindBuffer(3);
 	if (useDepthImage.value)
 	{
@@ -109,7 +113,8 @@ renderer::ssbo_ptr<float> visual::GradientCalculatorPos::calculateGradient(rende
 		stochaisticColorGradientProgram->dispatchCompute(referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y, 1);
 	}
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	return stochaisticGradientSSBO;
+	gradientSampleCount++;
+	return gradientSampleCount >= gradientSampleNum.value;
 }
 
 renderer::ssbo_ptr<float> visual::GradientCalculatorPos::getFloatParams()
