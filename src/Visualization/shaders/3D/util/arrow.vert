@@ -75,7 +75,9 @@ void main() {
 
     vec3 transformedVertex = rotateVectorByQuaternion(pos.xyz, rotationQuat);
 
-	gl_Position = camera.projectionMatrix * camera.viewMatrix * vec4(data.position.xyz + transformedVertex, 1.0);
+    worldPosition = vec4(data.position.xyz + transformedVertex, 1.0);
+
+	gl_Position = camera.projectionMatrix * camera.viewMatrix * worldPosition;
 	worldNormal = vec4(rotateVectorByQuaternion(normal.xyz, rotationQuat), 0.0);
 	color = vec4(normalizedGradient, 1.0);
 }
