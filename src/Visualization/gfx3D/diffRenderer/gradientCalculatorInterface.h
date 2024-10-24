@@ -38,6 +38,7 @@ public:
 
 		particleGradientProgram = renderer::make_compute("shaders/3D/diffRender/particleGradient.comp");
 		gradientMultCompute = renderer::make_compute("shaders/3D/adam/gradientMult.comp");
+		particleGradientToFloatProgram = renderer::make_compute("shaders/3D/diffRender/particleGradientToFloat.comp");
 	}
 
 	/**
@@ -79,15 +80,10 @@ public:
 
 	renderer::ssbo_ptr<float> getStochaisticGradient() const
 	{
-		if(!stochaisticGradientSSBO)
+		if (!stochaisticGradientSSBO)
 			throw std::runtime_error("GradientCalculatorInterface::getStochaisticGradient: stochaisticGradientSSBO is not initialized");
-		if(gradientSampleCount < gradientSampleNum.value)
+		if (gradientSampleCount < gradientSampleNum.value)
 			throw std::runtime_error("GradientCalculatorInterface::getStochaisticGradient: gradientSampleCount is less than gradientSampleNum");
-		
-		(*gradientMultCompute)["gradientMult"] = 1.0f / gradientSampleCount;
-		stochaisticGradientSSBO->bindBuffer(0);
-		gradientMultCompute->dispatchCompute(stochaisticGradientSSBO->getSize() / 64 + 1, 1, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		return stochaisticGradientSSBO;
 	}
 
@@ -130,6 +126,14 @@ public:
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}
 
+	void setParticleGradient(renderer::ssbo_ptr<ParticleGradientData> particleGradient) const
+	{
+		particleGradient->bindBuffer(0);
+		stochaisticGradientSSBO->bindBuffer(1);
+		particleGradientToFloatProgram->dispatchCompute(particleGradient->getSize() / 256 + 1, 1, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
+
 	std::shared_ptr<ParamInterface> renderer3D;
 
 protected:
@@ -152,6 +156,15 @@ protected:
 
 	renderer::compute_ptr gradientMultCompute;
 	renderer::compute_ptr particleGradientProgram;
+	renderer::compute_ptr particleGradientToFloatProgram;
+
+	void correctGradient() const
+	{
+		(*gradientMultCompute)["gradientMult"] = 1.0f / gradientSampleCount;
+		stochaisticGradientSSBO->bindBuffer(0);
+		gradientMultCompute->dispatchCompute(stochaisticGradientSSBO->getSize() / 64 + 1, 1, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
 };
 
 } // namespace visual

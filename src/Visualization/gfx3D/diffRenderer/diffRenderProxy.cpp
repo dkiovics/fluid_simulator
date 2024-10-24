@@ -30,9 +30,10 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 
 	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
 	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
-	addParamLine({ &autoPushApart, &pushApartButton, &backupCameraPos, &restoreCameraPos, &gradientVisualization });
+	addParamLine({ &autoPushApart, &pushApartButton, &backupCameraPos, &restoreCameraPos, &gradientVisualization, &enableGradientSmoothing });
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
 	addParamLine(ParamLine({ &arrowDensityThreshold }, &gradientVisualization));
+	addParamLine(ParamLine({ &gradientSmoothingSphereR }, &enableGradientSmoothing));
 
 	auto camera = this->renderer3D->getCamera();
 	auto lights = this->renderer3D->getLights();
@@ -74,6 +75,14 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			gradientCalculator = std::make_unique<GradientCalculatorPos>(renderer3D, configData.simManager);
 			gradientCalcChanged = true;
 		}
+	}
+
+	if (!gradientSmoothing 
+		|| gradientSmoothing->particleBox != glm::vec3(configData.simManager->getDimensions())
+		|| gradientSmoothingSphereR.value != gradientSmoothing->smoothingSphereR)
+	{
+		gradientSmoothing = std::make_unique<GradientSmoothing>
+			(gradientSmoothingSphereR.value, configData.simManager->getDimensions());
 	}
 
 	if(!particleMovementAbsSSBO || data->getSize() != particleMovementAbsSSBO->getSize() || gradientCalcChanged)
@@ -146,20 +155,24 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			renderer3D->render(framebuffer, optimizedParamsSSBO);
 			renderer3D->renderBoxFrontEnabled = true;
 
-			gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
 			if (gradientCalculator->calculateGradient(referenceFramebuffer))
 			{
 				newFluidParamsNeeded = true;
-				adam->optimize(gradientCalculator->getStochaisticGradient());
 
-				gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
-				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
+				gradientCalculator->getParticleGradient(particleGradientSSBO);
+				particleGradientValid = true;
 
-				if (gradientVisualization.value)
+				if (enableGradientSmoothing.value)
 				{
-					particleGradientValid = true;
-					gradientCalculator->getParticleGradient(particleGradientSSBO);
+					gradientSmoothing->smoothGradient(particleGradientSSBO);
+					gradientCalculator->setParticleGradient(particleGradientSSBO);
 				}
+
+				gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
+				adam->optimize(gradientCalculator->getStochaisticGradient());
+				gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
+
+				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
 
 				if (updateDensities.value)
 				{

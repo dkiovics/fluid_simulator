@@ -35,5 +35,5 @@ void main() {
 	vec3 gradient = vec3(adamGradient[offset], adamGradient[offset + 1], adamGradient[offset + 2]);
 	vec4 position = vec4(optimizedParticleData[index].posAndSpeed.xyz, 1.0);
 	optimizedParticleGradientData[index].position = position;
-	optimizedParticleGradientData[index].gradient = vec4(normalize(gradient), optimizedParticleData[index].density.x);
+	optimizedParticleGradientData[index].gradient = vec4(gradient, optimizedParticleData[index].density.x);
 }

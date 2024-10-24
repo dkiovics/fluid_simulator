@@ -24,7 +24,9 @@ public:
 		bool operator=(const glm::vec2& value) const;
 		bool operator=(const glm::ivec2& value) const;
 		bool operator=(const glm::vec3& value) const;
+		bool operator=(const glm::ivec3& value) const;
 		bool operator=(const glm::vec4& value) const;
+		bool operator=(const glm::ivec4& value) const;
 		bool operator=(const glm::mat3& value) const;
 		bool operator=(const glm::mat4& value) const;
 		bool operator=(const Texture& texture) const;

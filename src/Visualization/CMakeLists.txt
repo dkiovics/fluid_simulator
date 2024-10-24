@@ -21,6 +21,8 @@ set(SOURCES
     "gfx3D/diffRenderer/gradientCalculatorPos.cpp" 
     "gfx3D/diffRenderer/gradientCalculatorSpeed.h" 
     "gfx3D/diffRenderer/gradientCalculatorSpeed.cpp"
+    "gfx3D/gradientSmoothing/gradientSmoothing.h" 
+    "gfx3D/gradientSmoothing/gradientSmoothing.cpp"
 )
 
 

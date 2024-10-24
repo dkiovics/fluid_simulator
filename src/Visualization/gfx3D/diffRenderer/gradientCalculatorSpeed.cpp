@@ -130,7 +130,10 @@ bool visual::GradientCalculatorSpeed::calculateGradient(renderer::fb_ptr referen
 	}
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	gradientSampleCount++;
-	return gradientSampleCount >= gradientSampleNum.value;
+	bool gradientReady = gradientSampleCount >= gradientSampleNum.value;
+	if (gradientReady)
+		correctGradient();
+	return gradientReady;
 }
 
 renderer::ssbo_ptr<float> visual::GradientCalculatorSpeed::getFloatParams()

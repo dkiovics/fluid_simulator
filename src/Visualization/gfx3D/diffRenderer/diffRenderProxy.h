@@ -13,6 +13,7 @@
 #include "gfx3D/optimizer/densityControl.h"
 #include "gfx3D/renderer/headers/simulationGfx3DRenderer.h"
 #include "gradientCalculatorInterface.h"
+#include "gfx3D/gradientSmoothing/gradientSmoothing.h"
 #include <optional>
 
 namespace visual
@@ -40,6 +41,7 @@ private:
 	std::unique_ptr<DensityControl> densityControl;
 
 	std::unique_ptr<GradientCalculatorInterface> gradientCalculator;
+	std::unique_ptr<GradientSmoothing> gradientSmoothing;
 
 	renderer::fb_ptr referenceFramebuffer;
 	renderer::fb_ptr currentParamFramebuffer;
@@ -64,6 +66,8 @@ private:
 	ParamButton backupCameraPos = ParamButton("Backup camera pos");
 	ParamButton restoreCameraPos = ParamButton("Restore camera pos");
 	ParamFloat arrowDensityThreshold = ParamFloat("Arrow density threshold", 0.8f, 0.5f, 5.0f);
+	ParamBool enableGradientSmoothing = ParamBool("Enable gradient smoothing", false);
+	ParamFloat gradientSmoothingSphereR = ParamFloat("Gradient smoothing sphere R", 1.5f, 0.8f, 5.0f);
 
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
 	renderer::ssbo_ptr<GradientCalculatorInterface::ParticleGradientData> particleGradientSSBO;

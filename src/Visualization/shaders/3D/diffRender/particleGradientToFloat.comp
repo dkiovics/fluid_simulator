@@ -1,0 +1,30 @@
+#version 460 compatibility
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleGradientData {
+	vec4 position;
+	vec4 gradient;
+};
+
+layout(std430, binding = 0) restrict readonly buffer particleGradientSSBO {
+	ParticleGradientData particleGradient[];
+};
+
+layout(std430, binding = 1) restrict writeonly buffer stochaisticGradientSSBO {
+	float stochaisticGradient[];
+};
+
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= particleGradient.length()) {
+		return;
+	}
+
+	unsigned int offset = index * 4;
+	stochaisticGradient[offset] = particleGradient[index].gradient.x;
+	stochaisticGradient[offset + 1] = particleGradient[index].gradient.y;
+	stochaisticGradient[offset + 2] = particleGradient[index].gradient.z;
+	stochaisticGradient[offset + 3] = 0.0;
+}

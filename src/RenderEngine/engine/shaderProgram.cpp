@@ -62,12 +62,30 @@ bool renderer::GpuProgram::UniformProxy::operator=(const glm::vec3& value) const
 	return true;
 }
 
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::ivec3& value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform3iv(val, 1, &value[0]);
+	return true;
+}
+
 bool renderer::GpuProgram::UniformProxy::operator=(const glm::vec4& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
 		return false;
 	glUniform4fv(val, 1, &value[0]);
+	return true;
+}
+
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::ivec4& value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform4iv(val, 1, &value[0]);
 	return true;
 }
 

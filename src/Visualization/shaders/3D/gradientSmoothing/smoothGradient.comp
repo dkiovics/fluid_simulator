@@ -1,0 +1,103 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleGradientData
+{
+	vec4 position;
+	vec4 gradient;
+};
+
+struct ParticleIndexList
+{
+	int indexCount;
+	int indices[200];
+};
+
+layout(std430, binding = 0) restrict readonly buffer particleGradientDataSSBO {
+	ParticleGradientData particleGradientData[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer particleIndexListSSBO {
+	ParticleIndexList particleIndexList[];
+};
+
+layout(std430, binding = 2) restrict writeonly buffer gradientArraySSBO {
+	vec4 gradientArray[];
+};
+
+uniform float smoothingSphereR;
+uniform ivec3 particleCellCount;
+const float epsilon = 0.00001;
+
+
+ivec3 getParticleCellIndexVec(vec3 position) {
+	ivec3 index = ivec3(position / smoothingSphereR);
+	return clamp(index, ivec3(0), particleCellCount - 1);
+}
+
+int getParticleCellIndex(ivec3 cellIndex) {
+	return cellIndex.x + cellIndex.y * particleCellCount.x + cellIndex.z * particleCellCount.x * particleCellCount.y;
+}
+
+float gaussianWeight(float d, float R) {
+    return exp(-0.5 * (d * d) / (R * R));
+}
+
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= particleGradientData.length()) {
+		return;
+	}
+
+	ParticleGradientData particle = particleGradientData[index];
+	ivec3 cellIndex = getParticleCellIndexVec(particle.position.xyz);
+	vec3 gradient = vec3(0.0);
+	float totalWeight = 0.0;
+	vec3 position = particle.position.xyz;
+    
+    // Loop over the cellIndex and the 26 neighboring cells
+	for (int z = -1; z <= 1; z++) {
+		if(cellIndex.z + z < 0 || cellIndex.z + z >= particleCellCount.z) {
+			continue;
+		}
+		for (int y = -1; y <= 1; y++) {
+			if(cellIndex.y + y < 0 || cellIndex.y + y >= particleCellCount.y) {
+				continue;
+			}
+			for (int x = -1; x <= 1; x++) {
+				if(cellIndex.x + x < 0 || cellIndex.x + x >= particleCellCount.x) {
+					continue;
+				}
+				ivec3 neighborCellIndex = cellIndex + ivec3(x, y, z);
+				int neighborCellIndexInt = getParticleCellIndex(neighborCellIndex);
+				ParticleIndexList neighborParticleIndexList = particleIndexList[neighborCellIndexInt];
+				for(int i = 0; i < neighborParticleIndexList.indexCount; i++) {
+					int neighborIndex = neighborParticleIndexList.indices[i];
+					ParticleGradientData neighborParticle = particleGradientData[neighborIndex];
+					vec3 gradientAbs = abs(neighborParticle.gradient.xyz);
+					if(gradientAbs.x < epsilon && gradientAbs.y < epsilon && gradientAbs.z < epsilon) {
+						continue;
+					}
+					vec3 neighborPosition = neighborParticle.position.xyz;
+					vec3 diff = position - neighborPosition;
+					float d = length(diff);
+					if (d < smoothingSphereR) {
+						float weight = gaussianWeight(d, smoothingSphereR);
+						gradient += neighborParticle.gradient.xyz * weight;
+						totalWeight += weight;
+					}
+				}
+			}
+		}
+	}
+		
+    // Normalize by total weight to get the weighted average
+    if (totalWeight > 0.0) {
+        gradient /= totalWeight;
+    }
+
+	gradientArray[index] = vec4(gradient, 0.0);
+}

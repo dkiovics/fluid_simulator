@@ -70,11 +70,12 @@ void main() {
 		gl_Position = vec4(10000.0, 10000.0, 10000.0, 1.0);
         return;
 	}
-	vec4 rotationQuat = getRotationQuaternion(vec3(0.0, 1.0, 0.0), data.gradient.xyz);
+    vec3 normalizedGradient = normalize(data.gradient.xyz);
+	vec4 rotationQuat = getRotationQuaternion(vec3(0.0, 1.0, 0.0), normalizedGradient);
 
     vec3 transformedVertex = rotateVectorByQuaternion(pos.xyz, rotationQuat);
 
 	gl_Position = camera.projectionMatrix * camera.viewMatrix * vec4(data.position.xyz + transformedVertex, 1.0);
 	worldNormal = vec4(rotateVectorByQuaternion(normal.xyz, rotationQuat), 0.0);
-	color = vec4(data.gradient.xyz, 1.0);
+	color = vec4(normalizedGradient, 1.0);
 }
