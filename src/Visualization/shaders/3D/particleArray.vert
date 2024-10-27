@@ -48,6 +48,7 @@ void main() {
 	if(speedColorEnabled)
 	{
 		float coeff = pow(data.posAndSpeed.w * maxSpeedInv, 0.2);
+		coeff = clamp(coeff, 0.0, 1.0);
 		diffuseColor = vec4(color * (1.0 - coeff) + speedColor * coeff, 1.0);
 	}
 	else

@@ -71,7 +71,7 @@ void main() {
         return;
 	}
     vec3 normalizedGradient = normalize(data.gradient.xyz);
-	vec4 rotationQuat = getRotationQuaternion(vec3(0.0, 1.0, 0.0), normalizedGradient);
+	vec4 rotationQuat = getRotationQuaternion(vec3(0.0, 1.0, 0.0), -normalizedGradient);
 
     vec3 transformedVertex = rotateVectorByQuaternion(pos.xyz, rotationQuat);
 
