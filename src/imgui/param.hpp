@@ -122,6 +122,42 @@ public:
     }
 };
 
+class ParamText : public Param
+{
+public:
+    ParamText(const std::string& name, const std::string& value, size_t bufferSize = 150)
+        : Param(name), value(new char[bufferSize]), bufferSize(bufferSize)
+    {
+        strcpy(this->value, value.c_str());
+    }
+
+    std::string getValue() const
+    {
+        return value;
+    }
+
+    void setValue(const std::string& value)
+    {
+        strcpy(this->value, value.c_str());
+    }
+
+    void show(int) override
+    {
+        ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
+        ImGui::InputText(name.c_str(), value, bufferSize);
+    }
+
+    ~ParamText()
+    {
+        delete[] value;
+    }
+
+private:
+    char* value;
+    const size_t bufferSize;
+
+};
+
 class ParamLine : public ImguiShowable
 {
 public:

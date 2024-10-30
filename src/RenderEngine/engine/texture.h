@@ -35,6 +35,10 @@ public:
 
 	void generateMipmaps() const;
 
+	virtual bool loadImage(const std::string& fileName);
+
+	void storeImage(const std::string& fileName);
+
 	virtual ~Texture();
 
 protected:
@@ -105,6 +109,8 @@ public:
 	void resizeTexture(int width, int height);
 
 	glm::ivec2 getSize() const;
+
+	bool loadImage(const std::string& fileName) override;
 
 protected:
 	/**

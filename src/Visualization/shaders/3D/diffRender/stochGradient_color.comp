@@ -40,9 +40,9 @@ layout(std430, binding = 3) restrict buffer gradientSSBO {
 
 void main(void) {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-	vec4 referenceColor = texelFetch(referenceImage, pos, 0);
-	vec4 plusPertColor = texelFetch(plusPertImage, pos, 0);
-	vec4 minusPertColor = texelFetch(minusPertImage, pos, 0);
+	vec3 referenceColor = texelFetch(referenceImage, pos, 0).xyz;
+	vec3 plusPertColor = texelFetch(plusPertImage, pos, 0).xyz;
+	vec3 minusPertColor = texelFetch(minusPertImage, pos, 0).xyz;
 
 	float positiveError = dot(referenceColor - plusPertColor, referenceColor - plusPertColor);
 	float negativeError = dot(referenceColor - minusPertColor, referenceColor - minusPertColor);

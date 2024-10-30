@@ -10,6 +10,7 @@ visual::DensityControl::DensityControl()
 	addParamLine(ParamLine({ &sampleNum }));
 	addParamLine(ParamLine({ &rollingAvgAlpha }));
 	addParamLine(ParamLine({ &particlePercantageToMove }));
+	addParamLine(ParamLine({ &maxTargetParticleDensity }));
 }
 
 void visual::DensityControl::setParamNum(size_t paramNum)
@@ -60,6 +61,7 @@ void visual::DensityControl::updatePositions(renderer::ssbo_ptr<visual::Particle
 	avgMovement->bindBuffer(0);
 	data->bindBuffer(1);
 	(*updatePositionsCompute)["particleSpread"] = particleSpread.value;
+	(*updatePositionsCompute)["maxTargetParticleDensity"] = maxTargetParticleDensity.value;
 	(*updatePositionsCompute)["seedX"] = float(std::rand()) / RAND_MAX;
 	(*updatePositionsCompute)["seedY"] = float(std::rand()) / RAND_MAX;
 	updatePositionsCompute->dispatchCompute(particlePercantageToMove.value / 100.0f * avgMovement->getSize(), 1, 1);

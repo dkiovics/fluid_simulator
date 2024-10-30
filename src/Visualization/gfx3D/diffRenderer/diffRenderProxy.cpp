@@ -31,6 +31,7 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
 	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
 	addParamLine({ &autoPushApart, &pushApartButton, &backupCameraPos, &restoreCameraPos, &gradientVisualization, &enableGradientSmoothing });
+	addParamLine({ &referenceImageFileName, &loadReferenceImageButton, &storeReferenceImageButton });
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
 	addParamLine(ParamLine({ &arrowDensityThreshold }, &gradientVisualization));
 	addParamLine(ParamLine({ &gradientSmoothingSphereR }, &enableGradientSmoothing));
@@ -57,6 +58,19 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	{
 		renderer3D->render(referenceFramebuffer, data);
 		return;
+	}
+
+	if (loadReferenceImageButton.value)
+	{
+		if (!referenceFramebuffer->getColorAttachments()[0]->loadImage(referenceImageFileName.getValue()))
+		{
+			spdlog::warn("Failed to load image: {}", referenceImageFileName.getValue());
+		}
+	}
+
+	if (storeReferenceImageButton.value)
+	{
+		referenceFramebuffer->getColorAttachments()[0]->storeImage(referenceImageFileName.getValue());
 	}
 
 	bool gradientCalcChanged = false;
@@ -174,8 +188,9 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 
 				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
 
-				if (updateDensities.value)
+				if (updateDensities.value || enableDensityControl.value)
 				{
+					updateDensities.value = true;
 					updateParticleDensities();
 				}
 

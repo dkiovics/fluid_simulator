@@ -25,6 +25,7 @@ layout(std430, binding = 1) restrict buffer particleDataSSBO {
 uniform float particleSpread;
 uniform float seedX;
 uniform float seedY;
+uniform float maxTargetParticleDensity;
 
 float randX(int index){
 	vec2 c = vec2(float(index) / float(avgMovement.length()), seedX);
@@ -37,6 +38,9 @@ float randY(int index){
 }
 
 void moveParticle(int moveIndex, int targetIndex){
+	if(particleData[targetIndex].density.x > maxTargetParticleDensity){
+		return;
+	}
 	vec3 target = particleData[targetIndex].posAndSpeed.xyz;
 	float theta = randX(moveIndex) * 2.0 * 3.14159265359;
 	float phi = (randY(moveIndex) - 0.5) * 3.14159265359;

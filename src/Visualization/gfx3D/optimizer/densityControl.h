@@ -39,6 +39,7 @@ private:
 	ParamInt sampleNum = ParamInt("Sample size", 40, 1, 200);
 	ParamFloat rollingAvgAlpha = ParamFloat("Rolling avg alpha", 0.1f, 0.01f, 1.0f, "%.2f");
 	ParamInt particlePercantageToMove = ParamInt("Particle percantage to move", 12, 1, 40);
+	ParamFloat maxTargetParticleDensity = ParamFloat("Max target particle density", 1.5f, 0.5f, 4.0f, "%.2f");
 	ParamFloat particleSpread = ParamFloat("New particle spread", 0.2f, 0.05f, 1.0f, "%.2f");
 
 	int sampleCount = 0;

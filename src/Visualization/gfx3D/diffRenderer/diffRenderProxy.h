@@ -68,6 +68,9 @@ private:
 	ParamFloat arrowDensityThreshold = ParamFloat("Arrow density threshold", 0.8f, 0.5f, 5.0f);
 	ParamBool enableGradientSmoothing = ParamBool("Enable gradient smoothing", false);
 	ParamFloat gradientSmoothingSphereR = ParamFloat("Gradient smoothing sphere R", 1.5f, 0.8f, 5.0f);
+	ParamText referenceImageFileName = ParamText("Reference image file name", "shaders/", 30);
+	ParamButton loadReferenceImageButton = ParamButton("Load reference image");
+	ParamButton storeReferenceImageButton = ParamButton("Update reference image");
 
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
 	renderer::ssbo_ptr<GradientCalculatorInterface::ParticleGradientData> particleGradientSSBO;
