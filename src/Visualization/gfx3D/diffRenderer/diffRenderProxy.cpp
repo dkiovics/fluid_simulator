@@ -18,9 +18,11 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 
 	particleMovementAbsSSBO = renderer::make_ssbo<float>(1000, GL_DYNAMIC_COPY);
 	particleGradientSSBO = renderer::make_ssbo<GradientCalculatorInterface::ParticleGradientData>(1000, GL_DYNAMIC_COPY);
+	errorValueSSBO = renderer::make_ssbo<float>(1, GL_DYNAMIC_COPY);
 
 	showQuad = std::make_unique<renderer::Square>();
 	showProgram = renderer::make_shader("shaders/3D/util/quad.vert", "shaders/3D/util/quad.frag");
+	errorCompute = renderer::make_compute("shaders/3D/diffRender/errorCalculation.comp");
 	
 	gradientArrowShader = renderer::make_shader("shaders/3D/util/arrow.vert", "shaders/3D/util/arrow.frag");
 	gradientArrows = std::make_unique<renderer::InstancedGeometry>(std::make_shared<renderer::Arrow4>(0.1f, 1.2f, 0.6f));
@@ -31,7 +33,7 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
 	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
 	addParamLine({ &autoPushApart, &pushApartButton, &backupCameraPos, &restoreCameraPos, &gradientVisualization, &enableGradientSmoothing });
-	addParamLine({ &referenceImageFileName, &loadReferenceImageButton, &storeReferenceImageButton });
+	addParamLine({ &referenceImageFileName, &loadReferenceImageButton, &storeReferenceImageButton, &printErrorValue });
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
 	addParamLine(ParamLine({ &arrowDensityThreshold }, &gradientVisualization));
 	addParamLine(ParamLine({ &gradientSmoothingSphereR }, &enableGradientSmoothing));
@@ -157,6 +159,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	}
 	else
 	{
+		bool adamStepHappened = false;
 		auto optimizedParamsSSBO = gradientCalculator->getParticleData();
 		if(adamEnabled.value)
 		{
@@ -171,6 +174,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 
 			if (gradientCalculator->calculateGradient(referenceFramebuffer))
 			{
+				adamStepHappened= true;
 				newFluidParamsNeeded = true;
 
 				gradientCalculator->getParticleGradient(particleGradientSSBO);
@@ -235,6 +239,27 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			gradientArrows->draw();
 		}
 		renderer3D->showBoxFront(framebuffer);
+
+		if (adamStepHappened && printErrorValue.value)
+		{
+			errorValueSSBO->setSize(framebuffer->getSize().y);
+			errorValueSSBO->fillWithZeros();
+			errorValueSSBO->bindBuffer(0);
+			(*errorCompute)["referenceImage"] = *referenceFramebuffer->getColorAttachments()[0];
+			(*errorCompute)["currentImage"] = *framebuffer->getColorAttachments()[0];
+			(*errorCompute)["width"] = framebuffer->getSize().x;
+			errorCompute->dispatchCompute(framebuffer->getSize().y, 1, 1);
+			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+			errorValueSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
+			float sum = 0.0f;
+			for (int i = 0; i < errorValueSSBO->getSize(); i++)
+			{
+				sum += (*errorValueSSBO)[i];
+			}
+			errorValueSSBO->unmapBuffer();
+			std::cout << sum << std::endl;
+		}
+		adamStepHappened = false;
 	}
 }
 

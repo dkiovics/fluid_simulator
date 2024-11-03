@@ -71,11 +71,15 @@ private:
 	ParamText referenceImageFileName = ParamText("Reference image file name", "shaders/", 30);
 	ParamButton loadReferenceImageButton = ParamButton("Load reference image");
 	ParamButton storeReferenceImageButton = ParamButton("Update reference image");
+	ParamBool printErrorValue = ParamBool("Print error value", false);
 
 	renderer::ssbo_ptr<float> particleMovementAbsSSBO;
 	renderer::ssbo_ptr<GradientCalculatorInterface::ParticleGradientData> particleGradientSSBO;
+	renderer::ssbo_ptr<float> errorValueSSBO;
 	bool particleGradientValid = false;
 	bool newFluidParamsNeeded = true;
+
+	renderer::compute_ptr errorCompute;
 
 	std::unique_ptr<renderer::Square> showQuad;
 	std::shared_ptr<renderer::ShaderProgram> showProgram;

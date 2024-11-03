@@ -112,6 +112,7 @@ void startSimulatorGui() {
 
     glm::vec3 obstacleColor(0.9f, 0.6f, 0.2f);
     float obstacleRadius = 8;
+    float meshScale = 1.0f;
     glm::vec3 obstacleSize(8, 8, 8);
 
     float particleSpawnRate = 1600.0f;
@@ -253,9 +254,13 @@ void startSimulatorGui() {
             static char meshPath[128] = "meshes/";
             if (ImGui::Button("Add mesh"))
             {
-                simulatorRenderer->addMeshObstacle(meshPath, obstacleColor, obstacleRadius);
+                simulatorRenderer->addMeshObstacle(meshPath, obstacleColor, meshScale);
             }
             ImGui::SameLine();
+            ImGui::SetNextItemWidth(screenWidth * 0.25f);
+            ImGui::SliderFloat("Mesh scale", &meshScale, 0.01f, 8.0f);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(screenWidth * 0.1f);
             ImGui::InputText("Mesh path", meshPath, IM_ARRAYSIZE(meshPath));
 
             ImGui::ColorEdit3("color", (float*)&obstacleColor, ImGuiColorEditFlags_NoInputs);

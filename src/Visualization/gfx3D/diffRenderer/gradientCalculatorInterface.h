@@ -139,7 +139,7 @@ public:
 protected:
 	ParamBool useDepthImage = ParamBool("Use depth image", false);
 	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
-	ParamInt gradientSampleNum = ParamInt("Gradient sample size", 10, 1, 100);
+	ParamInt gradientSampleNum = ParamInt("Gradient sample size", 15, 1, 100);
 
 	renderer::RenderEngine& renderEngine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> manager;
