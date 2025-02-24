@@ -1,0 +1,86 @@
+#version 460 core
+#extension GL_NV_shader_atomic_float : enable
+precision highp float;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+uniform ivec2 screenSize;
+uniform float depthErrorScale;
+
+uniform sampler2D referenceImage;
+uniform sampler2D plusPertImage;
+uniform sampler2D minusPertImage;
+
+struct ParticleData {
+    vec4 posAndSpeed;
+	vec4 density;
+};
+
+struct FragmentParam {
+	int paramNum;
+	int paramIndexes[40];
+};
+
+layout(std430, binding = 0) restrict readonly buffer paramNegativeOffsetsSSBO {
+	ParticleData paramNegativeOffsets[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer paramPositiveOffsetsSSBO {
+	ParticleData paramPositiveOffsets[];
+};
+
+layout(std430, binding = 2) restrict readonly buffer pixelParamsSSBO {
+	FragmentParam pixelParams[];
+};
+
+layout(std430, binding = 3) restrict buffer gradientSSBO {
+	float gradient[];
+};
+
+uniform struct{
+    mat4 viewMatrix;
+	mat4 viewMatrixInverse;
+	mat4 projectionMatrix;
+	mat4 projectionMatrixInverse;
+    vec4 position;
+} camera;
+
+
+vec3 uvToEye(vec2 texCoord, float depth) {
+	vec4 ndc = vec4(texCoord * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+	vec4 eyeSpacePos = camera.projectionMatrixInverse * ndc;
+	return eyeSpacePos.xyz / eyeSpacePos.w;
+}
+
+
+void main(void) {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	vec2 texCoord = vec2(pos) / vec2(screenSize) + 0.5 / vec2(screenSize);
+
+	float referenceDepth = texelFetch(referenceImage, pos, 0).r;
+	float plusPertDepth = texelFetch(plusPertImage, pos, 0).r;
+	float minusPertDepth = texelFetch(minusPertImage, pos, 0).r;
+
+	float positiveError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, plusPertDepth).z) * depthErrorScale;
+	float negativeError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, minusPertDepth).z) * depthErrorScale;
+	positiveError = positiveError * positiveError;
+	negativeError = negativeError * negativeError;
+
+	int index = pos.y * screenSize.x + pos.x;
+	FragmentParam contributingParam = pixelParams[index];
+
+	for(int p = 0; p < contributingParam.paramNum; p++)
+	{
+		int contributingParamIndex = contributingParam.paramIndexes[p];
+		vec4 signedPerturbation = paramPositiveOffsets[contributingParamIndex].posAndSpeed - paramNegativeOffsets[contributingParamIndex].posAndSpeed;
+
+		if(signedPerturbation.x != 0.0)
+			atomicAdd(gradient[contributingParamIndex * 4], (positiveError - negativeError) / signedPerturbation.x);
+		if(signedPerturbation.y != 0.0)
+			atomicAdd(gradient[contributingParamIndex * 4 + 1], (positiveError - negativeError) / signedPerturbation.y);
+		if(signedPerturbation.z != 0.0)
+			atomicAdd(gradient[contributingParamIndex * 4 + 2], (positiveError - negativeError) / signedPerturbation.z);
+		if(signedPerturbation.w != 0.0)
+			atomicAdd(gradient[contributingParamIndex * 4 + 3], (positiveError - negativeError) / signedPerturbation.w);
+	}
+}

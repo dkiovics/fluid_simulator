@@ -1,6 +1,7 @@
 #include "macGrid.h"
 #include <iostream>
 #include "../util/compTimeForLoop.h"
+#include <spdlog/spdlog.h>
 
 using namespace genericfsim::macgrid;
 using namespace genericfsim::obstacle;
@@ -54,6 +55,25 @@ void MacGrid::forEachCell(bool parallel, bool includeBorders, std::function<void
 			}
 		}
 	}
+}
+
+void MacGrid::backupGrid()
+{
+	rawCellsCopy = rawCells;
+	fluidCellPositionsCopy = fluidCellPositions;
+}
+
+void MacGrid::restoreGrid()
+{
+	if (rawCellsCopy.size() != rawCells.size())
+	{
+		spdlog::warn("MacGrid::restoreGrid() - rawCellsCopy size is different from rawCells size -> no action performed");
+		return;
+	}
+	rawCells = rawCellsCopy;
+	fluidCellPositions = fluidCellPositionsCopy;
+	rawCellsCopy.clear();
+	fluidCellPositionsCopy.clear();
 }
 
 void MacGrid::forEachFluidCell(bool parallel, std::function<void(glm::ivec3 pos, MacGridCell&)>&& lambda) {

@@ -1,0 +1,18 @@
+#version 460 compatibility
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) restrict buffer gradientSSBO {
+	float gradient[];
+};
+
+uniform float gradientMult;
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= gradient.length()) {
+		return;
+	}
+
+	gradient[index] *= gradientMult;
+}

@@ -6,6 +6,7 @@
 #include <functional>
 #include <utility>
 #include <atomic>
+#include <memory>
 #include "macGridCell.h"
 #include "obstacles.hpp"
 #include "../util/glmExtraOps.h"
@@ -26,9 +27,6 @@ public:
 	 * \param twoD - the grid beacomes 2D (in the z direction it only consists of 3 cells)
 	 */
 	MacGrid(glm::dvec3 targetDimensions, double resolution, bool twoD);
-	
-	MacGrid(const MacGrid&) = delete;
-	MacGrid(const MacGrid&&) = delete;
 
 	/**
 	 * Returns all 8 faces closest to a point in space.
@@ -164,6 +162,12 @@ public:
 	 */
 	virtual int solveIncompressibility(bool parallel, double dt) = 0;
 
+	virtual std::shared_ptr<MacGrid> clone() const = 0;
+
+	void backupGrid();
+
+	void restoreGrid();
+
 public:
 	const glm::dvec3 cellD;
 	const glm::dvec3 cellDInv;
@@ -186,7 +190,9 @@ protected:
 	const int cellCount;
 
 	std::vector<MacGridCell> rawCells;
+	std::vector<MacGridCell> rawCellsCopy;
 	std::vector<glm::ivec3> fluidCellPositions;
+	std::vector<glm::ivec3> fluidCellPositionsCopy;
 
 private:
 	void initNewGrid();

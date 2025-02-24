@@ -95,7 +95,7 @@ public:
 	}
 
 protected:
-	void setUniformsGlobal(const ShaderProgram& program) const override
+	void setUniformsGlobal(const GpuProgram& program) const override
 	{
 		setUniforms(program);
 	}

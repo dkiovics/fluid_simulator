@@ -1,0 +1,43 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 19) restrict readonly buffer gradientArraySSBO {
+	float gradientArray[];
+};
+
+layout(std430, binding = 12) restrict buffer optimizedParticleDataSSBO {
+	float optimizedParticleData[];
+};
+
+layout(std430, binding = 13) restrict buffer mVecSSBO {
+	float mVec[];
+};
+
+layout(std430, binding = 14) restrict buffer vVecSSBO {
+	float vVec[];
+};
+
+uniform float alpha;
+uniform float beta1;
+uniform float beta2;
+uniform float epsilon;
+uniform float t;
+
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= gradientArray.length()) {
+		return;
+	}
+
+	float gradient = gradientArray[index];
+	float m = beta1 * mVec[index] + (1.0 - beta1) * gradient;
+	float v = beta2 * vVec[index] + (1.0 - beta2) * gradient * gradient;
+	float mHat = m / (1.0 - pow(beta1, t));
+	float vHat = v / (1.0 - pow(beta2, t));
+	optimizedParticleData[index] -= alpha * mHat / (sqrt(vHat) + epsilon);
+	mVec[index] = m;
+	vVec[index] = v;
+}

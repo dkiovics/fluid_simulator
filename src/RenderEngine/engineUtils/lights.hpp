@@ -30,7 +30,7 @@ class Lights : public UniformProvider, public UniformGathererGlobal
 public:
 	std::vector<std::unique_ptr<Light>> lights;
 
-	void setUniforms(const renderer::ShaderProgram& program, const std::string&) const override {
+	void setUniforms(const renderer::GpuProgram& program, const std::string&) const override {
 		program["lightNum"] = (int)lights.size();
 		for (int p = 0; p < lights.size(); p++) {
 			lights[p]->setUniforms(program, "lights[" + std::to_string(p) + "].");
@@ -43,7 +43,7 @@ public:
 	}
 
 protected:
-	void setUniformsGlobal(const ShaderProgram& program) const override
+	void setUniformsGlobal(const GpuProgram& program) const override
 	{
 		setUniforms(program, "");
 	}

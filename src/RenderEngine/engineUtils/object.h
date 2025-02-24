@@ -27,9 +27,9 @@ public:
 	u_var(colorTexture, Texture);
 
 	std::shared_ptr<R> drawable;
-	std::shared_ptr<ShaderProgram> shaderProgram;
+	std::shared_ptr<GpuProgram> shaderProgram;
 
-	Object(std::shared_ptr<R> drawable, std::shared_ptr<ShaderProgram> program)
+	Object(std::shared_ptr<R> drawable, std::shared_ptr<GpuProgram> program)
 		: UniformGatherer("object.", true, diffuseColor, colorTextureScale, colorTexture, modelMatrix, modelMatrixInverse),
 		drawable(drawable), shaderProgram(program) 
 	{
@@ -117,7 +117,7 @@ template<typename R = Drawable>
 class Object2D : public Object<R>
 {
 public:
-	Object2D(std::shared_ptr<R> drawable, std::shared_ptr<ShaderProgram> program)
+	Object2D(std::shared_ptr<R> drawable, std::shared_ptr<GpuProgram> program)
 		: Object<R>(drawable, program) { }
 
 protected:
@@ -128,7 +128,7 @@ template<typename R = Drawable>
 class Object3D : public Object<R>
 {
 public:
-	Object3D(std::shared_ptr<R> drawable, std::shared_ptr<ShaderProgram> program)
+	Object3D(std::shared_ptr<R> drawable, std::shared_ptr<GpuProgram> program)
 		: Object<R>(drawable, program)
 	{
 		Object<R>::addUniform(specularColor, shininess);

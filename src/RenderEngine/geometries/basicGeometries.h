@@ -51,5 +51,14 @@ public:
 	Sphere(int vertexNum);
 };
 
+class Arrow4 : public Geometry
+{
+public:
+	/**
+	 * \brief Creates a 4 sided arrow pointing upwards and with its bottom in the origo.
+	 */
+	Arrow4(float width, float baseHeight, float tipHeight);
+};
+
 } // namespace renderer
 

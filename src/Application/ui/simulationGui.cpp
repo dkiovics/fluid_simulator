@@ -6,12 +6,14 @@
 #include <stdio.h>
 #define GL_SILENCE_DEPRECATION
 #include <GLFW/glfw3.h>
-#include "../gfx/gfx2D/simulationGfx2D.hpp"
-#include "../gfx/gfx3D/simulationGfx3D.h"
-#include "../gfx/gfxInterface.hpp"
+#include <chrono>
+#include <gfx2D/simulationGfx2D.hpp>
+#include <gfx3D/simulationGfx3DController.h>
+#include <gfxInterface/gfxInterface.hpp>
 #include "manager/simulationManager.h"
 #include "simParamsAdvanced.h"
-#include <chrono>
+
+using namespace visual;
 
 using namespace genericfsim::manager;
 using CellType = genericfsim::macgrid::MacGridCell::CellType;
@@ -31,10 +33,10 @@ void startSimulatorGui() {
     config2D.gridResolution = 3.577;
     config2D.incompressibilityIterationCount = 80;
     config2D.isTopOfContainerSolid = false;
-    config2D.particleRadius = 0.051;
+    config2D.particleRadius = 0.069;
     config2D.pressureEnabled = true;
     config2D.pressureK = 1.203;
-    config2D.simulatorConfig.flipRatio = 0.923;
+    config2D.simulatorConfig.flipRatio = 0.912;
     config2D.simulatorConfig.gravity = -176.37;
     config2D.simulatorConfig.gravityEnabled = true;
     config2D.simulatorConfig.pushApartEnabled = true;
@@ -85,7 +87,7 @@ void startSimulatorGui() {
 
     bool renderer2D = false;
     bool simulation2D = false;
-    std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 200000);
+    std::unique_ptr<GfxInterface> simulatorRenderer = std::make_unique<SimulationGfx3DController>(engine, simulationManager, glm::ivec2(0, 0), glm::ivec2(1000, 1000), 200000);
 
     simulationManager->startSimulation();
 
@@ -98,7 +100,7 @@ void startSimulatorGui() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    bool runSimulation = true;
+    bool runSimulation = false;
     bool stepSimulation = false;
     bool autodt = true;
     float simdt = 0.02f;
@@ -110,6 +112,7 @@ void startSimulatorGui() {
 
     glm::vec3 obstacleColor(0.9f, 0.6f, 0.2f);
     float obstacleRadius = 8;
+    float meshScale = 1.0f;
     glm::vec3 obstacleSize(8, 8, 8);
 
     float particleSpawnRate = 1600.0f;
@@ -195,8 +198,8 @@ void startSimulatorGui() {
                     simulatorRenderer = std::make_unique<SimulationGfx2D>(engine, simulationManager, 200000);
                     simulationManager->setObstacles(std::vector<std::unique_ptr<Obstacle>>());
                 }
-                else if (!renderer2D && dynamic_cast<SimulationGfx3D*>(simulatorRenderer.get()) == nullptr) {
-                    simulatorRenderer = std::make_unique<SimulationGfx3D>(engine, simulationManager, simStart, simSize, 200000);
+                else if (!renderer2D && dynamic_cast<SimulationGfx3DController*>(simulatorRenderer.get()) == nullptr) {
+                    simulatorRenderer = std::make_unique<SimulationGfx3DController>(engine, simulationManager, simStart, simSize, 200000);
                     simulationManager->setObstacles(std::vector<std::unique_ptr<Obstacle>>());
                 }
                 else if (newSimManager) {
@@ -234,7 +237,7 @@ void startSimulatorGui() {
             if (ImGui::Button("Add rectangle")) {
                 simulatorRenderer->addRectengularObstacle(obstacleColor, obstacleSize);
             }
-            if (SimulationGfx3D* renderer3D = dynamic_cast<SimulationGfx3D*>(simulatorRenderer.get())) {
+            if (SimulationGfx3DController* renderer3D = dynamic_cast<SimulationGfx3DController*>(simulatorRenderer.get())) {
                 ImGui::SameLine();
                 if (ImGui::Button("Add particle source")) {
                     renderer3D->addParticleSource(obstacleColor, obstacleRadius, particleSpawnRate, particleSpawnSpeed);
@@ -248,6 +251,17 @@ void startSimulatorGui() {
             if (ImGui::Button("Remove")) {
                 simulatorRenderer->removeObstacle();
             }
+            static char meshPath[128] = "meshes/";
+            if (ImGui::Button("Add mesh"))
+            {
+                simulatorRenderer->addMeshObstacle(meshPath, obstacleColor, meshScale);
+            }
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(screenWidth * 0.25f);
+            ImGui::SliderFloat("Mesh scale", &meshScale, 0.01f, 8.0f);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(screenWidth * 0.1f);
+            ImGui::InputText("Mesh path", meshPath, IM_ARRAYSIZE(meshPath));
 
             ImGui::ColorEdit3("color", (float*)&obstacleColor, ImGuiColorEditFlags_NoInputs);
             ImGui::SameLine();
@@ -278,7 +292,6 @@ void startSimulatorGui() {
             }
 
             if (SimulationGfx2D* renderer2D = dynamic_cast<SimulationGfx2D*>(simulatorRenderer.get())) {
-                ImGui::SameLine(0, 30);
                 ImGui::RadioButton("Cell", &inspectionMode, 0);
                 ImGui::SameLine();
                 ImGui::RadioButton("Particle", &inspectionMode, 1);

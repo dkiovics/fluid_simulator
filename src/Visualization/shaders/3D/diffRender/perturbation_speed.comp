@@ -1,0 +1,69 @@
+#version 460 compatibility
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+uniform int seed;
+
+struct ParticleShaderDataSpeed
+{
+	vec4 speed;
+};
+
+layout(std430, binding = 0) restrict buffer optimizedParametersSSBO {
+	float optimizedParameters[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer perturbationPresetsSSBO {
+	ParticleShaderDataSpeed perturbationPresets[];
+};
+
+layout(std430, binding = 2) restrict writeonly buffer negativeOffsetsSSBO {
+	float negativeOffsets[];
+};
+
+layout(std430, binding = 3) restrict writeonly buffer positiveOffsetsSSBO {
+	float positiveOffsets[];
+};
+
+uvec4 pcg4d(uvec4 v) {
+	v = v * 1664525u + 1013904223u;
+	v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
+	v ^= v >> 16u;
+	v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
+	return v;
+}
+
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= perturbationPresets.length()) {
+		return;
+	}
+
+	unsigned int offset = index * 4;
+
+	ParticleShaderDataSpeed parameter = ParticleShaderDataSpeed(vec4(optimizedParameters[offset], 
+			optimizedParameters[offset + 1], optimizedParameters[offset + 2], optimizedParameters[offset + 3]));
+	ParticleShaderDataSpeed perturbation = perturbationPresets[index];
+
+	uvec4 perturbationSign = pcg4d(uvec4(seed * index, 2 * seed * index, 3 * seed * index, 4 * seed * index));
+
+	ParticleShaderDataSpeed negativeData = parameter;
+	ParticleShaderDataSpeed positiveData = parameter;
+	
+	vec4 signs = vec4(perturbationSign.x % 2 == 0 ? 1.0 : -1.0, perturbationSign.y % 2 == 0 ? 1.0 : -1.0,
+						perturbationSign.z % 2 == 0 ? 1.0 : -1.0, perturbationSign.w % 2 == 0 ? 1.0 : -1.0);
+
+	negativeData.speed -= perturbation.speed * signs;
+	positiveData.speed += perturbation.speed * signs;
+
+	negativeOffsets[offset] = negativeData.speed.x;
+	negativeOffsets[offset + 1] = negativeData.speed.y;
+	negativeOffsets[offset + 2] = negativeData.speed.z;
+	negativeOffsets[offset + 3] = negativeData.speed.w;
+
+	positiveOffsets[offset] = positiveData.speed.x;
+	positiveOffsets[offset + 1] = positiveData.speed.y;
+	positiveOffsets[offset + 2] = positiveData.speed.z;
+	positiveOffsets[offset + 3] = positiveData.speed.w;
+}

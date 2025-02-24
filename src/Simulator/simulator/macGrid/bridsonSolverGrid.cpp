@@ -326,3 +326,8 @@ void BridsonSolverGrid::applyPressureToVelocities(bool parallel, double dt, cons
 	});
 }
 
+std::shared_ptr<MacGrid> BridsonSolverGrid::clone() const
+{
+	return std::make_shared<BridsonSolverGrid>(*this);
+}
+

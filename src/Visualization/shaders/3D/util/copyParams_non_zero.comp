@@ -1,0 +1,27 @@
+#version 460 compatibility
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+uniform isampler2D paramTexture;
+uniform ivec2 screenSize;
+
+struct FragmentParam {
+	int paramNum;
+	int paramIndexes[40];
+};
+
+layout(std430, binding = 30) restrict writeonly buffer pixelParamsSSBO {
+	FragmentParam pixelParams[];
+};
+
+
+void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	int id = texelFetch(paramTexture, pos, 0).r;
+	int index = pos.y * screenSize.x + pos.x;
+	if(id == -1) {
+		return;
+	}
+	pixelParams[index].paramNum = 1;
+	pixelParams[index].paramIndexes[0] = id;
+}

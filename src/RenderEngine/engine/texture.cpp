@@ -5,6 +5,8 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image/stb_image_write.h>
 
 std::map<GLFWwindow*, std::set<GLint>> renderer::Texture::availableTexSamplersPerContext;
 std::mutex renderer::Texture::availableTexSamplersMutex;
@@ -53,6 +55,42 @@ void renderer::Texture::generateMipmaps() const
 	bindTexture();
 	glGenerateMipmap(GL_TEXTURE_2D);
 	unbindTexture();
+}
+
+bool renderer::Texture::loadImage(const std::string& fileName)
+{
+	bindTexture();
+	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	else
+	{
+		unbindTexture();
+		stbi_image_free(data);
+		return false;
+	}
+	unbindTexture();
+	spdlog::debug("Image loaded for texture with id: {}", textureId);
+	return true;
+}
+
+void renderer::Texture::storeImage(const std::string& fileName)
+{
+	bindTexture();
+	int width, height;
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+	unsigned char* data = new unsigned char[width * height * 4];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	stbi_flip_vertically_on_write(true);
+	stbi_write_png(fileName.c_str(), width, height, 3, data, width * 3);
+	delete[] data;
+	unbindTexture();
+	spdlog::debug("Image stored for texture with id: {}", textureId);
 }
 
 renderer::Texture::~Texture()
@@ -135,4 +173,25 @@ void renderer::RenderTargetTexture::resizeTexture(int width, int height)
 glm::ivec2 renderer::RenderTargetTexture::getSize() const
 {
 	return size;
+}
+
+bool renderer::RenderTargetTexture::loadImage(const std::string& fileName)
+{
+	bindTexture();
+	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+	if (data && width == size.x && height == size.y)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	else
+	{
+		unbindTexture();
+		stbi_image_free(data);
+		return false;
+	}
+	unbindTexture();
+	spdlog::debug("Image loaded for texture with id: {}", getTextureId());
+	return true;
 }

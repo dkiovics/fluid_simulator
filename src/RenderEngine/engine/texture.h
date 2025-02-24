@@ -35,6 +35,10 @@ public:
 
 	void generateMipmaps() const;
 
+	virtual bool loadImage(const std::string& fileName);
+
+	void storeImage(const std::string& fileName);
+
 	virtual ~Texture();
 
 protected:
@@ -106,6 +110,8 @@ public:
 
 	glm::ivec2 getSize() const;
 
+	bool loadImage(const std::string& fileName) override;
+
 protected:
 	/**
 	 * Mock override function to make the class instantiable.
@@ -120,6 +126,19 @@ private:
 	const GLint format;
 	const GLint dataType;
 };
+
+typedef std::shared_ptr<ColorTexture> color_ptr;
+inline color_ptr make_color(const std::string& textureFileName, GLint minSampler, GLint magSampler, bool tiling = true)
+{
+	return std::make_shared<ColorTexture>(textureFileName, minSampler, magSampler, tiling);
+}
+
+typedef std::shared_ptr<RenderTargetTexture> render_target_ptr;
+inline render_target_ptr make_render_target(int width, int height, GLint minSampler = GL_NEAREST, GLint magSampler = GL_NEAREST,
+	GLint internalFormat = GL_RGBA32F, GLint format = GL_RGBA, GLint dataType = GL_FLOAT)
+{
+	return std::make_shared<RenderTargetTexture>(width, height, minSampler, magSampler, internalFormat, format, dataType);
+}
 
 } // namespace renderer
 
