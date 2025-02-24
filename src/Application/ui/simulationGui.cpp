@@ -33,10 +33,10 @@ void startSimulatorGui() {
     config2D.gridResolution = 3.577;
     config2D.incompressibilityIterationCount = 80;
     config2D.isTopOfContainerSolid = false;
-    config2D.particleRadius = 0.051;
+    config2D.particleRadius = 0.069;
     config2D.pressureEnabled = true;
     config2D.pressureK = 1.203;
-    config2D.simulatorConfig.flipRatio = 0.923;
+    config2D.simulatorConfig.flipRatio = 0.912;
     config2D.simulatorConfig.gravity = -176.37;
     config2D.simulatorConfig.gravityEnabled = true;
     config2D.simulatorConfig.pushApartEnabled = true;
@@ -100,7 +100,7 @@ void startSimulatorGui() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    bool runSimulation = true;
+    bool runSimulation = false;
     bool stepSimulation = false;
     bool autodt = true;
     float simdt = 0.02f;
@@ -292,7 +292,6 @@ void startSimulatorGui() {
             }
 
             if (SimulationGfx2D* renderer2D = dynamic_cast<SimulationGfx2D*>(simulatorRenderer.get())) {
-                ImGui::SameLine(0, 30);
                 ImGui::RadioButton("Cell", &inspectionMode, 0);
                 ImGui::SameLine();
                 ImGui::RadioButton("Particle", &inspectionMode, 1);

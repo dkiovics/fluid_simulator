@@ -36,7 +36,7 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Rende
 	planeGfx->setScale(glm::vec3(200, 200, 1));
 	planeGfx->setPitch(PI * 0.5f);
 
-	transparentBox = std::make_unique<TransparentBox>(camera, glm::vec4(0.5, 0.5, 0.65, 0.2), shaderProgramNotTextured);
+	transparentBox = std::make_unique<TransparentBox>(camera, glm::vec4(0.5, 0.5, 0.65, 0.3), shaderProgramNotTextured);
 
 	camera->addProgram({ shaderProgramTextured, shaderProgramNotTextured, particleProgram, particleProgram_id });
 	lights->addProgram({ shaderProgramTextured, shaderProgramNotTextured, particleProgram, particleProgram_id });

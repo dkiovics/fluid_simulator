@@ -160,6 +160,8 @@ public:
 			c = glm::vec4(particleColor.value, 1.0);
 		}
 
+		maxParticleSpeed.value = 98.0f;
+
 		auto dimensions = simulator->getDimensions();
 		camera = std::make_shared<renderer::Camera2D>(glm::vec2(dimensions.x, dimensions.y), glm::vec2(dimensions.x, dimensions.y) * 0.5f);
 

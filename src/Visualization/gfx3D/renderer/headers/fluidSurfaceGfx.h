@@ -30,11 +30,11 @@ public:
 	void setConfigData(const ConfigData3D& config) override;
 
 	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0, 0.4, 0.95));
-	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", false);
+	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", true);
 	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 1.7f, 0.01f, 6.0f);
 	ParamFloat blurScale = ParamFloat("Blur scale", 0.06f, 0.01f, 0.4f);
 	ParamFloat blurDepthFalloff = ParamFloat("Blur depth falloff", 1900.0f, 100.0f, 10000.0f);
-	ParamBool sprayEnabled = ParamBool("Spray", false);
+	ParamBool sprayEnabled = ParamBool("Spray", true);
 	ParamFloat sprayDensityThreashold = ParamFloat("Spray density threashold", 1.2f, 0.0f, 10.0f);
 
 	ParamBool fluidTransparencyEnabled = ParamBool("Transparent fluid", false);
