@@ -313,7 +313,7 @@ Cube::Cube() : Geometry(GL_TRIANGLES)
 	};
 
 	createVbo(vertexes, attributes);
-	setVertexNum(vertexes.size());
+	setVertexNum((GLsizei)vertexes.size());
 }
 
 Sphere::Sphere(int vertexNum) : Geometry(GL_TRIANGLES)
@@ -342,7 +342,7 @@ Sphere::Sphere(int vertexNum) : Geometry(GL_TRIANGLES)
 	}
 	vertexes.push_back({ {0,1,0,1}, {0,1,0,0}, {0.0,0.0} });
 
-	int num = vertexes.size() - 1;
+	int num = (int)vertexes.size() - 1;
 
 	for (int p = 0; p < circleNum; p++)
 	{
@@ -636,6 +636,6 @@ renderer::Arrow4::Arrow4(float width, float baseHeight, float tipHeight) : Geome
 	};
 
 	createVbo(vertexes, attributes);
-	setVertexNum(vertexes.size());
+	setVertexNum((int)vertexes.size());
 
 }

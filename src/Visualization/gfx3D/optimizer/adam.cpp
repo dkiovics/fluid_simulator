@@ -18,9 +18,9 @@ void visual::AdamOptimizer::setParamNum(size_t paramNum)
 {
 	if (!optimizedData || optimizedData->getSize() != paramNum)
 	{
-		optimizedData = renderer::make_ssbo<float>(paramNum, GL_DYNAMIC_COPY);
-		mVec = renderer::make_ssbo<float>(paramNum, GL_DYNAMIC_COPY);
-		vVec = renderer::make_ssbo<float>(paramNum, GL_DYNAMIC_COPY);
+		optimizedData = renderer::make_ssbo<float>((uint32_t)paramNum, GL_DYNAMIC_COPY);
+		mVec = renderer::make_ssbo<float>((uint32_t)paramNum, GL_DYNAMIC_COPY);
+		vVec = renderer::make_ssbo<float>((uint32_t)paramNum, GL_DYNAMIC_COPY);
 	}
 }
 

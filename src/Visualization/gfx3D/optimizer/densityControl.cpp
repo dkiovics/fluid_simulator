@@ -17,7 +17,7 @@ void visual::DensityControl::setParamNum(size_t paramNum)
 {
 	if (!avgMovement || avgMovement->getSize() != paramNum)
 	{
-		avgMovement = renderer::make_ssbo<AvgMovement>(paramNum, GL_DYNAMIC_COPY);
+		avgMovement = renderer::make_ssbo<AvgMovement>((unsigned int)paramNum, GL_DYNAMIC_COPY);
 	}
 	reset();
 }
@@ -64,7 +64,7 @@ void visual::DensityControl::updatePositions(renderer::ssbo_ptr<visual::Particle
 	(*updatePositionsCompute)["maxTargetParticleDensity"] = maxTargetParticleDensity.value;
 	(*updatePositionsCompute)["seedX"] = float(std::rand()) / RAND_MAX;
 	(*updatePositionsCompute)["seedY"] = float(std::rand()) / RAND_MAX;
-	updatePositionsCompute->dispatchCompute(particlePercantageToMove.value / 100.0f * avgMovement->getSize(), 1, 1);
+	updatePositionsCompute->dispatchCompute(GLuint(particlePercantageToMove.value / 100.0f * avgMovement->getSize()), 1, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	reset();
 }

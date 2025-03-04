@@ -142,7 +142,7 @@ SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::W
 
 	shaderProgramNotTextured = std::make_shared<renderer::ShaderProgram>("shaders/3D/3D_object.vert", "shaders/3D/3D_object_not_textured.frag");
 
-	camera = std::make_unique<renderer::Camera3D>(glm::vec3(10, 10, 0), 40, float(screenSize.x) / screenSize.y);
+	camera = std::make_unique<renderer::Camera3D>(glm::vec3(10.0f, 10.0f, 0.0f), 40.0f, float(screenSize.x) / screenSize.y);
 	camera->rotateAroundPoint(modelRotationPoint, cameraDistance, -20, 40);
 
 	lights = std::make_shared<renderer::Lights>();
@@ -192,7 +192,7 @@ void SimulationGfx3DController::handleTimePassed(double dt)
 	glm::vec3 forward = camera->getFrontVec();
 	forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
 	glm::vec3 right = camera->getRightVec();
-	const float movementSpeed = dt * 20.0f;
+	const float movementSpeed = (float)dt * 20.0f;
 	if (keys[GLFW_KEY_W])
 		camera->move(forward * movementSpeed);
 	if (keys[GLFW_KEY_A])
@@ -274,7 +274,7 @@ void SimulationGfx3DController::addMeshObstacle(const std::string& path, glm::ve
 void SimulationGfx3DController::removeObstacle()
 {
 	if (lastSelectedObstacle == -1)
-		lastSelectedObstacle = obstacleGfxArray.size() - 1;
+		lastSelectedObstacle = (int)obstacleGfxArray.size() - 1;
 	if (lastSelectedObstacle == -1)
 		return;
 	auto obstacles = simulationManager->getObstacles();
@@ -388,7 +388,7 @@ void SimulationGfx3DController::render()
 	auto data = simulationManager->getParticleGfxData();
 	if (!particleData || particleData->getSize() != data.size())
 	{
-		particleData = renderer::make_ssbo<ParticleShaderData>(data.size(), GL_DYNAMIC_DRAW);
+		particleData = renderer::make_ssbo<ParticleShaderData>((uint32_t)data.size(), GL_DYNAMIC_DRAW);
 	}
 	camera->setAspectRatio(float(screenSize.x) / screenSize.y);
 

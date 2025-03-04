@@ -33,7 +33,7 @@ inline double getDoubleInRange(double min, double max) {
  * \return - random double
  */
 inline int getIntInRange(int min, int max) {
-	return min + (max - min) * (double(std::rand()) / (RAND_MAX + 1));
+	return int(min + (max - min) * (double(std::rand()) / (RAND_MAX + 1)));
 }
 
 }

@@ -29,8 +29,8 @@ public:
 	 */
 	struct SimulatorConfig {
 		P2G2PType transferType = P2G2PType::FLIP;
-		float flipRatio = 0.99;
-		float gravity = 150.0;
+		float flipRatio = 0.99f;
+		float gravity = 150.0f;
 		bool gravityEnabled = true, pushParticlesApartEnabled = true;
 		bool pushApartEnabled = true;
 		bool particleSpawningEnabled = false;

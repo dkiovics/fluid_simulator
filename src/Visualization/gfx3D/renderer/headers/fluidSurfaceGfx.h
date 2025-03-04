@@ -29,7 +29,7 @@ public:
 
 	void setConfigData(const ConfigData3D& config) override;
 
-	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0, 0.4, 0.95));
+	ParamColor particleColor = ParamColor("Fluid color", glm::vec3(0.0f, 0.4f, 0.95f));
 	ParamBool bilateralFilterEnabled = ParamBool("Bilateral filter", true);
 	ParamFloat smoothingSize = ParamFloat("Gaussian smoothing", 1.7f, 0.01f, 6.0f);
 	ParamFloat blurScale = ParamFloat("Blur scale", 0.06f, 0.01f, 0.4f);
@@ -44,7 +44,7 @@ public:
 	ParamBool fluidSurfaceNoiseEnabled = ParamBool("Fluid surface noise", false);
 	ParamFloat fluidSurfaceNoiseScale = ParamFloat("Noise scale", 0.956f, 0.01f, 5.0f);
 	ParamFloat fluidSurfaceNoiseStrength = ParamFloat("Noise strength", 0.123f, 0.0f, 1.0f);
-	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317, 0.0f, 1.0f);
+	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317f, 0.0f, 1.0f);
 
 private:
 	std::shared_ptr<renderer::WindowManager> engine;

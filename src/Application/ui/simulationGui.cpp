@@ -29,38 +29,38 @@ void startSimulatorGui() {
     //glfwSwapInterval(1);
 
     SimulationConfig config2D;
-    config2D.averagePressure = 5.66;
-    config2D.gridResolution = 3.577;
+    config2D.averagePressure = 5.66f;
+    config2D.gridResolution = 3.577f;
     config2D.incompressibilityIterationCount = 80;
     config2D.isTopOfContainerSolid = false;
-    config2D.particleRadius = 0.069;
+    config2D.particleRadius = 0.069f;
     config2D.pressureEnabled = true;
-    config2D.pressureK = 1.203;
-    config2D.simulatorConfig.flipRatio = 0.912;
-    config2D.simulatorConfig.gravity = -176.37;
+    config2D.pressureK = 1.203f;
+    config2D.simulatorConfig.flipRatio = 0.912f;
+    config2D.simulatorConfig.gravity = -176.37f;
     config2D.simulatorConfig.gravityEnabled = true;
     config2D.simulatorConfig.pushApartEnabled = true;
     config2D.simulatorConfig.transferType = P2G2PType::FLIP;
     config2D.gridSolverType = SimulationConfig::GridSolverType::BRIDSON;
-    config2D.fluidDensity = 1.0;
-    config2D.residualTolerance = 1e-6;
+    config2D.fluidDensity = 1.0f;
+    config2D.residualTolerance = 1e-6f;
 
     SimulationConfig config3D;
-    config3D.averagePressure = 5.43;
-    config3D.gridResolution = 1.508;
+    config3D.averagePressure = 5.43f;
+    config3D.gridResolution = 1.508f;
     config3D.incompressibilityIterationCount = 80;
     config3D.isTopOfContainerSolid = false;
-    config3D.particleRadius = 0.182;
+    config3D.particleRadius = 0.182f;
     config3D.pressureEnabled = true;
-    config3D.pressureK = 1.23;
-    config3D.simulatorConfig.flipRatio = 0.85;
-    config3D.simulatorConfig.gravity = -250;
+    config3D.pressureK = 1.23f;
+    config3D.simulatorConfig.flipRatio = 0.85f;
+    config3D.simulatorConfig.gravity = -250.0f;
     config3D.simulatorConfig.gravityEnabled = true;
     config3D.simulatorConfig.pushApartEnabled = false;
     config3D.simulatorConfig.transferType = P2G2PType::APIC;
     config3D.gridSolverType = SimulationConfig::GridSolverType::BRIDSON;
-    config3D.fluidDensity = 1.0;
-    config3D.residualTolerance = 1e-6;
+    config3D.fluidDensity = 1.0f;
+    config3D.residualTolerance = 1e-6f;
 
     SimulationConfig* config = &config3D;
 
@@ -140,7 +140,7 @@ void startSimulatorGui() {
         simulatorRenderer->screenSize = simSize;
         simulatorRenderer->screenStart = simStart;
 
-        float time = glfwGetTime();
+        float time = (float)glfwGetTime();
         static float lastTime = 0;
         float dt = time - lastTime;
         lastTime = time;
@@ -161,7 +161,7 @@ void startSimulatorGui() {
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(screenWidth, screenHeight - simSize.y));
+        ImGui::SetNextWindowSize(ImVec2((float)screenWidth, float(screenHeight - simSize.y)));
         {
             ImGui::Begin("Hybrid fluid simulator");
 
@@ -301,8 +301,8 @@ void startSimulatorGui() {
                 if (clicked) {
                     glm::vec2 click = renderer2D->getMouseGridPos();
                     if (inspectionMode == 0) {
-                        cellX = click.x / simulationManager->getCellD().x;
-                        cellY = click.y / simulationManager->getCellD().y;
+                        cellX = int(click.x / simulationManager->getCellD().x);
+                        cellY = int(click.y / simulationManager->getCellD().y);
                     }
                     else if (inspectionMode == 1) {
                         particleIndex = simulationManager->getParticleIndex(glm::dvec3(click.x, click.y, 1.5));

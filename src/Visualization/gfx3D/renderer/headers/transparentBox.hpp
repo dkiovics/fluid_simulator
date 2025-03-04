@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <engineUtils/object.h>
-#include <engine/renderEngine.h>
+#include <engine/windowManager.h>
 #include <engine/shaderProgram.h>
 #include <engineUtils/camera3D.hpp>
 #include <engineUtils/lights.hpp>

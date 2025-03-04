@@ -30,7 +30,7 @@ SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::Windo
 	planeGfx = std::make_unique<renderer::Object3D<renderer::Geometry>>(floor, shaderProgramTextured);
 	planeGfx->colorTextureScale = 5.0;
 	planeGfx->colorTexture = floorTexture;
-	planeGfx->shininess = 5.8;
+	planeGfx->shininess = 5.8f;
 	planeGfx->specularColor = glm::vec4(0.7, 0.7, 0.7, 1);
 	planeGfx->diffuseColor = glm::vec4(1, 1, 1, 1);
 	planeGfx->setScale(glm::vec3(200, 200, 1));

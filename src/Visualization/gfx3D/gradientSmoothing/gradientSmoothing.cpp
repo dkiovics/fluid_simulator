@@ -17,7 +17,7 @@ void visual::GradientSmoothing::smoothGradient
 	if (!particleIndexListSSBO)
 	{
 		size_t cellCount = particleCellCount.x * particleCellCount.y * particleCellCount.z;
-		particleIndexListSSBO = renderer::make_ssbo<ParticleIndexList>(cellCount, GL_DYNAMIC_DRAW);
+		particleIndexListSSBO = renderer::make_ssbo<ParticleIndexList>((uint32_t)cellCount, GL_DYNAMIC_DRAW);
 		particleGradientTmpSSBO = renderer::make_ssbo<glm::vec4>(data->getSize(), GL_DYNAMIC_DRAW);
 	}
 	particleGradientTmpSSBO->setSize(data->getSize());
@@ -27,10 +27,10 @@ void visual::GradientSmoothing::smoothGradient
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 	data->mapBuffer(0, -1, GL_MAP_READ_BIT);
 	particleIndexListSSBO->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_READ_BIT);
-	for (int i = 0; i < data->getSize(); i++)
+	for (uint32_t i = 0; i < data->getSize(); i++)
 	{
 		auto& particleData = (*data)[i];
-		auto& indexList = (*particleIndexListSSBO)[getParticleIndex(particleData.position)];
+		auto& indexList = (*particleIndexListSSBO)[(uint32_t)getParticleIndex(particleData.position)];
 		if (indexList.indexCount < indexList.indices.size())
 		{
 			indexList.indices[indexList.indexCount++] = i;

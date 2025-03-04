@@ -60,7 +60,7 @@ public:
 			paramPositiveOffsetSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
 			optimizedParamsSSBO = renderer::make_ssbo<ParticleShaderData>(data->getSize(), GL_DYNAMIC_COPY);
 			stochaisticGradientSSBO = renderer::make_ssbo<float>
-				(data->getSize() * getOptimizedParamCountPerParticle(), GL_DYNAMIC_COPY);
+				(uint32_t(data->getSize() * getOptimizedParamCountPerParticle()), GL_DYNAMIC_COPY);
 		}
 		stochaisticGradientSSBO->fillWithZeros();
 		gradientSampleCount = 0;

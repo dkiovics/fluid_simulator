@@ -115,7 +115,7 @@ void HashedParticles::forEachAround(const glm::ivec3& cellGridCoord, int axis, s
 }
 
 void HashedParticles::forEach(bool parallel, std::function<void(Particle&, int)>&& lambda) {
-	int particleNum = particles.size();
+	int particleNum = (int)particles.size();
 	if (parallel) {
 #pragma omp parallel for
 		for (int p = 0; p < particleNum; p++) {
@@ -157,8 +157,8 @@ void HashedParticles::addParticles(std::vector<Particle>&& particles) {
 
 void HashedParticles::removeParticles(std::vector<int>&& particleIds) {
 	std::sort(particleIds.begin(), particleIds.end());
-	const int particleNum = particles.size();
-	const int particleIdNum = particleIds.size();
+	const int particleNum = (int)particles.size();
+	const int particleIdNum = (int)particleIds.size();
 	int particleIdIndex = 0;
 	for (int p = 0; p < particleNum; p++) {
 		if (particleIdIndex < particleIdNum && p == particleIds[particleIdIndex]) {
@@ -180,7 +180,7 @@ Particle& HashedParticles::getParticleAt(int idx) {
 }
 
 int HashedParticles::getParticleNum() const {
-	return particles.size();
+	return (int)particles.size();
 }
 
 void HashedParticles::setParticleR(double r) {
@@ -193,8 +193,8 @@ void HashedParticles::setParticleR(double r) {
 }
 
 void HashedParticles::updateParticleIntersectionHash(bool parallel) {
-	int particleCellNum = particleCells.size();
-	int particleNum = particles.size();
+	int particleCellNum = (int)particleCells.size();
+	int particleNum = (int)particles.size();
 	if (parallel) {
 #pragma omp parallel for
 		for (int i = 0; i < particleCellNum; i++) {
@@ -325,9 +325,9 @@ void HashedParticles::initParticleIntersectionHash() {
 	while (particles.size() > particleIds.size()) {
 		particleIds.push_back(0);
 	}
-	cellNum.x = std::ceil(dimensions.x * dInv);
-	cellNum.y = std::ceil(dimensions.y * dInv);
-	cellNum.z = std::ceil(dimensions.z * dInv);
+	cellNum.x = (int)std::ceil(dimensions.x * dInv);
+	cellNum.y = (int)std::ceil(dimensions.y * dInv);
+	cellNum.z = (int)std::ceil(dimensions.z * dInv);
 	int cellNumTotal = cellNum.x * cellNum.y * cellNum.z + 1;
 	while (particleCells.size() < cellNumTotal) {
 		particleCells.push_back(0);

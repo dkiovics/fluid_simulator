@@ -31,7 +31,7 @@ public:
 
     void show(int screenWidth) override
     {
-		ImGui::SetNextItemWidth(screenWidth / 5);
+		ImGui::SetNextItemWidth(screenWidth / 5.0f);
 		ImGui::SliderFloat(name.c_str(), &value, min, max, precisionStr.c_str());
 	}
 
@@ -50,7 +50,7 @@ public:
 
     void show(int screenWidth) override
     {
-		ImGui::SetNextItemWidth(screenWidth / 5);
+		ImGui::SetNextItemWidth(screenWidth / 5.0f);
 		ImGui::SliderInt(name.c_str(), &value, min, max);
 	}
 
@@ -128,7 +128,7 @@ public:
     ParamText(const std::string& name, const std::string& value, size_t bufferSize = 150)
         : Param(name), value(new char[bufferSize]), bufferSize(bufferSize)
     {
-        strcpy(this->value, value.c_str());
+        strncpy_s(this->value, bufferSize, value.c_str(), bufferSize);
     }
 
     std::string getValue() const
@@ -138,7 +138,7 @@ public:
 
     void setValue(const std::string& value)
     {
-        strcpy(this->value, value.c_str());
+        strncpy_s(this->value, bufferSize, value.c_str(), bufferSize);
     }
 
     void show(int) override

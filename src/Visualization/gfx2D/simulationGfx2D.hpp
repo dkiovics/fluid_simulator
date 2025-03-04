@@ -59,7 +59,7 @@ private:
 	void updateParticles() {
 		particlesGfx->setScale(glm::vec3(simulator->getConfig().particleRadius, simulator->getConfig().particleRadius, 1));
 		auto particles = simulator->getParticleGfxData();
-		int particleNum = particles.size();
+		int particleNum = (int)particles.size();
 		particlesGfx->drawable->setActiveInstanceNum(particleNum);
 		if (!particleSpeedColorEnabled.value && (particleColor.value != prevParticleColor || particleSpeedColorWasEnabled)) {
 			particleSpeedColorWasEnabled = false;

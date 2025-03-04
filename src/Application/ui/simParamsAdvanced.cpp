@@ -41,7 +41,7 @@ void showSimParamsAdvanced(genericfsim::manager::SimulationConfig& config, int s
 
 	ImGui::Separator();
 	ImGui::SetNextItemWidth(screenWidth * 0.40f);
-	ImGui::SliderFloat("Grid resolution", &config.gridResolution, 0.6, 10);
+	ImGui::SliderFloat("Grid resolution", &config.gridResolution, 0.6f, 10.0f);
 	ImGui::Text("Gridsize x: %d  y: %d  z: %d", simulationManager.getGridSize().x, simulationManager.getGridSize().y, simulationManager.getGridSize().z);
 	ImGui::SetNextItemWidth(screenWidth * 0.40f);
 	ImGui::SliderFloat("Particle radius", &config.particleRadius, 0.04f, 1.0f);

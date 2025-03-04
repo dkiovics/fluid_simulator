@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
-#include <engine/renderEngine.h>
+#include <engine/windowManager.h>
 #include "ui/simulationGui.h"
 
 #include <spdlog/spdlog.h>

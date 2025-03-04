@@ -172,7 +172,7 @@ void visual::GradientCalculatorSpeed::formatFloatParamsPostUpdate(renderer::ssbo
 	{
 		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 		data->mapBuffer(0, -1, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-		for (int i = 0; i < data->getSize(); i += ParticleShaderDataSpeed::paramCount)
+		for (uint32_t i = 0; i < data->getSize(); i += ParticleShaderDataSpeed::paramCount)
 		{
 			glm::vec3 speed((*data)[i], (*data)[i + 1], (*data)[i + 2]);
 			if (glm::length(speed) > speedCap.value)
@@ -207,9 +207,9 @@ void visual::GradientCalculatorSpeed::simulateSpeeds(renderer::ssbo_ptr<float> s
 	if (updateSpeeds)
 	{
 		simulatorCopy.hashedParticles->forEach(true, [&](auto& particle, int index) {
-			(*speeds)[index * ParticleShaderDataSpeed::paramCount] = particle.v.x;
-			(*speeds)[index * ParticleShaderDataSpeed::paramCount + 1] = particle.v.y;
-			(*speeds)[index * ParticleShaderDataSpeed::paramCount + 2] = particle.v.z;
+			(*speeds)[index * ParticleShaderDataSpeed::paramCount] = (float)particle.v.x;
+			(*speeds)[index * ParticleShaderDataSpeed::paramCount + 1] = (float)particle.v.y;
+			(*speeds)[index * ParticleShaderDataSpeed::paramCount + 2] = (float)particle.v.z;
 			});
 	}
 	speeds->unmapBuffer();
@@ -231,7 +231,7 @@ void visual::GradientCalculatorSpeed::updateOptimizedParticleDataFromSim(rendere
 	optimizedParamsSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 	particleMovementAbs->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	simulatorCopy.hashedParticles->forEach(true, [&](auto& particle, int index) {
-		(*particleMovementAbs)[index] = glm::length(particle.pos - glm::dvec3((*optimizedParamsSSBO)[index].posAndSpeed));
+		(*particleMovementAbs)[index] = (float)glm::length(particle.pos - glm::dvec3((*optimizedParamsSSBO)[index].posAndSpeed));
 		(*optimizedParamsSSBO)[index].posAndSpeed = glm::vec4(particle.pos, glm::length(particle.v));
 	});
 	particleMovementAbs->unmapBuffer();

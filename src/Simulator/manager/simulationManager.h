@@ -22,15 +22,15 @@ using SphericalObstacle = genericfsim::obstacle::SphericalObstacle;
 using Obstacle = genericfsim::obstacle::Obstacle;
 
 struct SimulationConfig {
-	float gridResolution;
-	float particleRadius;
-	bool isTopOfContainerSolid;
-	float pressureK, averagePressure;
-	int incompressibilityIterationCount;
+	float gridResolution = 0.0f;
+	float particleRadius = 0.0f;
+	bool isTopOfContainerSolid = false;
+	float pressureK = 0.0f, averagePressure = 0.0f;
+	int incompressibilityIterationCount = 0;
 	SimulatorConfig simulatorConfig;
-	bool pressureEnabled;
-	float residualTolerance = 1e-6;
-	float fluidDensity = 1.0;
+	bool pressureEnabled = false;
+	float residualTolerance = 1e-6f;
+	float fluidDensity = 1.0f;
 	
 	enum class GridSolverType {
 		BRIDSON, BASIC
@@ -76,7 +76,7 @@ public:
 	 * 
 	 * \return - the size of the grid (cellnum for each axis)
 	 */
-	glm::ivec3 getGridSize() const;
+	glm::ivec3 getGridSize();
 
 	struct ParticleGfxData {
 		glm::vec3 pos;
@@ -187,7 +187,7 @@ public:
 	 * 
 	 * \return - the grid dimensions in space
 	 */
-	glm::dvec3 getDimensions() const;
+	glm::dvec3 getDimensions();
 
 	/**
 	 * Returns the last simulation iteration length.

@@ -55,18 +55,18 @@ void Simulator::simulate(double dt) {
 	if(config.particleSpawningEnabled)
 		spawnParticles(dt);
 	advectParticles(PARALLEL_SIM_PART, dt);
-	stepDuration["SimulateParticles"] = stepDuration["SimulateParticles"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+	stepDuration["SimulateParticles"] = int64_t(stepDuration["SimulateParticles"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 
 	start = std::chrono::high_resolution_clock::now();
 	if (config.pushApartEnabled) {
 		hashedParticles->updateParticleIntersectionHash(PARALLEL_PUSH_APART);
 		hashedParticles->pushParticlesApart(PARALLEL_PUSH_APART);
 	}
-	stepDuration["PushParticlesApart"] = stepDuration["PushParticlesApart"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+	stepDuration["PushParticlesApart"] = int64_t(stepDuration["PushParticlesApart"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 
 	start = std::chrono::high_resolution_clock::now();
 	pushParticlesOutOfObstacles(PARALLEL_PUSH_OUT);
-	stepDuration["PushParticlesOutOfObstacles"] = stepDuration["PushParticlesOutOfObstacles"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+	stepDuration["PushParticlesOutOfObstacles"] = int64_t(stepDuration["PushParticlesOutOfObstacles"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 
 	if(config.stopParticles)
 		hashedParticles->forEach(PARALLEL_SIM_PART, [&](Particle& particle, int) {
@@ -78,27 +78,27 @@ void Simulator::simulate(double dt) {
 		start = std::chrono::high_resolution_clock::now();
 		macGrid->resetGridValues(PARALLEL_P2G);
 		p2gTransfer(PARALLEL_P2G, dt);
-		stepDuration["P2GTransfer"] = stepDuration["P2GTransfer"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+		stepDuration["P2GTransfer"] = int64_t(stepDuration["P2GTransfer"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 
 		start = std::chrono::high_resolution_clock::now();
 		markFluidCellsAndCalculateParticleDensities(PARALLEL_INCOMPR_PREP);
 		addObstaclesToGrid(PARALLEL_INCOMPR_PREP);
 		macGrid->restoreBorderingSolidCellsAndSpeeds(PARALLEL_INCOMPR_PREP);
 		macGrid->postP2GUpdate(PARALLEL_INCOMPR_PREP, config.gravityEnabled ? config.gravity * dt : 0.0);
-		stepDuration["IncompressibilityPrep"] = stepDuration["IncompressibilityPrep"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+		stepDuration["IncompressibilityPrep"] = int64_t(stepDuration["IncompressibilityPrep"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 
 		start = std::chrono::high_resolution_clock::now();
 		int itCount = macGrid->solveIncompressibility(PARALLEL_INCOMPR, dt);
-		stepDuration["Incompressibility"] = stepDuration["Incompressibility"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+		stepDuration["Incompressibility"] = int64_t(stepDuration["Incompressibility"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 		stepDuration["Incompressibility it count"] = itCount;
 
 		start = std::chrono::high_resolution_clock::now();
 		macGrid->extrapolateVelocities(PARALLEL_G2P);
-		stepDuration["VelocityExtrapolation"] = stepDuration["VelocityExtrapolation"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+		stepDuration["VelocityExtrapolation"] = int64_t(stepDuration["VelocityExtrapolation"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 
 		start = std::chrono::high_resolution_clock::now();
 		g2pTransfer(PARALLEL_G2P);
-		stepDuration["G2PTransfer"] = stepDuration["G2PTransfer"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor);
+		stepDuration["G2PTransfer"] = int64_t(stepDuration["G2PTransfer"] * slidingAvgFactor + std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() * (1.0 - slidingAvgFactor));
 	}
 }
 
@@ -113,7 +113,7 @@ void Simulator::spawnParticles(double dt) {
 			SphericalParticleSource& obstacle = *tmp;
 			double r = obstacle.r + hashedParticles->getParticleR();
 			double particleNumD = obstacle.particleSpawnRate * dt + obstacle.lastSpawnFraction;
-			int particleNum = particleNumD;
+			int particleNum = (int)particleNumD;
 			obstacle.lastSpawnFraction = particleNumD - particleNum;
 			for (int i = 0; i < particleNum; i++) {
 				double theta = genericfsim::util::getDoubleInRange(0.0, 2.0 * M_PI);

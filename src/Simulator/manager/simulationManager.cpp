@@ -33,7 +33,7 @@ void SimulationManager::setConfig(const SimulationConfig& config) {
 	this->config = config;
 }
 
-glm::ivec3 SimulationManager::getGridSize() const {
+glm::ivec3 SimulationManager::getGridSize() {
 	std::unique_lock lock(sharedDataMutex);
 	return macGrid->gridSize;
 }
@@ -108,7 +108,7 @@ const MacGridCell& SimulationManager::getCellAt(const glm::dvec3& pos) {
 	std::unique_lock lock(sharedDataMutex);
 	const glm::dvec3 gridPos = pos * macGrid->cellDInv;
 	if(gridPos.x < getGridSize().x && gridPos.y < getGridSize().y && (gridPos.z < getGridSize().z || macGrid->twoD))
-		return macGrid->cell(gridPos.x, gridPos.y, macGrid->twoD ? 1 : gridPos.z);
+		return macGrid->cell((int)gridPos.x, (int)gridPos.y, (int)macGrid->twoD ? 1 : (int)gridPos.z);
 	return macGrid->cell(0, 0, 1);
 }
 
@@ -153,7 +153,7 @@ SimulationConfig SimulationManager::getConfig() {
 	return config;
 }
 
-glm::dvec3 SimulationManager::getDimensions() const {
+glm::dvec3 SimulationManager::getDimensions() {
 	std::unique_lock lock(sharedDataMutex);
 	return macGrid->dimensions;
 }
@@ -229,7 +229,7 @@ std::vector<float> SimulationManager::calculateParticleDensity(std::shared_ptr<g
 		{
 			auto cells = macGrid->getCellsAround(particle.pos);
 			for (auto& c : cells)
-				density += trilinearInterpoll(particle.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum;
+				density += float(trilinearInterpoll(particle.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum);
 		}
 		densities.push_back(density);
 	});
@@ -293,11 +293,11 @@ void SimulationManager::simulationThreadWorker() {
 
 			hashedParticles->forEach(true, [&](Particle& p, int index) {
 				particleData[index].pos = glm::vec3(p.pos.x, p.pos.y, p.pos.z);
-				particleData[index].v = glm::length(p.v);
+				particleData[index].v = (float)glm::length(p.v);
 				float density = 0;
 				auto cells = macGrid->getCellsAround(p.pos);
 				for (auto& c : cells)
-					density += trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum;
+					density += float(trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum);
 				particleData[index].density = density;
 			});
 

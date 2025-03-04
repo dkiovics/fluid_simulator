@@ -255,7 +255,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		(*shadedDepthShader)["noiseScale"] = fluidSurfaceNoiseScale.value;
 		(*shadedDepthShader)["noiseStrength"] = fluidSurfaceNoiseStrength.value;
 		(*shadedDepthShader)["noiseOffset"] = noiseOffset;
-		noiseOffset += fluidSurfaceNoiseSpeed.value * 10.0 * engine->getLastFrameTime();
+		noiseOffset += fluidSurfaceNoiseSpeed.value * 10.0f * (float)engine->getLastFrameTime();
 	}
 	shadedSquareObject->diffuseColor = glm::vec4(particleColor.value, 1.0f);
 	shadedSquareObject->draw();

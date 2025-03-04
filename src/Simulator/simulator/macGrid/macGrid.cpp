@@ -233,7 +233,7 @@ void MacGrid::postP2GUpdate(bool parallel, double gravityIncrement) {
 	forEachCell(false, false, [&](glm::ivec3 pos, MacGridCell& c) {
 		if (c.type == MacGridCell::CellType::WATER) {
 			fluidCellPositions.push_back(pos);
-			c.id = fluidCellPositions.size() - 1;
+			c.id = (int)fluidCellPositions.size() - 1;
 		}
 	});
 }

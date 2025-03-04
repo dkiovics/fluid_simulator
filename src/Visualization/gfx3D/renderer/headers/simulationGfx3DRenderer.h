@@ -6,7 +6,7 @@
 #include <engineUtils/camera3D.hpp>
 #include <engineUtils/object.h>
 #include <geometries/basicGeometries.h>
-#include <engine/renderEngine.h>
+#include <engine/windowManager.h>
 #include <engine/texture.h>
 #include <engine/shaderProgram.h>
 #include <engine/framebuffer.h>

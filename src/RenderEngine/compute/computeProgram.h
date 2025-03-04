@@ -25,7 +25,7 @@ public:
 
 private:
 	static bool computeShaderInfoCollected;
-	static GLint maxComputeWorkGroupCount[3];
+	static GLuint maxComputeWorkGroupCount[3];
 };
 
 typedef std::shared_ptr<ComputeProgram> compute_ptr;

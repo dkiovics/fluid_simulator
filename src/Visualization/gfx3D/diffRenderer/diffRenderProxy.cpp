@@ -252,7 +252,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 			errorValueSSBO->mapBuffer(0, -1, GL_MAP_READ_BIT);
 			float sum = 0.0f;
-			for (int i = 0; i < errorValueSSBO->getSize(); i++)
+			for (uint32_t i = 0; i < errorValueSSBO->getSize(); i++)
 			{
 				sum += (*errorValueSSBO)[i];
 			}
