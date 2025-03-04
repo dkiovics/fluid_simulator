@@ -14,7 +14,7 @@ namespace visual
 class GradientCalculatorInterface : public ParamLineCollection
 {
 public:
-	GradientCalculatorInterface() : renderEngine(renderer::RenderEngine::getInstance()), renderer3D(nullptr)
+	GradientCalculatorInterface() : renderEngine(renderer::WindowManager::getInstance()), renderer3D(nullptr)
 	{
 		pertPlusFramebuffer = renderer::make_fb(
 			renderer::Framebuffer::toArray({
@@ -141,7 +141,7 @@ protected:
 	ParamFloat depthErrorScale = ParamFloat("Depth error scale", 1.0f, 0.0f, 20.0f);
 	ParamInt gradientSampleNum = ParamInt("Gradient sample size", 15, 1, 100);
 
-	renderer::RenderEngine& renderEngine;
+	renderer::WindowManager& renderEngine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> manager;
 
 	renderer::fb_ptr pertPlusFramebuffer;

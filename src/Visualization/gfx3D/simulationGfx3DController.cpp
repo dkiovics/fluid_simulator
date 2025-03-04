@@ -130,7 +130,7 @@ ConfigData3D SimulationGfx3DController::getConfigData3D()
 	return config;
 }
 
-SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+SimulationGfx3DController::SimulationGfx3DController(std::shared_ptr<renderer::WindowManager> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 	glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum)
 	: engine(engine), simulationManager(simulationManager), maxParticleNum(maxParticleNum)
 {

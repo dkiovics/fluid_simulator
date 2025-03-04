@@ -21,12 +21,12 @@ namespace renderer
  * \brief You also must make sure that the context is current before creating any object in the "renderer" namespace
  * in the same thread for a given context.
  */
-class RenderEngine
+class WindowManager
 {
 private:
-	static std::unordered_map<GLFWwindow*, RenderEngine*> engineWindowPairs;
+	static std::unordered_map<GLFWwindow*, WindowManager*> managerWindowPairs;
 
-	static RenderEngine* getEngine(GLFWwindow* window);
+	static WindowManager* getManager(GLFWwindow* window);
 
 	static void framebufferSizeChangedCallback(GLFWwindow* window, int width, int height);
 
@@ -37,14 +37,14 @@ private:
 
 public:
 	/**
-	* \brief Returns the instance of the RenderEngine class that is associated with the current thread context
-	* \return The instance of the RenderEngine class
+	* \brief Returns the instance of the WindowManager class that is associated with the current thread context
+	* \return The instance of the WindowManager class
 	*/
-	static RenderEngine& getInstance();
+	static WindowManager& getInstance();
 
-	RenderEngine(int screenWidth, int screenHeight, std::string name);
+	WindowManager(int screenWidth, int screenHeight, std::string name);
 
-	~RenderEngine();
+	~WindowManager();
 
 	/**
 	 * \brief Activates the program with the given id, if the program is already active, nothing happens
@@ -115,9 +115,9 @@ public:
 	unsigned int getScreenHeight() const;
 	
 	/**
-	 * \brief Returns the window associated with this render engine
+	 * \brief Returns the window associated with this manager
 	 * 
-	 * \return The window associated with this render engine
+	 * \return The window associated with this manager
 	 */
 	GLFWwindow* getWindow() const;
 

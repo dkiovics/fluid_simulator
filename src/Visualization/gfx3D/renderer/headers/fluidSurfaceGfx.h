@@ -5,7 +5,7 @@
 #include <engineUtils/lights.hpp>
 #include <engineUtils/camera3D.hpp>
 #include <geometries/basicGeometries.h>
-#include <engine/renderEngine.h>
+#include <engine/windowManager.h>
 #include <engine/shaderProgram.h>
 #include <engine/framebuffer.h>
 #include <engine/texture.h>
@@ -22,7 +22,7 @@ namespace visual
 class FluidSurfaceGfx : public ParamInterface
 {
 public:
-	FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
+	FluidSurfaceGfx(std::shared_ptr<renderer::WindowManager> engine,
 		std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum);
 
 	void render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data) override;
@@ -47,7 +47,7 @@ public:
 	ParamFloat fluidSurfaceNoiseSpeed = ParamFloat("Noise speed", 0.317, 0.0f, 1.0f);
 
 private:
-	std::shared_ptr<renderer::RenderEngine> engine;
+	std::shared_ptr<renderer::WindowManager> engine;
 	std::shared_ptr<renderer::Camera3D> camera;
 	std::shared_ptr<renderer::Lights> lights;
 

@@ -2,7 +2,7 @@
 
 using namespace visual;
 
-FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::RenderEngine> engine,
+FluidSurfaceGfx::FluidSurfaceGfx(std::shared_ptr<renderer::WindowManager> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, unsigned int maxParticleNum)
 	: engine(engine), camera(camera), lights(lights)
 {

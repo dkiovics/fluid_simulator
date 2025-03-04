@@ -6,7 +6,7 @@
 using namespace visual;
 
 DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> renderer3D)
-	:renderer3D(std::static_pointer_cast<SimulationGfx3DRenderer>(renderer3D)), renderEngine(renderer::RenderEngine::getInstance())
+	:renderer3D(std::static_pointer_cast<SimulationGfx3DRenderer>(renderer3D)), renderEngine(renderer::WindowManager::getInstance())
 {
 	referenceFramebuffer = renderer::make_fb(
 		renderer::Framebuffer::toArray({ 

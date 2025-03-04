@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../engine/renderEngine.h"
+#include "../engine/windowManager.h"
 #include <mutex>
 #include <map>
 #include <set>
@@ -26,7 +26,7 @@ public:
 	 *	READ means that the data will be set by the GPU and read by the CPU.
 	 *	COPY means that the data will be set by the GPU and read by the GPU.
 	 */
-	StorageBuffer(unsigned int size, GLenum usage) : usage(usage), size(size), renderEngine(RenderEngine::getInstance())
+	StorageBuffer(unsigned int size, GLenum usage) : usage(usage), size(size), renderEngine(WindowManager::getInstance())
 	{
 		glGenBuffers(1, &bufferId);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferId);
@@ -226,7 +226,7 @@ private:
 	unsigned int mappingStart = 0;
 	unsigned int mappingSize = 0;
 	const GLenum usage = 0;
-	RenderEngine& renderEngine;
+	WindowManager& renderEngine;
 };
 
 template <typename T>

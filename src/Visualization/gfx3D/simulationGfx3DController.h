@@ -6,7 +6,7 @@
 #include <engineUtils/camera3D.hpp>
 #include <engineUtils/object.h>
 #include <geometries/basicGeometries.h>
-#include <engine/renderEngine.h>
+#include <engine/windowManager.h>
 #include <engine/texture.h>
 #include <engine/shaderProgram.h>
 #include <engine/framebuffer.h>
@@ -22,7 +22,7 @@ namespace visual
 class SimulationGfx3DController : public GfxInterface
 {
 private:
-	std::shared_ptr<renderer::RenderEngine> engine;
+	std::shared_ptr<renderer::WindowManager> engine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager;
 
 	std::shared_ptr<renderer::Camera3D> camera;
@@ -86,7 +86,7 @@ private:
 	void addObstacle(std::unique_ptr<renderer::Object3D<renderer::Geometry>> obstacleGfx, std::unique_ptr<genericfsim::manager::Obstacle> obstacle, glm::dvec3 size);
 
 public:
-	SimulationGfx3DController(std::shared_ptr<renderer::RenderEngine> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
+	SimulationGfx3DController(std::shared_ptr<renderer::WindowManager> engine, std::shared_ptr<genericfsim::manager::SimulationManager> simulationManager,
 		glm::ivec2 screenStart, glm::ivec2 screenSize, unsigned int maxParticleNum);
 
 	void setNewSimulationManager(std::shared_ptr<genericfsim::manager::SimulationManager> manager) override;

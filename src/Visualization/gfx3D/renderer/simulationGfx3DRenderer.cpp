@@ -2,7 +2,7 @@
 
 using namespace visual;
 
-SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::RenderEngine> engine,
+SimulationGfx3DRenderer::SimulationGfx3DRenderer(std::shared_ptr<renderer::WindowManager> engine,
 	std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights, 
 	const std::vector<std::unique_ptr<renderer::Object3D<renderer::Geometry>>>& obstacleGfxArray, 
 	unsigned int maxParticleNum, ConfigData3D configData)

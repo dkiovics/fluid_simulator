@@ -34,6 +34,7 @@ void SimulationManager::setConfig(const SimulationConfig& config) {
 }
 
 glm::ivec3 SimulationManager::getGridSize() const {
+	std::unique_lock lock(sharedDataMutex);
 	return macGrid->gridSize;
 }
 
@@ -153,6 +154,7 @@ SimulationConfig SimulationManager::getConfig() {
 }
 
 glm::dvec3 SimulationManager::getDimensions() const {
+	std::unique_lock lock(sharedDataMutex);
 	return macGrid->dimensions;
 }
 

@@ -2,7 +2,7 @@
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 #include "shaderProgram.h"
-#include "renderEngine.h"
+#include "windowManager.h"
 #include <spdlog/spdlog.h>
 
 using namespace renderer;
@@ -133,7 +133,7 @@ renderer::GpuProgram::UniformProxy renderer::GpuProgram::operator[](const std::s
 	return UniformProxy(programId, name);
 }
 
-renderer::GpuProgram::GpuProgram() : renderEngine(RenderEngine::getInstance()) {}
+renderer::GpuProgram::GpuProgram() : renderEngine(WindowManager::getInstance()) {}
 
 void renderer::GpuProgram::activate() const
 {

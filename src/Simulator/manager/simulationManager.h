@@ -254,7 +254,7 @@ private:
 	std::atomic<double> dtVal = 0.01;
 	std::atomic<bool> run = false;
 	std::atomic<bool> terminationRequest = false;
-	bool restart = false;
+	std::atomic<bool> restart = false;
 	std::unique_ptr<std::thread> simulationThread;
 
 	std::vector<ParticleGfxData> particleData;

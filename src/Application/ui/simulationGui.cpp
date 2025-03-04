@@ -1,5 +1,5 @@
 #include "simulationGui.h"
-#include <engine/renderEngine.h>
+#include <engine/windowManager.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -23,7 +23,7 @@ void startSimulatorGui() {
     const int initialScreenHeight = 1200;
     const float aspectRatio = 16.0f / 9.0f;
 
-    std::shared_ptr<renderer::RenderEngine> engine(new renderer::RenderEngine(initialScreenWidth, initialScreenHeight, "Fluid Simulator"));
+    std::shared_ptr<renderer::WindowManager> engine(new renderer::WindowManager(initialScreenWidth, initialScreenHeight, "Fluid Simulator"));
     GLFWwindow* window = engine->getWindow();
     glfwMakeContextCurrent(window);
     //glfwSwapInterval(1);

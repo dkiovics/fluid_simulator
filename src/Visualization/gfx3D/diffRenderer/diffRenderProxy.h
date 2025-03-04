@@ -35,7 +35,7 @@ private:
 	ConfigData3D configData;
 
 	std::shared_ptr<SimulationGfx3DRenderer> renderer3D;
-	renderer::RenderEngine& renderEngine;
+	renderer::WindowManager& renderEngine;
 
 	std::unique_ptr<AdamOptimizer> adam;
 	std::unique_ptr<DensityControl> densityControl;

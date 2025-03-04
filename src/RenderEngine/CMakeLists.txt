@@ -3,10 +3,10 @@ set(ENGINE_SOURCES
     engine/framebuffer.h
     engine/texture.h
     engine/uniforms.hpp
-    engine/renderEngine.h
+    engine/windowManager.h
     engine/shaderProgram.h
     engine/framebuffer.cpp
-    engine/renderEngine.cpp
+    engine/windowManager.cpp
     engine/shaderProgram.cpp
     engine/texture.cpp
 )

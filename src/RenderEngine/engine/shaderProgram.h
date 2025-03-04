@@ -10,7 +10,7 @@
 namespace renderer
 {
 
-class RenderEngine;
+class WindowManager;
 
 class GpuProgram
 {
@@ -62,7 +62,7 @@ public:
 	virtual ~GpuProgram();
 
 protected:
-	RenderEngine& renderEngine;
+	WindowManager& renderEngine;
 	GLuint programId;
 };
 
