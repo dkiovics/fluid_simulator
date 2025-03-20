@@ -30,6 +30,7 @@ public:
 		bool operator=(const glm::mat3& value) const;
 		bool operator=(const glm::mat4& value) const;
 		bool operator=(const Texture& texture) const;
+		bool operator=(const std::vector<std::shared_ptr<Texture>>& textures) const;
 
 		bool setImageUnit(const ComputeTexture& texture) const;
 

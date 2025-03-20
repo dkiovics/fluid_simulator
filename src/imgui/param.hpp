@@ -108,7 +108,7 @@ public:
         : Param(name), options(options), value(value) { }
 
     int value;
-    const std::vector<std::string> options;
+    std::vector<std::string> options;
 
     void show(int) override
     {

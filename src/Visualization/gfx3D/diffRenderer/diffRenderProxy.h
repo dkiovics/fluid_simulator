@@ -30,6 +30,8 @@ public:
 	void show(int screenWidth) override;
 
 private:
+	static constexpr int maxReferenceImageCount = 4;
+
 	glm::ivec2 prevScreenSize = glm::ivec2(1000, 1000);
 
 	ConfigData3D configData;
@@ -43,11 +45,14 @@ private:
 	std::unique_ptr<GradientCalculatorInterface> gradientCalculator;
 	std::unique_ptr<GradientSmoothing> gradientSmoothing;
 
+	std::array<ReferenceData, maxReferenceImageCount> referenceDataArray;
+	int currentReferenceIndex = 0;
+	int referenceImageCountValue = 1;
+
 	renderer::fb_ptr referenceFramebuffer;
-	renderer::fb_ptr currentParamFramebuffer;
 
-	std::optional<renderer::Camera3D::CameraData> backupCamera;
-
+	ParamInt referenceImageCount = ParamInt("Reference image count", 1, 1, maxReferenceImageCount);
+	ParamRadio referenceImageIndex = ParamRadio("Reference image index", { "1" }, 0);
 	ParamBool showSim = ParamBool("Show simulation", false);
 	ParamButton updateReference = ParamButton("Update reference");
 	ParamButton updateParams = ParamButton("Update params");
@@ -63,7 +68,6 @@ private:
 	ParamBool updateDensities = ParamBool("Update densities", false);
 	ParamBool doSimulatorGradientCalc = ParamBool("Do simulator gradient calc", false);
 	ParamBool gradientVisualization = ParamBool("Gradient visualization", false);
-	ParamButton backupCameraPos = ParamButton("Backup camera pos");
 	ParamButton restoreCameraPos = ParamButton("Restore camera pos");
 	ParamFloat arrowDensityThreshold = ParamFloat("Arrow density threshold", 0.8f, 0.5f, 5.0f);
 	ParamBool enableGradientSmoothing = ParamBool("Enable gradient smoothing", false);
@@ -98,6 +102,10 @@ private:
 	void updateParticleDensities();
 
 	void updateSimulator();
+
+	void handleReferenceImageCountChange();
+
+	bool validateState() const;
 };
 
 } // namespace visual

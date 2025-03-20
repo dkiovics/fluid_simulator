@@ -67,9 +67,9 @@ renderer::ComputeProgram::ComputeProgram(const std::string& computeShaderPath)
         glGetShaderInfoLog(compute, 512, NULL, infoLog);
         spdlog::error("Compute shader source: {} compilation failed with error: {}", computeShaderPath, infoLog);
         throw std::runtime_error(std::string("ERROR::SHADER::COMPUTE::COMPILATION_FAILED\n") + infoLog);
-    }
+    } 
 
-    // shader Program
+    // shader Program 
     programId = glCreateProgram();
     glAttachShader(programId, compute);
     glLinkProgram(programId);

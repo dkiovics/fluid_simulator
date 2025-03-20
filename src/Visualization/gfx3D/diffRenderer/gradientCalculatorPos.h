@@ -8,7 +8,7 @@ namespace visual
 class GradientCalculatorPos : public GradientCalculatorInterface
 {
 public:
-	GradientCalculatorPos(std::shared_ptr<ParamInterface> renderer, std::shared_ptr<genericfsim::manager::SimulationManager> manager);
+	GradientCalculatorPos(std::shared_ptr<ParamInterface> renderer, std::shared_ptr<genericfsim::manager::SimulationManager> manager, size_t maxReferenceCnt);
 
 	void updateOptimizedFloats(renderer::ssbo_ptr<float> data, renderer::ssbo_ptr<float> particleMovementAbs) override;
 
@@ -16,7 +16,7 @@ public:
 
 	void reset() override;
 
-	bool calculateGradient(renderer::fb_ptr referenceFramebuffer) override;
+	bool calculateGradient(std::vector<ReferenceData> referenceData) override;
 
 	renderer::ssbo_ptr<float> getFloatParams() override;
 

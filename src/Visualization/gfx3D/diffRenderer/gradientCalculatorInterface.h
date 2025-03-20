@@ -11,24 +11,34 @@
 namespace visual
 {
 
+struct ReferenceData
+{
+	renderer::render_target_ptr colorRenderTargetTexture;
+	renderer::render_target_ptr depthRenderTargetTexture;
+	std::optional<renderer::Camera3D::CameraData> backupCamera;
+};
+
 class GradientCalculatorInterface : public ParamLineCollection
 {
 public:
-	GradientCalculatorInterface() : renderEngine(renderer::WindowManager::getInstance()), renderer3D(nullptr)
+	GradientCalculatorInterface(size_t maxReferenceImageCount) : renderEngine(renderer::WindowManager::getInstance()), renderer3D(nullptr)
 	{
+		for (size_t i = 0; i < maxReferenceImageCount; i++)
+		{
+			perturbedRenderedScenes.push_back({ RenderedScene(1000, 1000), RenderedScene(1000, 1000) });
+		}
+
+		auto& renderedScene = perturbedRenderedScenes[0];
+
 		pertPlusFramebuffer = renderer::make_fb(
-			renderer::Framebuffer::toArray({
-				renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE)
-				}),
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
+			renderer::Framebuffer::toArray({ renderedScene.first.color }),
+			nullptr,
 			false
 		);
 
 		pertMinusFramebuffer = std::make_shared<renderer::Framebuffer>(
-			renderer::Framebuffer::toArray({
-				renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE)
-				}),
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
+			renderer::Framebuffer::toArray({ renderedScene.second.color }), 
+			nullptr,
 			false
 		);
 
@@ -73,10 +83,10 @@ public:
 
 	/**
 	* \brief Calculate the gradient of the current frame - must be called with after the parameter framebuffer is valid.
-	* \param referenceFramebuffer The reference frame to compare with
+	* \param 
 	* \return True if there is a valid gradient to read
 	*/
-	virtual bool calculateGradient(renderer::fb_ptr referenceFramebuffer) = 0;
+	virtual bool calculateGradient(std::vector<ReferenceData> referenceData) = 0;
 
 	renderer::ssbo_ptr<float> getStochaisticGradient() const
 	{
@@ -144,6 +154,26 @@ protected:
 	renderer::WindowManager& renderEngine;
 	std::shared_ptr<genericfsim::manager::SimulationManager> manager;
 
+	struct RenderedScene
+	{
+		renderer::render_target_ptr color;
+		renderer::render_target_ptr depth;
+
+		RenderedScene(uint32_t width, uint32_t height)
+		{
+			color = renderer::make_render_target(width, height, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+			depth = renderer::make_render_target(width, height, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+		}
+
+		void resize(uint32_t width, uint32_t height) const
+		{
+			color->resizeTexture(width, height);
+			depth->resizeTexture(width, height);
+		}
+	};
+
+	std::vector<std::pair<RenderedScene, RenderedScene>> perturbedRenderedScenes;
+
 	renderer::fb_ptr pertPlusFramebuffer;
 	renderer::fb_ptr pertMinusFramebuffer;
 
@@ -164,6 +194,25 @@ protected:
 		stochaisticGradientSSBO->bindBuffer(0);
 		gradientMultCompute->dispatchCompute(stochaisticGradientSSBO->getSize() / 64 + 1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
+
+	void bindPerturbedRenderedSceneTextures(uint32_t index) const
+	{
+		if (index >= perturbedRenderedScenes.size())
+			throw std::runtime_error("GradientCalculatorInterface::bindPerturbedRenderedSceneTextures: index is out of bounds");
+		pertMinusFramebuffer->setColorAttachments(renderer::Framebuffer::toArray({ perturbedRenderedScenes[index].second.color }));
+		pertMinusFramebuffer->setDepthAttachment(perturbedRenderedScenes[index].second.depth);
+		pertPlusFramebuffer->setColorAttachments(renderer::Framebuffer::toArray({ perturbedRenderedScenes[index].first.color }));
+		pertPlusFramebuffer->setDepthAttachment(perturbedRenderedScenes[index].first.depth);
+	}
+
+	void setRenderedSceneSizes(uint32_t width, uint32_t height) const
+	{
+		for (auto& scene : perturbedRenderedScenes)
+		{
+			scene.first.resize(width, height);
+			scene.second.resize(width, height);
+		}
 	}
 };
 

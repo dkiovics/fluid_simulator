@@ -151,13 +151,13 @@ void visual::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::
 		}
 	}*/
 
-	if (paramBufferValid)
+	if (auto tmp = getParamBufferOut(activeParamBuffer); tmp.first && !tmp.second)
 	{
-		particlesGfx->shaderProgram = particleProgram;
+		particlesGfx->shaderProgram = particleProgram_id;
 	}
 	else
 	{
-		particlesGfx->shaderProgram = particleProgram_id;
+		particlesGfx->shaderProgram = particleProgram;
 	}
 
 	data->bindBuffer(60);
@@ -167,14 +167,9 @@ void visual::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::
 	(*particlesGfx->shaderProgram)["color"] = configData.color;
 	(*particlesGfx->shaderProgram)["speedColor"] = configData.speedColor;
 
-	if (paramBufferValid)
+	if (auto tmp = getParamBufferOut(activeParamBuffer); tmp.first && !tmp.second)
 	{
-		framebuffer->bind();
-		particlesGfx->draw();
-	}
-	else
-	{
-		paramBufferValid = true;
+		setParamBufferValid();
 		auto colorAttachment = framebuffer->getColorAttachments()[0];
 		framebuffer->setColorAttachments(renderer::Framebuffer::toArray({ colorAttachment, paramTmpTexture }));
 		framebuffer->clearColorAttachment(1, glm::ivec4(-1));
@@ -184,16 +179,45 @@ void visual::SimulationGfx3DRenderer::renderParticles(std::shared_ptr<renderer::
 		framebuffer->bind();
 
 		(*paramCopyProgram)["screenSize"] = configData.screenSize;
-		ParamInterface::getParamBufferOut()->bindBuffer(30);
+		ParamInterface::getParamBufferOut(activeParamBuffer).first->bindBuffer(30);
 		paramCopyProgram->dispatchCompute(configData.screenSize.x, configData.screenSize.y, 1);
+	}
+	else
+	{
+		framebuffer->bind();
+		particlesGfx->draw();
 	}
 }
 
-std::shared_ptr<renderer::StorageBuffer<ParamInterface::PixelParamData>> visual::SimulationGfx3DRenderer::getParamBufferOut() const
+std::pair<std::shared_ptr<renderer::StorageBuffer<ParamInterface::PixelParamData>>, bool> visual::SimulationGfx3DRenderer::getParamBufferOut(int index) const
 {
-	if(fluidSurfaceGfx)
-		return fluidSurfaceGfx->getParamBufferOut();
-	return ParamInterface::getParamBufferOut();
+	if (fluidSurfaceGfx)
+		return fluidSurfaceGfx->getParamBufferOut(index);
+	return ParamInterface::getParamBufferOut(index);
+}
+
+void visual::SimulationGfx3DRenderer::setParamBuffersRes(glm::ivec2 screenSize)
+{
+	if (fluidSurfaceGfx)
+		fluidSurfaceGfx->setParamBuffersRes(screenSize);
+	else
+		ParamInterface::setParamBuffersRes(screenSize);
+}
+
+void visual::SimulationGfx3DRenderer::setParamBufferOutCnt(int cnt)
+{
+	if (fluidSurfaceGfx)
+		fluidSurfaceGfx->setParamBufferOutCnt(cnt);
+	else
+		ParamInterface::setParamBufferOutCnt(cnt);
+}
+
+void visual::SimulationGfx3DRenderer::setActiveParamBuffer(int index)
+{
+	if (fluidSurfaceGfx)
+		fluidSurfaceGfx->setActiveParamBuffer(index);
+	else
+		ParamInterface::setActiveParamBuffer(index);
 }
 
 void visual::SimulationGfx3DRenderer::handleFluidRenderModeChange()
@@ -205,12 +229,13 @@ void visual::SimulationGfx3DRenderer::handleFluidRenderModeChange()
 		{
 			fluidSurfaceGfx = std::make_unique<FluidSurfaceGfx>(engine, camera, lights, maxParticleNum);
 			fluidSurfaceGfx->setConfigData(configData);
+			fluidSurfaceGfx->setParamBufferOutCnt(getParamBufferCnt());
 		}
 	}
 	else if(fluidRenderMode.value == PARTICLES)
 	{
 		fluidSurfaceGfx.reset();
-		setBufferSize(configData.screenSize);
+		setParamBuffersRes(configData.screenSize);
 		paramTmpTexture->resizeTexture(configData.screenSize.x, configData.screenSize.y);
 	}
 	else

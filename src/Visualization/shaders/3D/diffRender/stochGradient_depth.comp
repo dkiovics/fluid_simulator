@@ -7,9 +7,10 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 uniform ivec2 screenSize;
 uniform float depthErrorScale;
 
-uniform sampler2D referenceImage;
-uniform sampler2D plusPertImage;
-uniform sampler2D minusPertImage;
+uniform sampler2D referenceImage[10];
+uniform sampler2D plusPertImage[10];
+uniform sampler2D minusPertImage[10];
+uniform int referenceImageNum;
 
 struct ParticleData {
     vec4 posAndSpeed;
@@ -29,13 +30,63 @@ layout(std430, binding = 1) restrict readonly buffer paramPositiveOffsetsSSBO {
 	ParticleData paramPositiveOffsets[];
 };
 
-layout(std430, binding = 2) restrict readonly buffer pixelParamsSSBO {
-	FragmentParam pixelParams[];
-};
-
-layout(std430, binding = 3) restrict buffer gradientSSBO {
+layout(std430, binding = 2) restrict buffer gradientSSBO {
 	float gradient[];
 };
+
+layout(std430, binding = 3) restrict readonly buffer pixelParamsSSBO0 {
+	FragmentParam pixelParams0[];
+};
+layout(std430, binding = 4) restrict readonly buffer pixelParamsSSBO1 {
+	FragmentParam pixelParams1[];
+};
+layout(std430, binding = 5) restrict readonly buffer pixelParamsSSBO2 {
+	FragmentParam pixelParams2[];
+};
+layout(std430, binding = 6) restrict readonly buffer pixelParamsSSBO3 {
+	FragmentParam pixelParams3[];
+};
+layout(std430, binding = 7) restrict readonly buffer pixelParamsSSBO4 {
+	FragmentParam pixelParams4[];
+};
+layout(std430, binding = 8) restrict readonly buffer pixelParamsSSBO5 {
+	FragmentParam pixelParams5[];
+};
+layout(std430, binding = 9) restrict readonly buffer pixelParamsSSBO6 {
+	FragmentParam pixelParams6[];
+};
+layout(std430, binding = 10) restrict readonly buffer pixelParamsSSBO7 {
+	FragmentParam pixelParams7[];
+};
+layout(std430, binding = 11) restrict readonly buffer pixelParamsSSBO8 {
+	FragmentParam pixelParams8[];
+};
+layout(std430, binding = 12) restrict readonly buffer pixelParamsSSBO9 {
+	FragmentParam pixelParams9[];
+};
+
+FragmentParam getPixelParamFromBuffer(int bufferIndex, int pixelIndex)
+{
+	if(bufferIndex == 1)
+		return pixelParams1[pixelIndex];
+	if(bufferIndex == 2)
+		return pixelParams2[pixelIndex];
+	if(bufferIndex == 3)
+		return pixelParams3[pixelIndex];
+	if(bufferIndex == 4)
+		return pixelParams4[pixelIndex];
+	if(bufferIndex == 5)
+		return pixelParams5[pixelIndex];
+	if(bufferIndex == 6)
+		return pixelParams6[pixelIndex];
+	if(bufferIndex == 7)
+		return pixelParams7[pixelIndex];
+	if(bufferIndex == 8)
+		return pixelParams8[pixelIndex];
+	if(bufferIndex == 9)
+		return pixelParams9[pixelIndex];
+	return pixelParams0[pixelIndex];
+}
 
 uniform struct{
     mat4 viewMatrix;
@@ -56,31 +107,34 @@ vec3 uvToEye(vec2 texCoord, float depth) {
 void main(void) {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 	vec2 texCoord = vec2(pos) / vec2(screenSize) + 0.5 / vec2(screenSize);
-
-	float referenceDepth = texelFetch(referenceImage, pos, 0).r;
-	float plusPertDepth = texelFetch(plusPertImage, pos, 0).r;
-	float minusPertDepth = texelFetch(minusPertImage, pos, 0).r;
-
-	float positiveError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, plusPertDepth).z) * depthErrorScale;
-	float negativeError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, minusPertDepth).z) * depthErrorScale;
-	positiveError = positiveError * positiveError;
-	negativeError = negativeError * negativeError;
-
 	int index = pos.y * screenSize.x + pos.x;
-	FragmentParam contributingParam = pixelParams[index];
 
-	for(int p = 0; p < contributingParam.paramNum; p++)
+	for (int p = 0; p < referenceImageNum; p++)
 	{
-		int contributingParamIndex = contributingParam.paramIndexes[p];
-		vec4 signedPerturbation = paramPositiveOffsets[contributingParamIndex].posAndSpeed - paramNegativeOffsets[contributingParamIndex].posAndSpeed;
+		float referenceDepth = texelFetch(referenceImage[p], pos, 0).r;
+		float plusPertDepth = texelFetch(plusPertImage[p], pos, 0).r;
+		float minusPertDepth = texelFetch(minusPertImage[p], pos, 0).r;
 
-		if(signedPerturbation.x != 0.0)
-			atomicAdd(gradient[contributingParamIndex * 4], (positiveError - negativeError) / signedPerturbation.x);
-		if(signedPerturbation.y != 0.0)
-			atomicAdd(gradient[contributingParamIndex * 4 + 1], (positiveError - negativeError) / signedPerturbation.y);
-		if(signedPerturbation.z != 0.0)
-			atomicAdd(gradient[contributingParamIndex * 4 + 2], (positiveError - negativeError) / signedPerturbation.z);
-		if(signedPerturbation.w != 0.0)
-			atomicAdd(gradient[contributingParamIndex * 4 + 3], (positiveError - negativeError) / signedPerturbation.w);
+		float positiveError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, plusPertDepth).z) * depthErrorScale;
+		float negativeError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, minusPertDepth).z) * depthErrorScale;
+		positiveError = positiveError * positiveError;
+		negativeError = negativeError * negativeError;
+
+		FragmentParam contributingParam = getPixelParamFromBuffer(p, index);
+
+		for(int q = 0; q < contributingParam.paramNum; q++)
+		{
+			int contributingParamIndex = contributingParam.paramIndexes[q];
+			vec4 signedPerturbation = paramPositiveOffsets[contributingParamIndex].posAndSpeed - paramNegativeOffsets[contributingParamIndex].posAndSpeed;
+
+			if(signedPerturbation.x != 0.0)
+				atomicAdd(gradient[contributingParamIndex * 4], (positiveError - negativeError) / signedPerturbation.x);
+			if(signedPerturbation.y != 0.0)
+				atomicAdd(gradient[contributingParamIndex * 4 + 1], (positiveError - negativeError) / signedPerturbation.y);
+			if(signedPerturbation.z != 0.0)
+				atomicAdd(gradient[contributingParamIndex * 4 + 2], (positiveError - negativeError) / signedPerturbation.z);
+			if(signedPerturbation.w != 0.0)
+				atomicAdd(gradient[contributingParamIndex * 4 + 3], (positiveError - negativeError) / signedPerturbation.w);
+		}
 	}
 }

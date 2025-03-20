@@ -107,12 +107,13 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		normalAndDepthFramebuffer->setSize(viewportSize);
 		depthParamBufferBlurX = std::make_unique<renderer::StorageBuffer<PixelParamDataX>>
 			(viewportSize.x * viewportSize.y, GL_DYNAMIC_COPY);
-		setBufferSize(viewportSize);
+		setParamBuffersRes(viewportSize);
 		(*particleSpritesDepthShader)["resolution"] = viewportSize;
 	}
 
 	depthParamBufferBlurX->bindBuffer(20);
-	getParamBufferOut()->bindBuffer(30);
+	if (getParamBufferOut(activeParamBuffer).first)
+		getParamBufferOut(activeParamBuffer).first->bindBuffer(30);
 	data->bindBuffer(80);
 
 	fluidThicknessFramebuffer->setDepthAttachment(framebuffer->getDepthAttachment());
@@ -134,7 +135,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	engine->clearViewport(1.0f);
 	if (bilateralFilterEnabled.value)
 	{
-		if (paramBufferValid)
+		if (!getParamBufferOut(activeParamBuffer).first || getParamBufferOut(activeParamBuffer).second)
 		{
 			(*bilateralFilterShaderX)["calculateParams"] = false;
 			(*bilateralFilterShaderY)["calculateParams"] = false;
@@ -163,7 +164,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 	}
 	else
 	{
-		if (paramBufferValid)
+		if (!getParamBufferOut(activeParamBuffer).first || getParamBufferOut(activeParamBuffer).second)
 		{
 			(*gaussianBlurShaderX)["calculateParams"] = false;
 			(*gaussianBlurShaderY)["calculateParams"] = false;
@@ -192,7 +193,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		depthFramebuffer->clearColorAttachment(0, glm::ivec4(-1));
 		(*particleSpritesDepthShader)["drawMode"] = 2;
 		instancedParticles->draw();
-		if (!paramBufferValid)
+		if (getParamBufferOut(activeParamBuffer).first && !getParamBufferOut(activeParamBuffer).second)
 		{
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 			(*paramCopyCompute)["screenSize"] = viewportSize;
@@ -200,7 +201,7 @@ void FluidSurfaceGfx::render(std::shared_ptr<renderer::Framebuffer> framebuffer,
 		}
 	}
 
-	paramBufferValid = true;
+	setParamBufferValid();
 
 	if (fluidTransparencyEnabled.value)
 	{

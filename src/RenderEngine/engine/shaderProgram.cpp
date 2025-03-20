@@ -116,6 +116,18 @@ bool renderer::GpuProgram::UniformProxy::operator=(const Texture& value) const
 	return true;
 }
 
+bool renderer::GpuProgram::UniformProxy::operator=(const std::vector<std::shared_ptr<Texture>>& textures) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	std::vector<int> samplers;
+	for (const auto& texture : textures)
+		samplers.push_back(texture->getTexSampler());
+	glUniform1iv(val, (GLsizei)textures.size(), samplers.data());
+	return true;
+}
+
 bool renderer::GpuProgram::UniformProxy::setImageUnit(const ComputeTexture& texture) const
 {
 	int val = uniformWarning(programId, name.c_str());

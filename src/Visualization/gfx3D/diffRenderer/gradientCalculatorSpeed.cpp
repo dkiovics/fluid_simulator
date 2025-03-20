@@ -1,7 +1,8 @@
 #include "gradientCalculatorSpeed.h"
 
 visual::GradientCalculatorSpeed::GradientCalculatorSpeed(std::shared_ptr<ParamInterface> renderer, 
-	std::shared_ptr<genericfsim::manager::SimulationManager> manager)
+	std::shared_ptr<genericfsim::manager::SimulationManager> manager, size_t maxReferenceCount)
+	: GradientCalculatorInterface(maxReferenceCount)
 {
 	renderer3D = renderer;
 	this->manager = manager;
@@ -10,10 +11,22 @@ visual::GradientCalculatorSpeed::GradientCalculatorSpeed(std::shared_ptr<ParamIn
 	stochaisticColorGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_color_speed.comp");
 	stochaisticDepthGradientProgram = renderer::make_compute("shaders/3D/diffRender/stochGradient_depth_speed.comp");
 
-	(*stochaisticColorGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getColorAttachments()[0];
-	(*stochaisticColorGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getColorAttachments()[0];
-	(*stochaisticDepthGradientProgram)["plusPertImage"] = *pertPlusFramebuffer->getDepthAttachment();
-	(*stochaisticDepthGradientProgram)["minusPertImage"] = *pertMinusFramebuffer->getDepthAttachment();
+	std::vector<std::shared_ptr<renderer::Texture>> plusColor;
+	std::vector<std::shared_ptr<renderer::Texture>> minusColor;
+	std::vector<std::shared_ptr<renderer::Texture>> plusDepth;
+	std::vector<std::shared_ptr<renderer::Texture>> minusDepth;
+	for (size_t i = 0; i < maxReferenceCount; i++)
+	{
+		plusColor.push_back(perturbedRenderedScenes[i].first.color);
+		minusColor.push_back(perturbedRenderedScenes[i].second.color);
+		plusDepth.push_back(perturbedRenderedScenes[i].first.depth);
+		minusDepth.push_back(perturbedRenderedScenes[i].second.depth);
+	}
+
+	(*stochaisticColorGradientProgram)["plusPertImage"] = plusColor;
+	(*stochaisticColorGradientProgram)["minusPertImage"] = minusColor;
+	(*stochaisticDepthGradientProgram)["plusPertImage"] = plusDepth;
+	(*stochaisticDepthGradientProgram)["minusPertImage"] = minusDepth;
 
 	auto camera = renderer3D->getCamera();
 	camera->addProgram({ stochaisticDepthGradientProgram });
@@ -69,7 +82,7 @@ void visual::GradientCalculatorSpeed::reset()
 	speedSSBO->fillWithZeros();
 }
 
-bool visual::GradientCalculatorSpeed::calculateGradient(renderer::fb_ptr referenceFramebuffer)
+bool visual::GradientCalculatorSpeed::calculateGradient(std::vector<ReferenceData> referenceData)
 {
 	if (gradientSampleCount >= gradientSampleNum.value)
 	{
@@ -77,8 +90,11 @@ bool visual::GradientCalculatorSpeed::calculateGradient(renderer::fb_ptr referen
 		gradientSampleCount = 0;
 	}
 
-	pertPlusFramebuffer->setSize(referenceFramebuffer->getSize());
-	pertMinusFramebuffer->setSize(referenceFramebuffer->getSize());
+	if (referenceData.size() > perturbedRenderedScenes.size())
+		throw std::runtime_error("GradientCalculatorSpeed::calculateGradient: referenceData size exceeds maxReferenceCount");
+
+	setRenderedSceneSizes(referenceData[0].colorRenderTargetTexture->getSize().x, referenceData[0].colorRenderTargetTexture->getSize().y);
+
 	simulatorCopy.simulator->config.onlyMoveParticles = !simulatorEnabled.value;
 	simulatorCopy.simulator->config.gravityEnabled = gravityEnabled.value;
 
@@ -99,34 +115,67 @@ bool visual::GradientCalculatorSpeed::calculateGradient(renderer::fb_ptr referen
 	simulateSpeeds(speedPositiveOffsetSSBO);
 	updateParticleDataFromSim(paramPositiveOffsetSSBO);
 
-	pertPlusFramebuffer->bind();
-	renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
-	renderer3D->render(pertPlusFramebuffer, paramPositiveOffsetSSBO);
+	for (size_t i = 0; i < referenceData.size(); i++)
+	{
+		pertPlusFramebuffer->setColorAttachments(renderer::Framebuffer::toArray({ perturbedRenderedScenes[i].first.color }));
+		pertPlusFramebuffer->setDepthAttachment(perturbedRenderedScenes[i].first.depth);
+		pertPlusFramebuffer->bind();
+		renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
+		if (referenceData[i].backupCamera)
+			renderer3D->getCamera()->setCameraData(referenceData[i].backupCamera.value());
+		else
+			spdlog::warn("GradientCalculatorSpeed::calculateGradient: backup camera is not set");
+		renderer3D->render(pertPlusFramebuffer, paramPositiveOffsetSSBO);
+	}
 
 	updateSimFromParticleData(optimizedParamsSSBO);
 	simulateSpeeds(speedNegativeOffsetSSBO);
 	updateParticleDataFromSim(paramNegativeOffsetSSBO);
 
-	pertMinusFramebuffer->bind();
-	renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
-	renderer3D->render(pertMinusFramebuffer, paramNegativeOffsetSSBO);
+	for (size_t i = 0; i < referenceData.size(); i++)
+	{
+		pertMinusFramebuffer->setColorAttachments(renderer::Framebuffer::toArray({ perturbedRenderedScenes[i].second.color }));
+		pertMinusFramebuffer->setDepthAttachment(perturbedRenderedScenes[i].second.depth);
+		pertMinusFramebuffer->bind();
+		renderEngine.clearViewport(glm::vec4(0.0f), 1.0f);
+		if (referenceData[i].backupCamera)
+			renderer3D->getCamera()->setCameraData(referenceData[i].backupCamera.value());
+		else
+			spdlog::warn("GradientCalculatorSpeed::calculateGradient: backup camera is not set");
+		renderer3D->render(pertMinusFramebuffer, paramNegativeOffsetSSBO);
+	}
 
 	speedNegativeOffsetSSBO->bindBuffer(0);
 	speedPositiveOffsetSSBO->bindBuffer(1);
-	renderer3D->getParamBufferOut()->bindBuffer(2);
-	stochaisticGradientSSBO->bindBuffer(3);
+	stochaisticGradientSSBO->bindBuffer(2);
+	for (int p = 0; p < referenceData.size(); p++)
+	{
+		renderer3D->getParamBufferOut(p).first->bindBuffer(3 + p);
+	}
 	if (useDepthImage.value)
 	{
-		(*stochaisticDepthGradientProgram)["referenceImage"] = *referenceFramebuffer->getDepthAttachment();
-		(*stochaisticDepthGradientProgram)["screenSize"] = referenceFramebuffer->getSize();
+		std::vector<std::shared_ptr<renderer::Texture>> depthImages;
+		for (size_t i = 0; i < referenceData.size(); i++)
+		{
+			depthImages.push_back(referenceData[i].depthRenderTargetTexture);
+		}
+		(*stochaisticDepthGradientProgram)["referenceImage"] = depthImages;
+		(*stochaisticDepthGradientProgram)["referenceImageNum"] = (int)referenceData.size();
+		(*stochaisticDepthGradientProgram)["screenSize"] = referenceData[0].colorRenderTargetTexture->getSize();
 		(*stochaisticDepthGradientProgram)["depthErrorScale"] = depthErrorScale.value;
-		stochaisticDepthGradientProgram->dispatchCompute(referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y, 1);
+		stochaisticDepthGradientProgram->dispatchCompute(referenceData[0].colorRenderTargetTexture->getSize().x, referenceData[0].colorRenderTargetTexture->getSize().y, 1);
 	}
 	else
 	{
-		(*stochaisticColorGradientProgram)["referenceImage"] = *referenceFramebuffer->getColorAttachments()[0];
-		(*stochaisticColorGradientProgram)["screenSize"] = referenceFramebuffer->getSize();
-		stochaisticColorGradientProgram->dispatchCompute(referenceFramebuffer->getSize().x, referenceFramebuffer->getSize().y, 1);
+		std::vector<std::shared_ptr<renderer::Texture>> colorImages;
+		for (size_t i = 0; i < referenceData.size(); i++)
+		{
+			colorImages.push_back(referenceData[i].colorRenderTargetTexture);
+		}
+		(*stochaisticColorGradientProgram)["referenceImage"] = colorImages;
+		(*stochaisticColorGradientProgram)["referenceImageNum"] = (int)referenceData.size();
+		(*stochaisticColorGradientProgram)["screenSize"] = referenceData[0].colorRenderTargetTexture->getSize();
+		stochaisticColorGradientProgram->dispatchCompute(referenceData[0].colorRenderTargetTexture->getSize().x, referenceData[0].colorRenderTargetTexture->getSize().y, 1);
 	}
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	gradientSampleCount++;

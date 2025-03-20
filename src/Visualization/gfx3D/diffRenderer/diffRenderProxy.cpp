@@ -8,11 +8,17 @@ using namespace visual;
 DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> renderer3D)
 	:renderer3D(std::static_pointer_cast<SimulationGfx3DRenderer>(renderer3D)), renderEngine(renderer::WindowManager::getInstance())
 {
+	for (auto& referenceData : referenceDataArray)
+	{
+		referenceData.colorRenderTargetTexture = renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+		referenceData.depthRenderTargetTexture = renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+	}
+
 	referenceFramebuffer = renderer::make_fb(
-		renderer::Framebuffer::toArray({ 
-			renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE),
+		renderer::Framebuffer::toArray({
+			referenceDataArray[0].colorRenderTargetTexture
 		}),
-		renderer::make_render_target(1000, 1000, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT),
+		referenceDataArray[0].depthRenderTargetTexture,
 		false
 	);
 
@@ -32,7 +38,8 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 
 	addParamLine({ &updateReference, &updateParams, &updateSimulatorButton, &resetAdamButton,  &randomizeParams, &doSimulatorGradientCalc });
 	addParamLine({ &showReference, &showSim, &adamEnabled, &updateDensities, &enableDensityControl });
-	addParamLine({ &autoPushApart, &pushApartButton, &backupCameraPos, &restoreCameraPos, &gradientVisualization, &enableGradientSmoothing });
+	addParamLine({ &referenceImageCount, &referenceImageIndex });
+	addParamLine({ &autoPushApart, &pushApartButton, &restoreCameraPos, &gradientVisualization, &enableGradientSmoothing });
 	addParamLine({ &referenceImageFileName, &loadReferenceImageButton, &storeReferenceImageButton, &printErrorValue });
 	addParamLine(ParamLine({ &pushApartUpdatePeriod }, &autoPushApart ));
 	addParamLine(ParamLine({ &arrowDensityThreshold }, &gradientVisualization));
@@ -50,6 +57,9 @@ DiffRendererProxy::DiffRendererProxy(std::shared_ptr<Renderer3DInterface> render
 		lights->addProgram({ gradientArrowShader });
 		lights->setUniformsForAllPrograms();
 	}
+
+	this->renderer3D->setParamBufferOutCnt(1);
+	handleReferenceImageCountChange();
 }
 
 void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<ParticleShaderData> data)
@@ -58,7 +68,8 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 
 	if(updateReference.value)
 	{
-		renderer3D->render(referenceFramebuffer, data);
+		referenceDataArray[currentReferenceIndex].backupCamera = renderer3D->getCamera()->getCameraData();
+		renderer3D->render(referenceFramebuffer, data); 
 		return;
 	}
 
@@ -80,7 +91,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	{
 		if (!gradientCalculator || !dynamic_cast<GradientCalculatorSpeed*>(gradientCalculator.get()))
 		{
-			gradientCalculator = std::make_unique<GradientCalculatorSpeed>(renderer3D, configData.simManager);
+			gradientCalculator = std::make_unique<GradientCalculatorSpeed>(renderer3D, configData.simManager, maxReferenceImageCount);
 			gradientCalcChanged = true;
 		}
 	}
@@ -88,7 +99,7 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	{
 		if (!gradientCalculator || !dynamic_cast<GradientCalculatorPos*>(gradientCalculator.get()))
 		{
-			gradientCalculator = std::make_unique<GradientCalculatorPos>(renderer3D, configData.simManager);
+			gradientCalculator = std::make_unique<GradientCalculatorPos>(renderer3D, configData.simManager, maxReferenceImageCount);
 			gradientCalcChanged = true;
 		}
 	}
@@ -111,13 +122,9 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 		particleGradientValid = false;
 	}
 
-	if (backupCameraPos.value)
+	if (restoreCameraPos.value && referenceDataArray[currentReferenceIndex].backupCamera)
 	{
-		backupCamera = renderer3D->getCamera()->getCameraData();
-	}
-	if (restoreCameraPos.value && backupCamera)
-	{
-		renderer3D->getCamera()->setCameraData(*backupCamera);
+		renderer3D->getCamera()->setCameraData(*referenceDataArray[currentReferenceIndex].backupCamera);
 	}
 
 	if (updateSimulatorButton.value)
@@ -161,73 +168,97 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 	{
 		bool adamStepHappened = false;
 		auto optimizedParamsSSBO = gradientCalculator->getParticleData();
+		if (adamEnabled.value && !validateState())
+		{
+			adamEnabled.value = false;
+		}
 		if(adamEnabled.value)
 		{
 			if (newFluidParamsNeeded)
 			{
 				renderer3D->invalidateParamBuffer();
 				newFluidParamsNeeded = false;
-			}
-			renderer3D->renderBoxFrontEnabled = false;
-			renderer3D->render(framebuffer, optimizedParamsSSBO);
-			renderer3D->renderBoxFrontEnabled = true;
-
-			if (gradientCalculator->calculateGradient(referenceFramebuffer))
-			{
-				adamStepHappened= true;
-				newFluidParamsNeeded = true;
-
-				gradientCalculator->getParticleGradient(particleGradientSSBO);
-				particleGradientValid = true;
-
-				if (enableGradientSmoothing.value)
+				for (size_t i = 0; i < referenceImageCountValue; i++)
 				{
-					gradientSmoothing->smoothGradient(particleGradientSSBO);
-					gradientCalculator->setParticleGradient(particleGradientSSBO);
-				}
-
-				gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
-				adam->optimize(gradientCalculator->getStochaisticGradient());
-				gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
-
-				gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
-
-				if (updateDensities.value || enableDensityControl.value)
-				{
-					updateDensities.value = true;
-					updateParticleDensities();
-				}
-
-				if (enableDensityControl.value)
-				{
-					if (densityControl->updateAvgMovement(particleMovementAbsSSBO))
+					if (i != currentReferenceIndex)
 					{
-						densityControl->updatePositions(optimizedParamsSSBO);
-						updateOptimizedParams(optimizedParamsSSBO);
+						renderer3D->getCamera()->setCameraData(*referenceDataArray[i].backupCamera);
+						renderer3D->setActiveParamBuffer(int(i));
+						renderer3D->render(framebuffer, optimizedParamsSSBO);
 					}
 				}
-				
-				static int pushApartCounter = 0;
-				if (autoPushApart.value)
+				renderer3D->getCamera()->setCameraData(*referenceDataArray[currentReferenceIndex].backupCamera);
+				renderer3D->setActiveParamBuffer(currentReferenceIndex);
+				renderer3D->renderBoxFrontEnabled = false;
+				renderer3D->render(framebuffer, optimizedParamsSSBO);
+			}
+			else
+			{
+				renderer3D->getCamera()->setCameraData(*referenceDataArray[currentReferenceIndex].backupCamera);
+				renderer3D->renderBoxFrontEnabled = false;
+				renderer3D->render(framebuffer, optimizedParamsSSBO);
+				std::vector<ReferenceData> referenceDataVector(referenceDataArray.begin(), referenceDataArray.begin() + referenceImageCountValue);
+				renderer3D->renderBoxFrontEnabled = true;
+				if (gradientCalculator->calculateGradient(referenceDataVector))
 				{
-					pushApartCounter++;
-					if (pushApartCounter >= pushApartUpdatePeriod.value)
+					adamStepHappened = true;
+					newFluidParamsNeeded = true;
+
+					gradientCalculator->getParticleGradient(particleGradientSSBO);
+					particleGradientValid = true;
+
+					if (enableGradientSmoothing.value)
 					{
-						pushApartOptimizedParams();
+						gradientSmoothing->smoothGradient(particleGradientSSBO);
+						gradientCalculator->setParticleGradient(particleGradientSSBO);
+					}
+
+					gradientCalculator->formatFloatParamsPreUpdate(adam->getOptimizedFloatData());
+					adam->optimize(gradientCalculator->getStochaisticGradient());
+					gradientCalculator->formatFloatParamsPostUpdate(adam->getOptimizedFloatData());
+
+					gradientCalculator->updateOptimizedFloats(adam->getOptimizedFloatData(), particleMovementAbsSSBO);
+
+					if (updateDensities.value || enableDensityControl.value)
+					{
+						updateDensities.value = true;
+						updateParticleDensities();
+					}
+
+					if (enableDensityControl.value)
+					{
+						if (densityControl->updateAvgMovement(particleMovementAbsSSBO))
+						{
+							densityControl->updatePositions(optimizedParamsSSBO);
+							updateOptimizedParams(optimizedParamsSSBO);
+						}
+					}
+
+					static int pushApartCounter = 0;
+					if (autoPushApart.value)
+					{
+						pushApartCounter++;
+						if (pushApartCounter >= pushApartUpdatePeriod.value)
+						{
+							pushApartOptimizedParams();
+							pushApartCounter = 0;
+						}
+					}
+					else
+					{
 						pushApartCounter = 0;
 					}
 				}
-				else
-				{
-					pushApartCounter = 0;
-				}
 			}
+			renderer3D->renderBoxFrontEnabled = true;
+			renderer3D->getCamera()->setCameraData(*referenceDataArray[currentReferenceIndex].backupCamera);
 		}
 		else
 		{
 			renderer3D->renderBoxFrontEnabled = false;
 			renderer3D->render(framebuffer, optimizedParamsSSBO);
 			renderer3D->renderBoxFrontEnabled = true;
+			newFluidParamsNeeded = true;
 		}
 		if (gradientVisualization.value && particleGradientValid)
 		{
@@ -259,14 +290,19 @@ void DiffRendererProxy::render(renderer::fb_ptr framebuffer, renderer::ssbo_ptr<
 			errorValueSSBO->unmapBuffer();
 			std::cout << sum << std::endl;
 		}
-		adamStepHappened = false;
 	}
 }
 
 void DiffRendererProxy::setConfigData(const ConfigData3D& data)
 {
 	renderer3D->setConfigData(data);
+	renderer3D->setParamBuffersRes(data.screenSize);
 	configData = data;
+	for (auto& referenceData : referenceDataArray)
+	{
+		referenceData.colorRenderTargetTexture->resizeTexture(data.screenSize.x, data.screenSize.y);
+		referenceData.depthRenderTargetTexture->resizeTexture(data.screenSize.x, data.screenSize.y);
+	}
 	referenceFramebuffer->setSize(data.screenSize);
 }
 
@@ -286,6 +322,8 @@ void DiffRendererProxy::show(int screenWidth)
 		densityControl->show(screenWidth);
 		ImGui::End();
 	}
+
+	handleReferenceImageCountChange();
 }
 
 void visual::DiffRendererProxy::reset(renderer::ssbo_ptr<ParticleShaderData> data)
@@ -388,5 +426,45 @@ void visual::DiffRendererProxy::updateSimulator()
 	optimizedParamsSSBO->unmapBuffer();
 	particles->updateParticleIntersectionHash(true);
 	configData.simManager->setHashedParticles(std::move(particles));
+}
+
+void visual::DiffRendererProxy::handleReferenceImageCountChange()
+{
+	if (referenceImageCountValue != referenceImageCount.value)
+	{
+		referenceImageCountValue = referenceImageCount.value;
+		renderer3D->setParamBufferOutCnt(referenceImageCountValue);
+		referenceImageIndex.options.clear();
+		for (int i = 0; i < referenceImageCountValue; i++)
+		{
+			referenceImageIndex.options.push_back(std::to_string(i + 1));
+		}
+		referenceImageIndex.value = 0;
+	}
+	if (currentReferenceIndex != referenceImageIndex.value)
+	{
+		currentReferenceIndex = referenceImageIndex.value;
+		referenceFramebuffer->setColorAttachments(renderer::Framebuffer::toArray({
+			referenceDataArray[currentReferenceIndex].colorRenderTargetTexture
+		}));
+		referenceFramebuffer->setDepthAttachment(referenceDataArray[currentReferenceIndex].depthRenderTargetTexture);
+		if (referenceDataArray[currentReferenceIndex].backupCamera)
+		{
+			renderer3D->getCamera()->setCameraData(*referenceDataArray[currentReferenceIndex].backupCamera);
+		}
+	}
+}
+
+bool visual::DiffRendererProxy::validateState() const
+{
+	for (int p = 0; p < referenceImageCountValue; p++)
+	{
+		if (!referenceDataArray[p].backupCamera)
+		{
+			spdlog::warn("No camera data for reference image {}", p);
+			return false;
+		}
+	}
+	return true;
 }
 

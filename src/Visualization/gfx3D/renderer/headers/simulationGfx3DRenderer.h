@@ -45,6 +45,14 @@ public:
 
 	std::shared_ptr<renderer::Lights> getLights() const override;
 
+	void setParamBufferOutCnt(int cnt) override;
+
+	void setActiveParamBuffer(int index) override;
+
+	std::pair<std::shared_ptr<renderer::StorageBuffer<PixelParamData>>, bool> getParamBufferOut(int index) const override;
+
+	void setParamBuffersRes(glm::ivec2 screenSize) override;
+
 private:
 	const int maxParticleNum;
 
@@ -90,8 +98,6 @@ private:
 
 	void renderParticles(std::shared_ptr<renderer::Framebuffer> framebuffer, 
 		renderer::ssbo_ptr<ParticleShaderData> data);
-
-	std::shared_ptr<renderer::StorageBuffer<PixelParamData>> getParamBufferOut() const override;
 };
 
 } // namespace visual
