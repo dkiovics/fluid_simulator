@@ -1,22 +1,26 @@
 set(SOURCES
+    src/controlUi.cpp
+    src/controlRegistry.cpp
+    src/controlRegistryPrivate.cpp
     controlUi.h
-    
-    src/controls.cpp
+    controlRegistry.h
+    src/controlRegistryPrivate.h
+    src/controlElements.hpp
+    src/controlCollection.cpp
  )
 
-add_library(ControlUi STATIC ${SOURCES})
+add_library(control_ui STATIC ${SOURCES} "src/controlCollection.cpp" "src/controlCollection.h")
 
-target_include_directories(ControlUi 
+target_include_directories(control_ui 
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(ControlUi 
+target_link_libraries(control_ui 
     PUBLIC
         app_compiler_flags
         glfw
         render_engine
         imgui
         spdlog
-        simulator
-        visualization
+        glm::glm
 )
