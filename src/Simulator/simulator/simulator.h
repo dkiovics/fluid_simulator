@@ -19,8 +19,8 @@ public:
 	/**
 	 * Enum for the Particle-Grid-Particle transfer type.
 	 */
-	enum class P2G2PType {
-		PIC, FLIP, APIC
+	enum class P2G2PType : uint8_t {
+		PIC = 0, FLIP, APIC
 	};
 
 
@@ -76,7 +76,7 @@ public:
 
 	/**
 	 * Returns the duration of each simulation step in the last iteration.
-	 * 
+	 *
 	 * \return - a map with step name - duration pairs
 	 */
 	std::map<std::string, long long> getStepDuration() const;

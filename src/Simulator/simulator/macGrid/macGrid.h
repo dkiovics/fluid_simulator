@@ -185,6 +185,8 @@ public:
 
 	const bool twoD;
 
+	const double resolution;
+
 protected:
 	const int yzMultiplier;
 	const int cellCount;

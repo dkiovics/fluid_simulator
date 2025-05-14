@@ -130,6 +130,14 @@ void HashedParticles::forEach(bool parallel, std::function<void(Particle&, int)>
 }
 
 void HashedParticles::setParticleNum(int num) {
+	if (num == particles.size())
+	{
+		if (particleCells.size() == 0)
+		{
+			initParticleIntersectionHash();
+		}
+		return;
+	}
 	particleIds = std::vector<int>(num);
 	while (num < particles.size()) {
 		particles.pop_back();
@@ -184,10 +192,12 @@ int HashedParticles::getParticleNum() const {
 }
 
 void HashedParticles::setParticleR(double r) {
-	this->r = r;
 	rInv = 1 / r;
 	d = r * 2;
 	dInv = 1 / d;
+	if (r == this->r)
+		return;
+	this->r = r;
 	initParticleIntersectionHash();
 	updateParticleIntersectionHash(false);
 }

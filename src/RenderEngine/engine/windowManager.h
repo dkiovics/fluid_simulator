@@ -1,10 +1,12 @@
 #pragma once
 
 #include <glad.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <iostream>
 #include <unordered_map>
+#include <mutex>
 #include <set>
 #include <optional>
 #include <functional>
@@ -25,6 +27,7 @@ class WindowManager
 {
 private:
 	static std::unordered_map<GLFWwindow*, WindowManager*> managerWindowPairs;
+	static std::mutex managerWindowPairsMutex;
 
 	static WindowManager* getManager(GLFWwindow* window);
 
@@ -53,40 +56,14 @@ public:
 	void activateGPUProgram(unsigned int program);
 
 	/**
-	 * \brief Renders wireframe only if enable is true
-	 * \param enable - if true, wireframe is rendered, if false, normal rendering is done
-	 */
-	void renderWireframeOnly(bool enable);
-
-	/**
-	 * \brief Enables or disables depth test
-	 * \param enable - if true, depth test is enabled, if false, depth test is disabled
-	 */
-	void enableDepthTest(bool enable);
-
-	/**
-	 * \brief Clear the viewport color and depth buffer with the given values
-	 * \param color - color to clear the viewport with
-	 * \param depth - depth value to clear the viewport with
-	 */
-	void clearViewport(const glm::vec4& color, const float depth);
-	
-	/**
-	 * \brief Clear the viewport color buffer with the given color
-	 * \param color - color to clear the viewport with
-	 */
-	void clearViewport(const glm::vec4& color);
-
-	/**
-	 * \brief Clear the viewport depth buffer with the given depth value
-	 * \param depth - depth value to clear the viewport with
-	 */
-	void clearViewport(const float depth);
-
-	/**
 	 * \brief Makes the window context current on the calling thread
 	 */
-	void makeWindowContextcurrent();
+	void makeWindowContextcurrent() const;
+
+	/**
+	 * \brief Releases the window context on the calling thread
+	 */
+	void releaseWindowContext() const;
 
 	/**
 	 * \brief Swaps the front and back buffers
@@ -97,19 +74,7 @@ public:
 	 * \brief Returns the length of the last frame in seconds
 	 * \return The length of the last frame in seconds
 	 */
-	double getLastFrameTime() const;
-
-	/**
-	 * \brief Sets the viewport to the given values
-	 * 
-	 * \param x - x position of the viewport
-	 * \param y - y position of the viewport
-	 * \param width - width of the viewport
-	 * \param height - height of the viewport
-	 */
-	void setViewport(int x, int y, int width, int height);
-
-	void bindDefaultFramebuffer();
+	double getLastFrameTime() const noexcept;
 
 	unsigned int getScreenWidth() const;
 	unsigned int getScreenHeight() const;

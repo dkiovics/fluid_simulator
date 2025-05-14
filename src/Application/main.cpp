@@ -8,13 +8,15 @@
 #include <spdlog/spdlog.h>
 
 
+void runApplication();
+
+
 int main() {
 #ifdef _DEBUG
 	spdlog::set_level(spdlog::level::debug);
 	spdlog::debug("Debug mode");
 #endif
 
-	
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -26,7 +28,7 @@ int main() {
 	try
 	{
 #endif
-		startSimulatorGui();
+		runApplication();
 #ifndef _DEBUG
 	}
 	catch (const std::exception& e)

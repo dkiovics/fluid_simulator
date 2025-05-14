@@ -6,6 +6,7 @@
 #include "controlCollection.h"
 #include "controlRegistryPrivate.h"
 #include <string_view>
+#include "engine/glUtils.hpp"
 
 using namespace controls;
 
@@ -17,11 +18,21 @@ controls::ControlWindow::ControlWindow(int initialWith, int initialHeight)
 	spdlog::info("ControlWindow created");
 }
 
+controls::ControlWindow::~ControlWindow()
+{
+	stop();
+	spdlog::info("ControlWindow destroyed");
+}
+
 void controls::ControlWindow::start()
 {
 	running = true;
+	startupFinished = false;
 	_ControlRegistryPrivate::getInstance().loadControlValues(controlValuesFile.data());
 	renderThread = std::make_unique<std::thread>(&ControlWindow::renderLoop, this);
+	
+	std::unique_lock lock(mutex);
+	startSignal.wait(lock, [this] { return !running || startupFinished; });
 }
 
 void controls::ControlWindow::stop() noexcept
@@ -41,7 +52,7 @@ bool controls::ControlWindow::isRunning() const noexcept
 void controls::ControlWindow::renderLoop()
 {
 	//glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-	std::unique_ptr<renderer::WindowManager> windowManager = std::make_unique<renderer::WindowManager>(450, 1, "Controls");
+	std::unique_ptr<renderer::WindowManager> windowManager = std::make_unique<renderer::WindowManager>(initialWidth, initialHeight, "Controls");
 	GLFWwindow* window = windowManager->getWindow();
 	windowManager->makeWindowContextcurrent();
 	glfwSwapInterval(1); // Enable vsync
@@ -102,7 +113,7 @@ void controls::ControlWindow::renderLoop()
 			int display_w, display_h;
 			glfwGetFramebufferSize(window, &display_w, &display_h);
 			glViewport(0, 0, display_w, display_h);
-			windowManager->clearViewport(glm::vec4(0.45f, 0.55f, 0.60f, 1.00f));
+			renderer::clearViewport(glm::vec4(0.45f, 0.55f, 0.60f, 1.00f));
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 			// Update and Render additional Platform Windows
@@ -118,6 +129,12 @@ void controls::ControlWindow::renderLoop()
 
 			glfwSwapBuffers(window);
 			_ControlRegistryPrivate::getInstance().syncControlValues();
+			if (!startupFinished)
+			{
+				std::unique_lock lock(mutex);
+				startupFinished = true;
+				startSignal.notify_all();
+			}
 		}
 
 		// Cleanup
@@ -133,5 +150,7 @@ void controls::ControlWindow::renderLoop()
 	windowManager->releaseWindowContext();
 
 	running = false;
+	std::unique_lock lock(mutex);
+	startSignal.notify_all();
 	_ControlRegistryPrivate::getInstance().saveControlValues(controlValuesFile.data());
 }

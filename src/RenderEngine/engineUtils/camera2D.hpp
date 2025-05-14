@@ -16,8 +16,8 @@ namespace renderer
 class Camera2D : public UniformGatherer, public UniformGathererGlobal
 {
 private:
-	glm::vec2 initialPosition;
-	glm::vec2 windowSize;
+	glm::vec2 initialPosition = glm::vec2(0);
+	glm::vec2 windowSize = glm::vec2(0);
 	float magnification = 1.0f;
 	u_var(VP, glm::mat4);
 
@@ -28,7 +28,7 @@ public:
 	 * \param position - The initial position of the camera (center of the window)
 	 */
 	Camera2D(const glm::vec2& windowSize, const glm::vec2& position)
-		: UniformGatherer("camera.", true, VP), windowSize(windowSize), initialPosition(position)
+		: UniformGatherer("camera.", true, VP)
 	{
 		init(windowSize, position);
 	}
@@ -40,6 +40,8 @@ public:
 	 */
 	void init(const glm::vec2& windowSize, const glm::vec2& position)
 	{
+		if (windowSize == this->windowSize && position == initialPosition)
+			return; // No need to reinitialize if the parameters are the same
 		this->windowSize = windowSize;
 		initialPosition = position;
 		magnification = 1.0f;

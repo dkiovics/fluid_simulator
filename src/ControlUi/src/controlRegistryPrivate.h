@@ -37,6 +37,17 @@ public:
 		return std::get<T>(it->second);
 	}
 
+	template<typename T>
+	T getOrDefault(const std::string& path, const T& defaultValue)
+	{
+		auto it = uiThreadControlMap.find(path);
+		if (it == uiThreadControlMap.end())
+		{
+			return defaultValue;
+		}
+		return std::get<T>(it->second);
+	}
+
 	bool isControlRegistered(const std::string& path) const;
 
 	void registerControl(const std::string& path, const ControlRegistry::NodeValue& value);

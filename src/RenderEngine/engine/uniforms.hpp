@@ -257,9 +257,9 @@ private:
 
 
 #define u_var(name, type) \
-	UniformVariable<type> name = UniformVariable<type>(#name)
+	renderer::UniformVariable<type> name = renderer::UniformVariable<type>(#name)
 
 #define u_ptr(name, type) \
-	UniformPointer<type> name = UniformPointer<type>()
+	renderer::UniformPointer<type> name = renderer::UniformPointer<type>()
 
 } // namespace renderer

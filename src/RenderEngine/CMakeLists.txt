@@ -52,8 +52,8 @@ target_link_libraries(render_engine
         app_compiler_flags
         glfw
         glm::glm
-    PRIVATE 
         glad
+    PRIVATE 
         spdlog
         stb_image
         tiny_obj_loader

@@ -45,12 +45,12 @@ public:
 	private:
 		std::string nodePath;
 		ControlMap& controlValues;
+		std::set<std::string>& modifiedValues;
 		std::mutex& mutex;
 
 	public:
-		NodeProxy(const std::string& path, ControlMap& controlValues, std::mutex& mutex)
-			: nodePath(path), controlValues(controlValues), mutex(mutex)
-		{ }
+		NodeProxy(const std::string& path, ControlMap& controlValues, std::set<std::string>& modifiedValues, std::mutex& mutex)
+			: nodePath(path), controlValues(controlValues), mutex(mutex), modifiedValues(modifiedValues) { }
 
 		template<typename T>
 		const T& operator=(const T& value)
@@ -65,7 +65,16 @@ public:
 			{
 				throw std::runtime_error("Type mismatch for control node: " + nodePath);
 			}
+			modifiedValues.insert(nodePath);
 			return std::get<T>(it->second) = value;
+		}
+
+		template<typename T>
+		void set(const T& value)
+		{
+			std::lock_guard<std::mutex> lock(mutex);
+			controlValues[nodePath] = value;
+			modifiedValues.insert(nodePath);
 		}
 
 		template<typename T>
@@ -87,7 +96,7 @@ public:
 
 	NodeProxy operator[](const std::string& path)
 	{
-		return NodeProxy(path, controlValues, controlValuesMutex);
+		return NodeProxy(path, controlValues, modifiedValues, controlValuesMutex);
 	}
 };
 

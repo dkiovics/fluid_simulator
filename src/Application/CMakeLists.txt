@@ -1,8 +1,5 @@
 set(SOURCES
-    ui/simParamsAdvanced.h
-    ui/simParamsAdvanced.cpp
-    ui/simulationGui.h
-    ui/simulationGui.cpp
+    src/appControl.cpp
     
     main.cpp
 )
@@ -24,9 +21,5 @@ target_link_libraries(Application
         imgui
         spdlog
         visualization
-)
-
-add_custom_command(TARGET Application POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/meshes"
-	COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../meshes" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/meshes"
+        control_ui
 )

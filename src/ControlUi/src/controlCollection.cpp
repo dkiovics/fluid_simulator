@@ -47,10 +47,11 @@ struct _SimulationAdvancedControl
 
 struct _SimulationObstacleControl
 {
+	CheckBox showObstacles{ "obs.show_obstacles", "Show obstacles", true };
 	Button addSphere{ "obs.add_sphere", "Add sphere" };
 	Button addRectangle{ "obs.add_rectangle", "Add rectangle" };
-	Button addParticleSource{ "obs.add_particle_source", "Add particle source" };
-	Button addParticleSink{ "obs.add_particle_sink", "Add particle sink" };
+	/*Button addParticleSource{ "obs.add_particle_source", "Add particle source" };
+	Button addParticleSink{ "obs.add_particle_sink", "Add particle sink" };*/
 	Button addMesh{ "obs.add_mesh", "Add mesh" };
 	Button remove{ "obs.remove", "Remove" };
 	TextInput meshFile{ "obs.mesh_file", "File path", "meshes/" };
@@ -59,16 +60,17 @@ struct _SimulationObstacleControl
 	SliderFloat obstacleX{ "obs.obstacle_x", "Obstacle X", 1.0f, 40.0f, 6.0f };
 	SliderFloat obstacleY{ "obs.obstacle_y", "Obstacle Y", 1.0f, 40.0f, 6.0f };
 	SliderFloat obstacleZ{ "obs.obstacle_z", "Obstacle Z", 1.0f, 40.0f, 6.0f };
-	SliderFloat spawnRate{ "obs.spawn_rate", "Spawn rate", 1.0f, 5000.0f, 1600.0f };
+	SliderFloat meshScale{ "obs.mesh_scale", "Mesh scale", 0.5f, 20.0f, 6.0f };
+	/*SliderFloat spawnRate{ "obs.spawn_rate", "Spawn rate", 1.0f, 5000.0f, 1600.0f };
 	SliderFloat spawnSpeed{ "obs.spawn_speed", "Spawn speed", 0.1f, 10.0f, 4.0f };
 	CheckBox enableSpawn{ "obs.enable_spawn", "Enable spawn" };
-	CheckBox enableDespawn{ "obs.enable_despawn", "Enable despawn" };
+	CheckBox enableDespawn{ "obs.enable_despawn", "Enable despawn" };*/
 };
 
 struct _RenderingSettings
 {
-	CheckBox renderIn2D{ "render.render_in_2d", "Render in 2D" };
 	CheckBox showBox{ "render.show_box", "Show box" };
+	CheckBox showGrid{ "render.show_grid", "Show grid" };
 	RadioButton fluidRenderMode{ "render.fluid_render_mode", { "None", "Particles", "Surface" }, 2 };
 };
 
@@ -78,13 +80,14 @@ struct _ParticleRendeingSettings
 	SliderFloat maxParticleSpeed{ "render.max_particle_speed", "Max particle speed", 1.0f, 200.0f, 36.0f };
 	ColorPicker particleColor{ "render.particle_color", "Particle color", glm::vec3(0.0f, 0.4f, 0.95f) };
 	ColorPicker particleSpeedColor{ "render.particle_speed_color", "Particle speed color", glm::vec3(0.4f, 0.93f, 0.88f) };
+	SliderFloat speedColorExp{ "render.particle_speed_color_exp", "Speed color exponent", 0.0f, 10.0f, 1.0f };
 };
 
 struct _SurfaceRenderingSettings
 {
 	ColorPicker surfaceColor{ "render.surface_color", "Surface color", glm::vec3(0.0f, 0.4f, 0.95f) };
 	CheckBox bilateralFilterEnabled{ "render.bilateral_filter_en", "Bilateral filter", true };
-	SliderFloat smoothingSize{ "render.smoothing_size", "Gaussian smoothing", 0.01f, 6.0f, 1.7f };
+	SliderFloat smoothingSize{ "render.smoothing_size", "Smoothing kernel size", 0.01f, 6.0f, 1.7f };
 	SliderFloat blurScale{ "render.blur_scale", "Blur scale", 0.01f, 0.4f, 0.06f };
 	SliderFloat blurDepthFalloff{ "render.blur_depth_falloff", "Blur depth falloff", 100.0f, 10000.0f, 1900.0f };
 	CheckBox sprayEnabled{ "render.spray_en", "Spray", true };
@@ -136,6 +139,8 @@ void _ControlCollectionPrivate::drawApplicationControls()
 	appControl.is2D.draw();
 	ImGui::SameLine();
 	appControl.is2DSim.draw();
+	ImGui::SameLine();
+	ImGui::Text("FPS: %.1lf", registry.getOrDefault("telemetry.fps", 0.0f));
 	ImGui::End();
 }
 
@@ -149,7 +154,7 @@ void _ControlCollectionPrivate::drawSimulationControls()
 	simControl.autoDt.draw();
 	ImGui::SameLine();
 	simControl.step.draw();
-	if (registry.get<bool>("sim.auto_dt"))
+	if (!registry.get<bool>("sim.auto_dt"))
 		simControl.dt.draw();
 	simControl.particleCount.draw();
 	simControl.showAdvanced.draw();
@@ -191,13 +196,15 @@ void _ControlCollectionPrivate::drawSimulationAdvancedControls()
 void _ControlCollectionPrivate::drawSimulationObstacleControls()
 {
 	ImGui::Begin("Obstacle controls");
+	simObsControl.showObstacles.draw();
+	ImGui::SameLine();
 	simObsControl.addSphere.draw();
 	ImGui::SameLine();
 	simObsControl.addRectangle.draw();
-	ImGui::SameLine();
+	/*ImGui::SameLine();
 	simObsControl.addParticleSource.draw();
 	ImGui::SameLine();
-	simObsControl.addParticleSink.draw();
+	simObsControl.addParticleSink.draw();*/
 	ImGui::SameLine();
 	simObsControl.remove.draw();
 
@@ -211,12 +218,13 @@ void _ControlCollectionPrivate::drawSimulationObstacleControls()
 	simObsControl.obstacleX.draw();
 	simObsControl.obstacleY.draw();
 	simObsControl.obstacleZ.draw();
+	simObsControl.meshScale.draw();
 
-	simObsControl.enableDespawn.draw();
+	/*simObsControl.enableDespawn.draw();
 	ImGui::SameLine();
 	simObsControl.enableSpawn.draw();
 	simObsControl.spawnRate.draw();
-	simObsControl.spawnSpeed.draw();
+	simObsControl.spawnSpeed.draw();*/
 
 	ImGui::End();
 }
@@ -224,15 +232,16 @@ void _ControlCollectionPrivate::drawSimulationObstacleControls()
 void _ControlCollectionPrivate::drawRenderingControls()
 {
 	ImGui::Begin("Rendering controls");
-	renderControl.renderIn2D.draw();
-	ImGui::SameLine();
 	renderControl.showBox.draw();
 	ImGui::SameLine();
 	renderControl.fluidRenderMode.draw();
+	ImGui::SameLine();
+	renderControl.showGrid.draw();
 
 	if (registry.get<int>("render.fluid_render_mode") == 1)
 	{
 		particleRenderControl.particleSpeedColorEnabled.draw();
+		particleRenderControl.speedColorExp.draw();
 		particleRenderControl.maxParticleSpeed.draw();
 		particleRenderControl.particleColor.draw();
 		particleRenderControl.particleSpeedColor.draw();

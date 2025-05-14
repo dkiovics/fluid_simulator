@@ -9,6 +9,7 @@
 using namespace renderer;
 
 std::unordered_map<GLFWwindow*, WindowManager*> WindowManager::managerWindowPairs;
+std::mutex WindowManager::managerWindowPairsMutex;
 
 void WindowManager::framebufferSizeChangedCallback(GLFWwindow* window, int width, int height)
 {
@@ -52,6 +53,7 @@ void WindowManager::keyCallbackFun(GLFWwindow* window, int key, int scancode, in
 
 WindowManager* WindowManager::getManager(GLFWwindow* window)
 {
+	std::lock_guard lock(managerWindowPairsMutex);
 	auto pair = managerWindowPairs.find(window);
 	if (pair == managerWindowPairs.end())
 		return nullptr;
@@ -69,7 +71,10 @@ WindowManager::WindowManager(int screenWidth, int screenHeight, std::string name
 	window = glfwCreateWindow(screenWidth, screenHeight, name.c_str(), NULL, NULL);
 	if (window == NULL)
 		throw std::runtime_error("Failed to create window");
-	managerWindowPairs.insert(std::make_pair(window, this));
+	{
+		std::lock_guard lock(managerWindowPairsMutex);
+		managerWindowPairs.insert(std::make_pair(window, this));
+	}
 	glfwMakeContextCurrent(window);
 	glfwSetCursorPosCallback(window, mouseCallbackFun);
 	glfwSetScrollCallback(window, scrollCallbackFun);
@@ -80,66 +85,30 @@ WindowManager::WindowManager(int screenWidth, int screenHeight, std::string name
 		throw std::runtime_error("Failed to init GLAD");
 	glEnable(GL_BLEND);
 	glDisable(GL_CULL_FACE);
-	int maxImageUnits;
+	/*int maxImageUnits;
 	glGetIntegerv(GL_MAX_IMAGE_UNITS, &maxImageUnits);
 	spdlog::info("Max image units: {}", maxImageUnits);
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxImageUnits);
-	spdlog::info("Max combined texture image units: {}", maxImageUnits);
+	spdlog::info("Max combined texture image units: {}", maxImageUnits);*/
 }
 
 WindowManager::~WindowManager()
 {
+	std::lock_guard lock(managerWindowPairsMutex);
+	managerWindowPairs.erase(window);
 	glfwMakeContextCurrent(window);
 	glfwDestroyWindow(window);
 	spdlog::info("WindowManager destroyed");
 }
 
-void WindowManager::activateGPUProgram(unsigned int program)
-{
-	if (activeProgram == program)
-		return;
-	glUseProgram(program);
-	activeProgram = program;
-}
-
-void WindowManager::renderWireframeOnly(bool enable)
-{
-	if (enable)
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	else
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
-void renderer::WindowManager::enableDepthTest(bool enable)
-{
-	if (enable)
-		glEnable(GL_DEPTH_TEST);
-	else
-		glDisable(GL_DEPTH_TEST);
-}
-
-void renderer::WindowManager::clearViewport(const glm::vec4& color, const float depth)
-{
-	glClearColor(color.x, color.y, color.z, color.w);
-	glClearDepth(depth);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void renderer::WindowManager::clearViewport(const glm::vec4& color)
-{
-	glClearColor(color.x, color.y, color.z, color.w);
-	glClear(GL_COLOR_BUFFER_BIT);
-}
-
-void renderer::WindowManager::clearViewport(const float depth)
-{
-	glClearDepth(depth);
-	glClear(GL_DEPTH_BUFFER_BIT);
-}
-
-void WindowManager::makeWindowContextcurrent()
+void WindowManager::makeWindowContextcurrent() const
 {
 	glfwMakeContextCurrent(window);
+}
+
+void renderer::WindowManager::releaseWindowContext() const
+{
+	glfwMakeContextCurrent(nullptr);
 }
 
 void renderer::WindowManager::swapBuffers()
@@ -150,19 +119,17 @@ void renderer::WindowManager::swapBuffers()
 	lastEndTime = currentTime;
 }
 
-double renderer::WindowManager::getLastFrameTime() const
+double renderer::WindowManager::getLastFrameTime() const noexcept
 {
 	return lastFrameTime;
 }
 
-void WindowManager::setViewport(int x, int y, int width, int height)
+void WindowManager::activateGPUProgram(unsigned int program)
 {
-	glViewport(x, y, width, height);
-}
-
-void renderer::WindowManager::bindDefaultFramebuffer()
-{
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	if (activeProgram == program)
+		return;
+	glUseProgram(program);
+	activeProgram = program;
 }
 
 unsigned int WindowManager::getScreenWidth() const

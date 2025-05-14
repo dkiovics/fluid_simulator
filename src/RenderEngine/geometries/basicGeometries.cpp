@@ -639,3 +639,21 @@ renderer::Arrow4::Arrow4(float width, float baseHeight, float tipHeight) : Geome
 	setVertexNum((int)vertexes.size());
 
 }
+
+renderer::Line::Line(glm::vec3 p1, glm::vec3 p2, float lineWidth) : Geometry(GL_LINES, 2), lineWidth(lineWidth)
+{
+	std::vector<glm::vec4> vertexes;
+	vertexes.push_back(glm::vec4(p1, 1.0));
+	vertexes.push_back(glm::vec4(p2, 1.0));
+	
+	std::vector<ArrayAttribute> attributes = {
+		ArrayAttribute{0, 4, GL_FLOAT, 0}
+	};
+	createVbo(vertexes, attributes);
+}
+
+void renderer::Line::draw() const
+{
+	glLineWidth(lineWidth);
+	Geometry::draw();
+}

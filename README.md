@@ -30,6 +30,6 @@ The project was built and tested using CMake and Visual Studio 2022. Before buil
 - `Screen space fluid rendering with curvature flow` paper for the screen space fluid surface computation and rendering
 
 ## Results
-![Alt text](Images/image.png) ![Alt text](Images/image-1.png)
-![Alt text](Images/image-2.png) ![Alt text](Images/image-3.png)
-![Alt text](Images/image-4.png) ![Alt text](Images/image-5.png)
+![Alt text](docs/images/image.png) ![Alt text](Images/image-1.png)
+![Alt text](docs/images/image-2.png) ![Alt text](Images/image-3.png)
+![Alt text](docs/images/image-4.png) ![Alt text](Images/image-5.png)
