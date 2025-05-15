@@ -362,7 +362,7 @@ void Visuals3D::handleObstacleMovement()
 	glm::vec3 prevIntersection = findIntersection(obstacleCenter, camDir, camPos, prevRayDir);
 	glm::vec3 intersection = findIntersection(obstacleCenter, camDir, camPos, rayDir);
 	glm::vec3 movement = intersection - prevIntersection;
-	obstacles[selectedObstacle].position += movement;
+	obstacles[selectedObstacle].movePosition(movement);
 }
 
 void Visuals3D::sceneConfigChanged()
@@ -532,7 +532,7 @@ void Visuals3D::handleUserInteractions()
 
 	for (auto& o : obstacles)
 	{
-		o.velocity = glm::vec3(0);
+		o.handleNoPositionChange();
 	}
 }
 

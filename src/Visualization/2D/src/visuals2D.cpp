@@ -15,8 +15,7 @@ void Visuals2D::mouseCallback(double x, double y)
 	prevMousePos = mousePos;
 	if (selectedObstacle != -1)
 	{
-		obstacles[selectedObstacle].position += glm::vec3(d.x, d.y, 0);
-		obstacles[selectedObstacle].velocity = glm::vec3(d.x, d.y, 0) / (float)window.getLastFrameTime();
+		obstacles[selectedObstacle].movePosition(glm::vec3(d.x, d.y, 0));
 	}
 }
 
@@ -176,7 +175,7 @@ void Visuals2D::handleUserInteractions()
 	}
 
 	for (auto& o : obstacles)
-		o.velocity = glm::vec3(0);
+		o.handleNoPositionChange();
 }
 
 Visuals2D::~Visuals2D()

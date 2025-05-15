@@ -91,10 +91,25 @@ void runApplication()
 
 		handleGraphicsInterfaceChange(simWindow, registry["app.is_2d"]);
 
-		simulationManager->stepSimulation(dt);
-
 		graphicsInterface->setSceneConfig(getSceneConfig());
 		graphicsInterface->handleUserInteractions();
+
+		std::vector<std::unique_ptr<genericfsim::obstacle::Obstacle>> obstacles;
+		for (auto& o : graphicsInterface->getObstacles())
+		{
+			if (o.type == visual::Obstacle::ObstacleType::BOX)
+			{
+				obstacles.push_back(std::make_unique<genericfsim::obstacle::RectengularObstacle>(o.size, o.position, o.prevPosition));
+			}
+			else if (o.type == visual::Obstacle::ObstacleType::SPHERE)
+			{
+				obstacles.push_back(std::make_unique<genericfsim::obstacle::SphericalObstacle>(o.size.x * 0.5f, o.position, o.prevPosition));
+			}
+		}
+		simulationManager->setObstacles(std::move(obstacles));
+
+		simulationManager->stepSimulation(dt);
+
 		graphicsInterface->render(simulationManager->getParticleData());
 
 		simWindow.swapBuffers();

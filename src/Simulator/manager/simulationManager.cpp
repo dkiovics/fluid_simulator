@@ -97,6 +97,11 @@ renderer::ssbo_ptr<ParticleSSBOData> SimulationManager::getParticleData() const 
 //	return 0;
 //}
 
+void SimulationManager::setObstacles(std::vector<std::unique_ptr<genericfsim::obstacle::Obstacle>> obstacles)
+{
+	this->obstacles = std::move(obstacles);
+}
+
 void SimulationManager::stepSimulation(double dt)
 {
 	run = (bool)controlRegistry["sim.run"];
@@ -113,13 +118,13 @@ void SimulationManager::stepSimulation(double dt)
 
 	simulator->config = getConfig(controlRegistry);
 
-	/*simulator->obstacles.clear();
+	simulator->obstacles.clear();
 	for (auto& o : obstacles)
 	{
 		o->calculateSpeed(dt);
-		simulator->obstacles.push_back(std::unique_ptr<Obstacle>(o->clone()));
+		simulator->obstacles.push_back(std::unique_ptr<genericfsim::obstacle::Obstacle>(o->clone()));
 		o->prevPos = o->pos;
-	}*/
+	}
 
 	if ((bool)controlRegistry["sim.restart"])
 	{

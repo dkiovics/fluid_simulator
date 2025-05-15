@@ -2,6 +2,7 @@
 
 #include "compute/storageBuffer.h"
 #include "controlRegistry.h"
+#include "simulator/macGrid/obstacles.hpp"
 
 #include <vector>
 #include <map>
@@ -138,7 +139,7 @@ public:
 
 	const bool twoD;
 
-	//std::vector<std::unique_ptr<Obstacle>> obstacles;
+	void setObstacles(std::vector<std::unique_ptr<genericfsim::obstacle::Obstacle>> obstacles);
 
 private:
 	std::shared_ptr<genericfsim::simulator::Simulator> simulator;
@@ -156,6 +157,8 @@ private:
 	int particleNum;
 
 	controls::ControlRegistry& controlRegistry;
+
+	std::vector<std::unique_ptr<genericfsim::obstacle::Obstacle>> obstacles;
 
 	void updateMacGridParams();
 };
