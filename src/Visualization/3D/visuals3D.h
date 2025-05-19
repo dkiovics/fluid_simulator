@@ -84,10 +84,15 @@ public:
 
 	void handleUserInteractions() override;
 
-	void render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, 
+	void render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, bool renderToFb = true,
 		renderer::fb_ptr fb = nullptr, renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) override;
 
 	bool renderBoxFrontEnabled = true;
+
+	std::shared_ptr<renderer::Camera3D> getCamera() const
+	{
+		return camera;
+	}
 
 	~Visuals3D() override;
 

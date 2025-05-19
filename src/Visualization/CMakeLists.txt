@@ -27,7 +27,6 @@ target_link_libraries(visualization
         render_engine
         glad
         simulator
-        imgui
         spdlog
         control_ui
 )

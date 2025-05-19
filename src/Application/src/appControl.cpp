@@ -47,6 +47,24 @@ static visual::SceneConfig getSceneConfig()
 	return sceneConfig;
 }
 
+static void updateSimulationObstacles()
+{
+	auto& obstacles = graphicsInterface->getObstacles();
+	std::vector<std::unique_ptr<genericfsim::obstacle::Obstacle>> simObstacles;
+	for (auto& o : obstacles)
+	{
+		if (o.type == visual::Obstacle::ObstacleType::BOX)
+		{
+			simObstacles.push_back(std::make_unique<genericfsim::obstacle::RectengularObstacle>(o.size, o.position, o.prevPosition));
+		}
+		else if (o.type == visual::Obstacle::ObstacleType::SPHERE)
+		{
+			simObstacles.push_back(std::make_unique<genericfsim::obstacle::SphericalObstacle>(o.size.x * 0.5f, o.position, o.prevPosition));
+		}
+	}
+	simulationManager->setObstacles(std::move(simObstacles));
+}
+
 static bool handleGraphicsInterfaceChange(renderer::WindowManager& window, bool is2D)
 {
 	if (!graphicsInterface || dynamic_cast<visual::Visuals2D*>(graphicsInterface.get()) && !is2D
@@ -93,20 +111,7 @@ void runApplication()
 
 		graphicsInterface->setSceneConfig(getSceneConfig());
 		graphicsInterface->handleUserInteractions();
-
-		std::vector<std::unique_ptr<genericfsim::obstacle::Obstacle>> obstacles;
-		for (auto& o : graphicsInterface->getObstacles())
-		{
-			if (o.type == visual::Obstacle::ObstacleType::BOX)
-			{
-				obstacles.push_back(std::make_unique<genericfsim::obstacle::RectengularObstacle>(o.size, o.position, o.prevPosition));
-			}
-			else if (o.type == visual::Obstacle::ObstacleType::SPHERE)
-			{
-				obstacles.push_back(std::make_unique<genericfsim::obstacle::SphericalObstacle>(o.size.x * 0.5f, o.position, o.prevPosition));
-			}
-		}
-		simulationManager->setObstacles(std::move(obstacles));
+		updateSimulationObstacles();
 
 		simulationManager->stepSimulation(dt);
 

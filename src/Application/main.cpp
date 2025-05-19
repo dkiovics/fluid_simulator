@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <engine/windowManager.h>
-#include "ui/simulationGui.h"
 
 #include <spdlog/spdlog.h>
 

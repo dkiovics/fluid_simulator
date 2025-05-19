@@ -381,7 +381,7 @@ void Visuals3D::screenResolutionChanged(int width, int height)
 	}
 }
 
-void Visuals3D::render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, 
+void Visuals3D::render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, bool renderToFb,
 	renderer::fb_ptr fb, renderer::ssbo_ptr<PixelParamData> pixelParamData)
 {
 	auto& registry = controls::ControlRegistry::getInstance();
@@ -448,20 +448,23 @@ void Visuals3D::render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData
 		transparentBox->draw(sceneConfig.simCenter, sceneConfig.simSize, false, true);
 	}
 
-	if (fb)
+	if (renderToFb)
 	{
-		fb->bind();
-	}
-	else
-	{
-		renderer::bindDefaultFramebuffer();
-	}
-	renderer::setViewport(0, 0, screenSize.x, screenSize.y);
+		if (fb)
+		{
+			fb->bind();
+		}
+		else
+		{
+			renderer::bindDefaultFramebuffer();
+		}
+		renderer::setViewport(0, 0, screenSize.x, screenSize.y);
 
-	fullScreenShader->activate();
-	renderer::enableDepthTest(false);
-	fullScreenQuad->draw();
-	renderer::enableDepthTest(true);
+		fullScreenShader->activate();
+		renderer::enableDepthTest(false);
+		fullScreenQuad->draw();
+		renderer::enableDepthTest(true);
+	}
 }
 
 void Visuals3D::handleUserInteractions()
