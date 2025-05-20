@@ -8,6 +8,7 @@
 #include "gfxInterface.hpp"
 #include "2D/visuals2D.h"
 #include "3D/visuals3D.h"
+#include "prefixTest.h"
 
 
 using namespace genericfsim;
@@ -82,6 +83,9 @@ static bool handleGraphicsInterfaceChange(renderer::WindowManager& window, bool 
 
 void runApplication()
 {
+	runPrefixTest();
+	return;
+
 	auto& registry = controls::ControlRegistry::getInstance();
 
 	renderer::WindowManager simWindow(initialWidth, initialHeight, "Simulation");

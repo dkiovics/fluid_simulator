@@ -117,6 +117,28 @@ public:
 	}
 
 	/**
+	 * \brief Fills the buffer with the given data. The buffer must be mapped before calling this function.
+	 * 
+	 * \param data - The data to fill the buffer with.
+	 * \param start - The start index of the buffer to fill.
+	 * \param size - The size of the buffer to fill in sizeof(T) units.
+	 */
+	void setData(const T* data, unsigned int start, unsigned int size)
+	{
+		if (mappedData == nullptr)
+		{
+			throw std::runtime_error("Buffer must be mapped before setting data.");
+		}
+
+		if (start < mappingStart || start + size > mappingStart + mappingSize)
+		{
+			throw std::runtime_error("Buffer filling is out of bounds.");
+		}
+
+		std::memcpy(mappedData + start, data, size * sizeof(T));
+	}
+
+	/**
 	 * \brief Unmaps the buffer from the CPU. This also updates the buffer on the GPU.
 	 */
 	void unmapBuffer()

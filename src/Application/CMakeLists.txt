@@ -1,5 +1,6 @@
 set(SOURCES
     src/appControl.cpp
+    src/prefixTest.cpp
     
     main.cpp
 )
