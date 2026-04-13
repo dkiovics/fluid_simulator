@@ -12,6 +12,7 @@ set(ENGINE_SOURCES
 )
 
 set(ENGINE_UTILS_SOURCES
+    engineUtils/src/genericGpuPrograms.cpp
     engineUtils/object.h
     engineUtils/lights.hpp
     engineUtils/camera2D.hpp

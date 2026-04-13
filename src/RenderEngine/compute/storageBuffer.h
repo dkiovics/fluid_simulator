@@ -200,6 +200,15 @@ public:
 		return mappedData[index - mappingStart];
 	}
 
+	T* getMappedData()
+	{
+		if (mappedData == nullptr)
+		{
+			throw std::runtime_error("Buffer must be mapped before accessing it.");
+		}
+		return mappedData;
+    }
+
 	GLuint getBufferId() const
 	{
 		return bufferId;

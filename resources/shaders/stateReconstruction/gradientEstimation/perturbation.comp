@@ -1,0 +1,66 @@
+#version 460 compatibility
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+uniform int seed;
+uniform bool posClampEnabled;
+uniform vec3 boxLowerBound;
+uniform vec3 boxUpperBound;
+
+struct ParticleData {
+    vec4 posAndDensity;
+	vec4 velocity;
+};
+
+layout(std430, binding = 0) restrict buffer optimizedParametersSSBO {
+	ParticleData optimizedParameters[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer perturbationPresetsSSBO {
+	ParticleData perturbationPresets[];
+};
+
+layout(std430, binding = 2) restrict writeonly buffer negativeOffsetsSSBO {
+	ParticleData negativeOffsets[];
+};
+
+layout(std430, binding = 3) restrict writeonly buffer positiveOffsetsSSBO {
+	ParticleData positiveOffsets[];
+};
+
+uvec4 pcg4d(uvec4 v) {
+	v = v * 1664525u + 1013904223u;
+	v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
+	v ^= v >> 16u;
+	v.x += v.y*v.w; v.y += v.z*v.x; v.z += v.x*v.y; v.w += v.y*v.z;
+	return v;
+}
+
+
+void main() {
+	unsigned int index = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (index >= optimizedParameters.length()) {
+		return;
+	}
+
+	ParticleData parameter = optimizedParameters[index];
+	ParticleData perturbation = perturbationPresets[index];
+	uvec4 perturbationSign = pcg4d(uvec4(seed * index, 2 * seed * index, 3 * seed * index, 4 * seed * index));
+
+	ParticleData negativeData = parameter;
+	ParticleData positiveData = parameter;
+	
+	vec4 signs = vec4(perturbationSign.x % 2 == 0 ? 1.0 : -1.0, perturbationSign.y % 2 == 0 ? 1.0 : -1.0,
+						perturbationSign.z % 2 == 0 ? 1.0 : -1.0, perturbationSign.w % 2 == 0 ? 1.0 : -1.0);
+
+	negativeData.posAndDensity -= perturbation.posAndDensity * signs;
+	positiveData.posAndDensity += perturbation.posAndDensity * signs;
+
+	if(posClampEnabled) {
+		negativeData.posAndDensity.xyz = clamp(negativeData.posAndDensity.xyz, boxLowerBound, boxUpperBound);
+		positiveData.posAndDensity.xyz = clamp(positiveData.posAndDensity.xyz, boxLowerBound, boxUpperBound);
+	}
+
+	negativeOffsets[index] = negativeData;
+	positiveOffsets[index] = positiveData;
+}

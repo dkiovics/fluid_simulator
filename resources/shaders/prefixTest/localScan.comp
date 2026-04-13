@@ -20,9 +20,6 @@ void main()
     const uint groupID = gl_WorkGroupID.x;
     const uint groupSize = gl_WorkGroupSize.x;
 
-    if (gid >= data.length())
-        return;
-
     temp[lid] = (gid >= data.length()) ? 0 : data[gid];
     barrier();
 

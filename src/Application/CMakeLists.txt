@@ -23,4 +23,5 @@ target_link_libraries(Application
         spdlog
         visualization
         control_ui
+        state_reconstruction
 )

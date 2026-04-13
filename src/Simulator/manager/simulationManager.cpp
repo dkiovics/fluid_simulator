@@ -136,22 +136,21 @@ void SimulationManager::stepSimulation(double dt)
 
 	particleData->setSize(particleNum);
 
-	particleData->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-
-	hashedParticles->forEach(true, [&](Particle& p, int index) {
-		float density = 0;
-		auto cells = macGrid->getCellsAround(p.pos);
-		for (auto& c : cells)
-			density += float(trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum);
-		(*particleData)[index].velocity = glm::vec4(p.v.x, p.v.y, p.v.z, 0);
-		(*particleData)[index].posAndDensity = glm::vec4(p.pos.x, p.pos.y, p.pos.z, density);
-	});
-	particleData->unmapBuffer();
-
 	if (run || controlRegistry["sim.step"])
 	{
 		controlRegistry["sim.step"] = false;
 		simulator->simulate(autoDt ? dt : dtVal);
+
+		particleData->mapBuffer(0, -1, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		hashedParticles->forEach(true, [&](Particle& p, int index) {
+			float density = 0;
+			auto cells = macGrid->getCellsAround(p.pos);
+			for (auto& c : cells)
+				density += float(trilinearInterpoll(p.pos, c.cell.pos, macGrid->cellDInv) * c.cell.avgPNum);
+			(*particleData)[index].velocity = glm::vec4(p.v.x, p.v.y, p.v.z, 0);
+			(*particleData)[index].posAndDensity = glm::vec4(p.pos.x, p.pos.y, p.pos.z, density);
+			});
+		particleData->unmapBuffer();
 	}
 }
 

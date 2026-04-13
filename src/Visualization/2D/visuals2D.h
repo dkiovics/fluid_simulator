@@ -64,7 +64,7 @@ private:
 public:
 	Visuals2D(renderer::WindowManager& window, SceneConfig initialConfig);
 
-	void render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, 
+	void render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, bool renderToFb = true,
 		renderer::fb_ptr fb = nullptr, renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) override;
 
 	void handleUserInteractions() override;

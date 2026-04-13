@@ -94,9 +94,12 @@ void Visuals2D::sceneConfigChanged()
 	selectedObstacle = -1;
 }
 
-void Visuals2D::render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, 
+void Visuals2D::render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, bool renderToFb,
 	renderer::fb_ptr fb, renderer::ssbo_ptr<PixelParamData> _)
 {
+	if (!renderToFb)
+		return;
+
 	auto& registry = controls::ControlRegistry::getInstance();
 	data->bindBuffer(1);
 

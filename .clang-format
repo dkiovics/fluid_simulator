@@ -1,0 +1,15 @@
+---
+BasedOnStyle: Chromium
+BreakBeforeBraces: Allman
+Cpp11BracedListStyle: false
+InsertNewlineAtEOF: true
+TabWidth: 4
+IndentWidth: 4
+SpaceAfterCStyleCast: true
+
+ColumnLimit: 120
+KeepEmptyLinesAtTheStartOfBlocks: true
+SpacesBeforeTrailingComments: 1
+AccessModifierOffset: -4
+
+AllowShortCaseLabelsOnASingleLine: true

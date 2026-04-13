@@ -12,6 +12,7 @@ struct _ApplicationControl
 {
 	CheckBox is2D{ "app.is_2d", "2D" };
 	CheckBox is2DSim{ "app.is_2d_sim", "2D Sim" };
+    CheckBox stateReconstructionEnabled{ "app.state_reconstruction_enabled", "State reconstruction" };
 };
 
 struct _SimulationControl
@@ -101,6 +102,42 @@ struct _SurfaceRenderingSettings
 	SliderFloat fluidSurfaceNoiseSpeed{ "render.fluid_surface_noise_speed", "Noise speed", 0.0f, 1.0f, 0.317f };
 };
 
+struct _StateReconstructionControl
+{
+	RadioButton windowMode{ "state.window_mode", { "View simulator", "View reference data", "View reconstructed state" } };
+	CheckBox runStateReconstruction{ "state.run_state_reconstruction", "Run state reconstruction" };
+	Button resetStateReconstruction{ "state.reset_state_reconstruction", "Reset state reconstruction" };
+	CheckBox densityControlEnabled{ "state.density_control_enabled", "Density control" };
+	CheckBox useDepthImage{ "state.use_depth_image", "Use depth image", false };
+	Button updateReferenceImage{ "state.update_reference_image", "Update reference image" };
+	SliderInt referenceViewCount{ "state.reference_view_count", "Reference view count", 1, 8, 1 };
+	RadioButton viewSelection{ "state.view_selection", { "View 1" } };
+	Button useViewCamera{ "state.use_view_camera", "Use view's camera" };
+    CheckBox showStateReconstructionSettings{ "state.show_settings",
+                                              "Show settings", true };
+};
+
+struct _StateReconstructionSettings
+{
+	SliderInt gradientSampleCount{ "state.gradient_sample_count", "Gradient sample count", 1, 100, 10 };
+	SliderFloat posPerturbationAmount{ "state.pos_perturbation_amount", "Pos perturbation amount", 0.0f, 0.5f, 0.05f };
+	SliderFloat depthErrorScale{ "state.depth_error_scale", "Depth error scale", 0.0f, 20.0f, 1.0f };
+	SliderInt densitySampleCount{ "state.density_sample_count", "Density sample count", 1, 100, 40 };
+	SliderFloat rollingAvgAlpha{ "state.rolling_avg_alpha", "Rolling avg alpha", 0.01f, 1.0f, 0.1f };
+	SliderFloat particlePercantageToMove{ "state.particle_percantage_to_move", "Particle percentage to move", 1.0f, 40.0f, 12.0f };
+	SliderFloat maxTargetParticleDensity{ "state.max_target_particle_density", "Max target particle density", 0.5f, 4.0f, 1.5f };
+	SliderFloat particleSpread{ "state.particle_spread", "New particle spread", 0.05f, 1.0f, 0.2f };
+	SliderFloat adamAlpha{ "state.adam_alpha", "Alpha", 0.001f, 0.5f, 0.016f };
+	SliderFloat adamBeta{ "state.adam_beta1", "Beta1", 0.1f, 0.99f, 0.9f };
+	SliderFloat adamBeta2{ "state.adam_beta2", "Beta2", 0.9f, 0.9999f, 0.999f };
+	SliderFloat adamEpsilon{ "state.adam_epsilon", "Epsilon", 1e-10f, 1e-6f, 1e-8f, "%e" };
+};
+
+struct _ParamListTest
+{
+	CheckBox calculateParamLists{ "test.calculate_param_lists", "Calculate param lists", false };
+};
+
 namespace controls
 {
 
@@ -115,6 +152,8 @@ private:
 	_RenderingSettings renderControl;
 	_ParticleRendeingSettings particleRenderControl;
 	_SurfaceRenderingSettings surfaceRenderControl;
+	_StateReconstructionControl stateReconstructionControl;
+    _StateReconstructionSettings stateReconstructionSettings;
 
 private:
 	void drawApplicationControls();
@@ -122,6 +161,8 @@ private:
 	void drawSimulationAdvancedControls();
 	void drawSimulationObstacleControls();
 	void drawRenderingControls();
+    void drawStateReconstructionControls();
+    void drawStateReconstructionSettings();
 
 public:
 	_ControlCollectionPrivate()
@@ -139,6 +180,8 @@ void _ControlCollectionPrivate::drawApplicationControls()
 	appControl.is2D.draw();
 	ImGui::SameLine();
 	appControl.is2DSim.draw();
+	ImGui::SameLine();
+    appControl.stateReconstructionEnabled.draw();
 	ImGui::SameLine();
 	ImGui::Text("FPS: %.1lf", registry.getOrDefault("telemetry.fps", 0.0f));
 	ImGui::End();
@@ -271,6 +314,55 @@ void _ControlCollectionPrivate::drawRenderingControls()
 	ImGui::End();
 }
 
+void _ControlCollectionPrivate::drawStateReconstructionControls()
+{
+	ImGui::Begin("State reconstruction controls");
+	stateReconstructionControl.windowMode.draw();
+    ImGui::SameLine();
+    stateReconstructionControl.showStateReconstructionSettings.draw();
+	stateReconstructionControl.runStateReconstruction.draw();
+	ImGui::SameLine();
+	stateReconstructionControl.resetStateReconstruction.draw();
+	ImGui::SameLine();
+	stateReconstructionControl.densityControlEnabled.draw();
+	ImGui::SameLine();
+	stateReconstructionControl.useDepthImage.draw();
+	stateReconstructionControl.updateReferenceImage.draw();
+	ImGui::SameLine();
+	stateReconstructionControl.referenceViewCount.draw();
+	ImGui::SameLine();
+    stateReconstructionControl.useViewCamera.draw();
+    // Update view selection options based on reference view count
+	if (registry.get<int>("state.reference_view_count") != stateReconstructionControl.viewSelection.options.size())
+	{
+		stateReconstructionControl.viewSelection.options.clear();
+		for (int i = 0; i < registry.get<int>("state.reference_view_count"); i++)
+		{
+			stateReconstructionControl.viewSelection.options.push_back("View " + std::to_string(i + 1));
+		}
+    }
+	stateReconstructionControl.viewSelection.draw();
+    ImGui::End();
+}
+
+void _ControlCollectionPrivate::drawStateReconstructionSettings()
+{
+	ImGui::Begin("State reconstruction settings");
+	stateReconstructionSettings.gradientSampleCount.draw();
+	stateReconstructionSettings.posPerturbationAmount.draw();
+	stateReconstructionSettings.depthErrorScale.draw();
+	stateReconstructionSettings.densitySampleCount.draw();
+	stateReconstructionSettings.rollingAvgAlpha.draw();
+	stateReconstructionSettings.particlePercantageToMove.draw();
+	stateReconstructionSettings.maxTargetParticleDensity.draw();
+	stateReconstructionSettings.particleSpread.draw();
+	stateReconstructionSettings.adamAlpha.draw();
+	stateReconstructionSettings.adamBeta.draw();
+	stateReconstructionSettings.adamBeta2.draw();
+	stateReconstructionSettings.adamEpsilon.draw();
+	ImGui::End();
+}
+
 void _ControlCollectionPrivate::draw()
 {
 	drawApplicationControls();
@@ -279,6 +371,9 @@ void _ControlCollectionPrivate::draw()
 		drawSimulationAdvancedControls();
 	drawSimulationObstacleControls();
 	drawRenderingControls();
+	drawStateReconstructionControls();
+	if (registry.get<bool>("state.show_settings"))
+        drawStateReconstructionSettings();
 }
 
 controls::_ControlCollection::_ControlCollection() : data(new _ControlCollectionPrivate())

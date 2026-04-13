@@ -17,7 +17,7 @@ inline void renderWireframeOnly(bool enable)
 inline void enableDepthTest(bool enable)
 {
 	if (enable)
-		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST); 
 	else
 		glDisable(GL_DEPTH_TEST);
 }

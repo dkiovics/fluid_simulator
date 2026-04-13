@@ -1,0 +1,25 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleData {
+    vec4 posAndDensity;
+	vec4 velocity;
+};
+
+layout(std430, binding = 0) restrict buffer particleDataArraySSBO {
+	ParticleData particleData[];
+};
+
+uniform vec3 lowerBound;
+uniform vec3 upperBound;
+
+void main() {
+	unsigned int particleIndex = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (particleIndex >= particleData.length()) {
+		return;
+	}
+
+	particleData[particleIndex].posAndDensity.xyz = clamp(particleData[particleIndex].posAndDensity.xyz, lowerBound, upperBound);
+}

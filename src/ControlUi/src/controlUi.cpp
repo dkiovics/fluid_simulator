@@ -55,7 +55,7 @@ void controls::ControlWindow::renderLoop()
 	std::unique_ptr<renderer::WindowManager> windowManager = std::make_unique<renderer::WindowManager>(initialWidth, initialHeight, "Controls");
 	GLFWwindow* window = windowManager->getWindow();
 	windowManager->makeWindowContextcurrent();
-	glfwSwapInterval(1); // Enable vsync
+	glfwSwapInterval(0);
 
 	std::unique_ptr<_ControlCollection> controlCollection = std::make_unique<_ControlCollection>();
 
@@ -101,6 +101,7 @@ void controls::ControlWindow::renderLoop()
 				ImGui_ImplGlfw_Sleep(10);
 				continue;
 			}
+			
 			// Start the Dear ImGui frame
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
@@ -135,6 +136,15 @@ void controls::ControlWindow::renderLoop()
 				startupFinished = true;
 				startSignal.notify_all();
 			}
+
+			// Limit framerate to avoid high CPU usage when the window is not active or minimized
+			// This is a workaround, as setting glfwSwapInterval(1) tanks the framerate of the sim window for some reason
+			static std::chrono::steady_clock::time_point lastSyncTime = std::chrono::steady_clock::now();
+			while (std::chrono::steady_clock::now() - lastSyncTime < std::chrono::milliseconds(20))
+			{
+				ImGui_ImplGlfw_Sleep(2);
+			}
+			lastSyncTime = std::chrono::steady_clock::now();
 		}
 
 		// Cleanup

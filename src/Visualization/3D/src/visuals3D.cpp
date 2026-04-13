@@ -439,7 +439,7 @@ void Visuals3D::render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData
 		transparentBox->draw(sceneConfig.simCenter, sceneConfig.simSize, true, false);
 	}
 
-	fluidRenderer->renderFluid(window.getLastFrameTime(), data, renderTargetFramebuffer);
+	fluidRenderer->renderFluid(window.getLastFrameTime(), data, renderTargetFramebuffer, pixelParamData);
 
 	renderTargetFramebuffer->bind();
 

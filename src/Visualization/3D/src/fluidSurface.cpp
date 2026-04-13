@@ -189,8 +189,8 @@ void visual::FluidSurface::renderFluid(float dt, renderer::ssbo_ptr<genericfsim:
 		if (pixelParamData)
 		{
 			glm::ivec3 dispatchSize = glm::ivec3(
-				ceil((float)depthParamBufferBlurX->getSize() / 32.0f),
-				ceil((float)depthParamBufferBlurX->getSize() / 32.0f), 1);
+				ceil((float)depthFramebuffer->getSize().x / 32.0f),
+				ceil((float)depthFramebuffer->getSize().y / 32.0f), 1);
 			paramCopyProgram->dispatchCompute(dispatchSize.x, dispatchSize.y, 1);
 		}
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
