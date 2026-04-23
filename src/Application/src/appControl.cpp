@@ -6,6 +6,9 @@
 #include "3D/visuals3D.h"
 #include "controlRegistry.h"
 #include "controlUi.h"
+#include "engine/framebuffer.h"
+#include "engine/texture.h"
+#include "engineUtils/genericGpuPrograms.h"
 #include "gfxInterface.hpp"
 #include "manager/simulationManager.h"
 #include "prefixTest.h"
@@ -13,7 +16,7 @@
 
 using namespace genericfsim;
 
-static constexpr int initialWidth = 1600;
+static constexpr int initialWidth = 2133;
 static constexpr int initialHeight = 900;
 static constexpr float aspectRatio = (float) initialWidth / (float) initialHeight;
 
@@ -66,15 +69,17 @@ static void updateSimulationObstacles()
     simulationManager->setObstacles(std::move(simObstacles));
 }
 
-static bool handleGraphicsInterfaceChange(renderer::WindowManager& window, bool is2D)
+static bool handleGraphicsInterfaceChange(std::shared_ptr<renderer::SubWindowUiManager> subWindowUiManager,
+                                          renderer::fb_ptr canvas,
+                                          bool is2D)
 {
     if (!graphicsInterface || dynamic_cast<visual::Visuals2D*>(graphicsInterface.get()) && !is2D ||
         dynamic_cast<visual::Visuals3D*>(graphicsInterface.get()) && is2D)
     {
         if (is2D)
-            graphicsInterface = std::make_shared<visual::Visuals2D>(window, getSceneConfig());
+            graphicsInterface = std::make_shared<visual::Visuals2D>(subWindowUiManager, getSceneConfig());
         else
-            graphicsInterface = std::make_shared<visual::Visuals3D>(window, getSceneConfig());
+            graphicsInterface = std::make_shared<visual::Visuals3D>(subWindowUiManager, getSceneConfig());
         return true;
     }
     return false;
@@ -88,16 +93,33 @@ void runApplication()
     auto& registry = controls::ControlRegistry::getInstance();
 
     renderer::WindowManager simWindow(initialWidth, initialHeight, "Simulation");
-    controls::ControlWindow controlWindow(450, 1);
-    controlWindow.start();
-
     simWindow.makeWindowContextcurrent();
     glfwSwapInterval(0);
     auto windowHandle = simWindow.getWindow();
 
+    controls::ControlWindow controlWindow;
+    controlWindow.init(simWindow);
+
+    int canvasWidth = initialWidth - initialWidth / 4;
+    auto canvasColor = renderer::make_render_target(canvasWidth, initialHeight, GL_NEAREST, GL_NEAREST, GL_RGBA8,
+                                                    GL_RGBA, GL_UNSIGNED_BYTE);
+    auto canvasDepth = renderer::make_render_target(canvasWidth, initialHeight, GL_NEAREST, GL_NEAREST,
+                                                    GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+    auto canvas = renderer::make_fb({ canvasColor }, canvasDepth, false);
+    std::shared_ptr<renderer::SubWindowUiManager> subWindowUiManager = std::make_shared<renderer::SubWindowUiManager>(
+        simWindow, glm::ivec2(initialWidth - canvasWidth, 0), glm::ivec2(canvasWidth, initialHeight));
+
+    simWindow.framebufferSizeCallback.onCallback(
+        [&canvas, subWindowUiManager](int width, int height)
+        {
+            int newCanvasWidth = width - width / 4;
+            canvas->setSize({ newCanvasWidth, height });
+            subWindowUiManager->setPositionAndSize(glm::ivec2(width - newCanvasWidth, 0), glm::ivec2(newCanvasWidth, height));
+        });
+
     double prevDt = 0.0;
 
-    while (!glfwWindowShouldClose(windowHandle) && controlWindow.isRunning())
+    while (!glfwWindowShouldClose(windowHandle))
     {
         double dt = simWindow.getLastFrameTime();
         prevDt = 0.9 * prevDt + 0.1 * dt;
@@ -110,7 +132,7 @@ void runApplication()
 
         handleSimManagerChange(registry["app.is_2d_sim"]);
 
-        handleGraphicsInterfaceChange(simWindow, registry["app.is_2d"]);
+        handleGraphicsInterfaceChange(subWindowUiManager, canvas, registry["app.is_2d"]);
 
         if (registry["app.state_reconstruction_enabled"])
         {
@@ -124,7 +146,7 @@ void runApplication()
             else if (!stateReconstructionController)
             {
                 stateReconstructionController = std::make_unique<diffrender::StateReconstructionController>(
-                    simWindow, simulationManager, std::dynamic_pointer_cast<visual::Visuals3D>(graphicsInterface));
+                    canvas, simulationManager, std::dynamic_pointer_cast<visual::Visuals3D>(graphicsInterface));
             }
         }
         else
@@ -141,14 +163,20 @@ void runApplication()
         if (stateReconstructionController)
             stateReconstructionController->processAndRender();
         else
-            graphicsInterface->render(simulationManager->getParticleData());
+            graphicsInterface->render(canvas->getSize(), simulationManager->getParticleData(), canvas);
 
+        int uiWidth = simWindow.getScreenWidth() - canvas->getSize().x;
+        renderer::GenericGpuPrograms::instance().showTextureOnScreen(canvas->getColorAttachments()[0],
+                                                                     canvas->getSize(), glm::ivec2(uiWidth, 0));
+
+        controlWindow.render();
         simWindow.swapBuffers();
     }
 
-    controlWindow.stop();
+    controlWindow.shutdown();
 
     graphicsInterface.reset();
     simulationManager.reset();
     stateReconstructionController.reset();
+    subWindowUiManager.reset();
 }

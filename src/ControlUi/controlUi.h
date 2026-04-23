@@ -1,33 +1,20 @@
 #pragma once
 #include <memory>
-#include <thread>
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
 #include "engine/windowManager.h"
 
 
 namespace controls
 {
 
+class _ControlCollection;
+
 class ControlWindow
 {
 private:
-	std::unique_ptr<std::thread> renderThread;
-
-	std::atomic_bool running = false;
-	std::atomic_bool startupFinished = false;
-
-	std::mutex mutex;
-	std::condition_variable startSignal;
-
-	void renderLoop();
-
-	const int initialWidth;
-	const int initialHeight;
+	std::unique_ptr<_ControlCollection> controlCollection;
 
 public:
-	ControlWindow(int initialWith, int initialHeight);
+	ControlWindow();
 
 	ControlWindow(const ControlWindow&) = delete;
 	ControlWindow& operator=(const ControlWindow&) = delete;
@@ -36,11 +23,9 @@ public:
 
 	~ControlWindow();
 
-	void start();
-
-	void stop() noexcept;
-
-	bool isRunning() const noexcept;
+	void init(renderer::WindowManager& window);
+	void render();
+	void shutdown();
 };
 
 }

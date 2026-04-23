@@ -6,6 +6,10 @@ using namespace diffrender;
 GradientEstimation::GradientEstimation(glm::ivec2 resolution, std::shared_ptr<visual::Visuals3D> visuals3D)
     : screenResolution(resolution), visuals3D(visuals3D)
 {
+    auto offscreenColor = renderer::make_render_target(screenResolution.x, screenResolution.y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    auto offscreenDepth = renderer::make_render_target(screenResolution.x, screenResolution.y, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+    offscreenFb = renderer::make_fb({ offscreenColor }, offscreenDepth, false);
+
     gradientMultCompute = renderer::make_compute("shaders/stateReconstruction/gradientEstimation/gradientMult.comp");
     initPerViewData(1);
 
@@ -19,6 +23,8 @@ GradientEstimation::GradientEstimation(glm::ivec2 resolution, std::shared_ptr<vi
 
     pertMinusFramebuffer = std::make_shared<renderer::Framebuffer>(
         renderer::Framebuffer::toArray({ perturbedRenderedScenes[0].second.color }), nullptr, false);
+
+    handleResolutionChanged(resolution);
 }
 
 void GradientEstimation::startGradientEstimation(
@@ -39,6 +45,7 @@ void GradientEstimation::startGradientEstimation(
         optimizedParamsSSBO->setSize(dataSize);
         stochaisticGradientSSBO->setSize(dataSize);
     }
+    particleData->copyTo(*optimizedParamsSSBO);
     stochaisticGradientSSBO->fillWithZeros();
 
     initPerViewData(referenceData.size());
@@ -47,13 +54,13 @@ void GradientEstimation::startGradientEstimation(
     gradientSampleCount = 0;
     gradientEstimationInProgress = true;
 
-    for (int i = 0; i < referenceData.size(); i++)
+    for (int i = 0; i < (int)referenceData.size(); i++)
     {
         visuals3D->getCamera()->setCameraData(referenceData[i].cameraData);
         if (i == currentCameraPosIdx)
-            visuals3D->render(particleData, true, currentStateFb, pixelParamsPerView[i]);
+            visuals3D->render(currentStateFb->getSize(), particleData, currentStateFb, pixelParamsPerView[i]);
         else
-            visuals3D->render(particleData, false, nullptr, pixelParamsPerView[i]);
+            visuals3D->render(currentStateFb->getSize(), particleData, nullptr, pixelParamsPerView[i]);
     }
 }
 
@@ -69,18 +76,21 @@ renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> GradientEstimation::g
     return stochaisticGradientSSBO;
 }
 
-void GradientEstimation::resolutionChanged(uint32_t width, uint32_t height)
+void GradientEstimation::handleResolutionChanged(glm::ivec2 size)
 {
-    screenResolution = glm::ivec2(width, height);
+    if (size == offscreenFb->getSize())
+        return;
+    screenResolution = size;
+    offscreenFb->setSize(size);
     for (auto& scene : perturbedRenderedScenes)
     {
-        scene.first.resize(width, height);
-        scene.second.resize(width, height);
+        scene.first.resize(size.x, size.y);
+        scene.second.resize(size.x, size.y);
     }
 
     for (auto& params : pixelParamsPerView)
     {
-        params->setSize(width * height);
+        params->setSize(size.x * size.y);
     }
     gradientEstimationInProgress = false;
 }

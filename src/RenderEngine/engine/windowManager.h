@@ -104,4 +104,29 @@ private:
 	double lastFrameTime = 0.0;
 };
 
+class SubWindowUiManager
+{
+public:
+	SubWindowUiManager(WindowManager& windowManager, glm::ivec2 position, glm::ivec2 size);
+	~SubWindowUiManager();
+
+	void setPositionAndSize(glm::ivec2 position, glm::ivec2 size);
+
+	Callback<double, double> mouseCallback;
+    Callback<double, double> scrollCallback;
+    Callback<int, int, int> mouseButtonCallback;
+    Callback<int, int, int, int> keyCallback;
+
+	glm::ivec2 getSize() const;
+
+	float getLastFrameTime() const noexcept;
+
+private:
+	WindowManager& windowManager;
+	glm::ivec2 position;
+    glm::ivec2 size;
+    bool isMouseInSubWindow = false;
+    int mouseButtonCallbackId = -1, keyCallbackId = -1, mouseCallbackId = -1, scrollCallbackId = -1;
+};
+
 } // namespace renderer

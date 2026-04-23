@@ -18,7 +18,7 @@ public:
                                   glm::ivec2 textureSize,
                                   const std::shared_ptr<Framebuffer>& destination) const;
 
-    void showTextureOnScreen(const std::shared_ptr<Texture>& texture, glm::ivec2 textureSize) const;
+    void showTextureOnScreen(const std::shared_ptr<Texture>& texture, glm::ivec2 textureSize, glm::ivec2 offsetOnScreen = glm::ivec2(0, 0)) const;
 
 private:
     static std::unique_ptr<GenericGpuPrograms> instancePtr;

@@ -31,10 +31,10 @@ void GenericGpuPrograms::copyTextureToFramebuffer(const std::shared_ptr<Texture>
     fullScreenQuad->draw();
 }
 
-void GenericGpuPrograms::showTextureOnScreen(const std::shared_ptr<Texture>& texture, glm::ivec2 textureSize) const
+void GenericGpuPrograms::showTextureOnScreen(const std::shared_ptr<Texture>& texture, glm::ivec2 textureSize, glm::ivec2 offsetOnScreen) const
 {
     renderer::bindDefaultFramebuffer();
-    renderer::setViewport(0, 0, textureSize.x, textureSize.y);
+    renderer::setViewport(offsetOnScreen.x, offsetOnScreen.y, textureSize.x, textureSize.y);
     renderer::enableDepthTest(false);
     fullScreenShader->activate();
     (*fullScreenShader)["colorTexture"] = *texture;

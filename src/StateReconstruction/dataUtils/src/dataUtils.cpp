@@ -57,7 +57,12 @@ bool DensityControl::updateAvgMovement(renderer::ssbo_ptr<float> data)
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     sampleCount++;
-    return sampleCount >= sampleNum;
+    if (sampleCount >= sampleNum)
+    {
+        sampleCount = 0;
+        return true;
+    }
+    return false;
 }
 
 void DensityControl::updatePositions(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data)

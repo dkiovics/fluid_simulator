@@ -49,6 +49,8 @@ void diffrender::GradientEstPos::startGradientEstimation(
                 glm::vec4(posPerturbation, posPerturbation, posPerturbation, 0.0f);
             (*perturbationPresetSSBO)[i].velocity = glm::vec4(0.0f);
         }
+
+        perturbationPresetSSBO->unmapBuffer();
     }
 
     std::vector<std::shared_ptr<renderer::Texture>> plusColor;
@@ -96,14 +98,14 @@ bool diffrender::GradientEstPos::executeGradientEstimationStep()
 
         visuals3D->getCamera()->setCameraData(referenceData[i].cameraData);
 
-        visuals3D->render(paramPositiveOffsetSSBO, true, pertPlusFramebuffer);
-        visuals3D->render(paramNegativeOffsetSSBO, true, pertMinusFramebuffer);
+        visuals3D->render(pertPlusFramebuffer->getSize(), paramPositiveOffsetSSBO, pertPlusFramebuffer);
+        visuals3D->render(pertMinusFramebuffer->getSize(), paramNegativeOffsetSSBO, pertMinusFramebuffer);
     }
 
     paramNegativeOffsetSSBO->bindBuffer(0);
     paramPositiveOffsetSSBO->bindBuffer(1);
     stochaisticGradientSSBO->bindBuffer(2);
-    for (int p = 0; p < referenceData.size(); p++)
+    for (int p = 0; p < (int) referenceData.size(); p++)
     {
         pixelParamsPerView[p]->bindBuffer(3 + p);
     }

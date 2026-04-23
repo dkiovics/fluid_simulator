@@ -85,8 +85,8 @@ public:
 
 	virtual void handleUserInteractions() { }
 
-	virtual void render(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData, bool renderToFb = true, 
-		renderer::fb_ptr fb = nullptr, renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) = 0;
+	virtual void render(glm::ivec2 resolution, renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData, 
+		renderer::fb_ptr canvas = nullptr, renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) = 0;
 
 	const std::vector<Obstacle>& getObstacles() const
 	{

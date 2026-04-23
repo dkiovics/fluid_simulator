@@ -10,56 +10,39 @@
 using namespace diffrender;
 
 StateReconstructionController::StateReconstructionController(
-    renderer::WindowManager& windowManager,
+    renderer::fb_ptr canvas,
     std::shared_ptr<genericfsim::manager::SimulationManager> simManager,
     std::shared_ptr<visual::Visuals3D> visuals3D)
-    : windowManager(windowManager),
-      simManager(simManager),
-      visuals3D(visuals3D),
-      resolution(windowManager.getScreenWidth(), windowManager.getScreenHeight())
+    : simManager(simManager), visuals3D(visuals3D), canvas(canvas)
 {
-    screenResolutionChangedCbId = windowManager.framebufferSizeCallback.onCallback(
-        [this](int width, int height) { screenResolutionChanged(width, height); });
-
     densityControl = std::make_shared<DensityControl>(simManager);
-    gradientEstimation = std::make_shared<GradientEstPos>(resolution, visuals3D);
+    gradientEstimation = std::make_shared<GradientEstPos>(canvas->getSize(), visuals3D);
     miscDataUtils = std::make_shared<MiscDataUtils>();
     adamOptimizer = std::make_shared<AdamOptimizer>();
 
     particleData =
         renderer::make_ssbo<genericfsim::manager::ParticleSSBOData>(simManager->getParticleNum(), GL_DYNAMIC_COPY);
 
+    glm::ivec2 resolution = canvas->getSize();
     referenceData.push_back(ReferenceData());
     referenceData[0].colorTexture = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
                                                                  GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
     referenceData[0].depthTexture = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
                                                                  GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
     referenceFramebuffer = renderer::make_fb({ referenceData[0].colorTexture }, referenceData[0].depthTexture, false);
-
-    {
-        auto viewTexture = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST, GL_RGBA8,
-                                                        GL_RGBA, GL_UNSIGNED_BYTE);
-        auto viewDepthTexture = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
-                                                             GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT);
-        viewFramebuffer = renderer::make_fb({ viewTexture }, viewDepthTexture, false);
-    }
 }
 
-void StateReconstructionController::screenResolutionChanged(int width, int height)
+void StateReconstructionController::handleCanvasSizeChanged()
 {
-    resolution = glm::ivec2(width, height);
-
-    for (int i = 0; i < referenceData.size(); i++)
+    if (canvas->getSize() == referenceFramebuffer->getSize())
+        return;
+    for (auto& ref : referenceData)
     {
-        referenceData[i].colorTexture->resizeTexture(resolution.x, resolution.y);
-        referenceData[i].depthTexture->resizeTexture(resolution.x, resolution.y);
-        referenceData[i].valid = false;
+        ref.colorTexture->resizeTexture(canvas->getSize().x, canvas->getSize().y);
+        ref.depthTexture->resizeTexture(canvas->getSize().x, canvas->getSize().y);
+        ref.valid = false;
     }
-
-    gradientEstimation->resolutionChanged(width, height);
-    viewFramebuffer->setSize(resolution);
-    referenceFramebuffer->setSize(resolution);
-
+    referenceFramebuffer->setSize(canvas->getSize());
     operationState = OperationState::IDLE;
 }
 
@@ -74,10 +57,7 @@ void StateReconstructionController::initStateReconstruction()
     adamOptimizer->init(simManager->getParticleNum());
 }
 
-StateReconstructionController::~StateReconstructionController()
-{
-    windowManager.framebufferSizeCallback.removeCallbackFunction(screenResolutionChangedCbId);
-}
+StateReconstructionController::~StateReconstructionController() {}
 
 void StateReconstructionController::handleSpecChanges(int viewCount)
 {
@@ -101,14 +81,14 @@ void StateReconstructionController::handleSpecChanges(int viewCount)
         if (!referenceData[i].colorTexture)
         {
             referenceData[i].colorTexture = renderer::make_render_target(
-                resolution.x, resolution.y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+                canvas->getSize().x, canvas->getSize().y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
             valid = false;
         }
         if (!referenceData[i].depthTexture)
         {
             referenceData[i].depthTexture =
-                renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST, GL_DEPTH_COMPONENT32F,
-                                             GL_DEPTH_COMPONENT, GL_FLOAT);
+                renderer::make_render_target(canvas->getSize().x, canvas->getSize().y, GL_NEAREST, GL_NEAREST,
+                                             GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
             valid = false;
         }
         referenceData[i].valid = referenceData[i].valid && valid;
@@ -150,6 +130,7 @@ void StateReconstructionController::processAndRender()
     if (useViewCamera)
         registry["state.use_view_camera"] = false;
 
+    handleCanvasSizeChanged();
     handleSpecChanges(viewCount);
 
     if (useViewCamera && referenceData[currentCameraPosIdx].valid)
@@ -170,12 +151,12 @@ void StateReconstructionController::processAndRender()
         {
             referenceFramebuffer->setColorAttachments({ referenceData[currentCameraPosIdx].colorTexture });
             referenceFramebuffer->setDepthAttachment(referenceData[currentCameraPosIdx].depthTexture);
-            visuals3D->render(simManager->getParticleData(), true, referenceFramebuffer);
+            visuals3D->render(canvas->getSize(), simManager->getParticleData(), referenceFramebuffer);
             referenceData[currentCameraPosIdx].cameraData = visuals3D->getCamera()->getCameraData();
             referenceData[currentCameraPosIdx].valid = true;
         }
 
-        visuals3D->render(simManager->getParticleData(), true);
+        visuals3D->render(canvas->getSize(), simManager->getParticleData(), canvas);
         registry["state.run_state_reconstruction"] = false;
         return;
     }
@@ -184,9 +165,9 @@ void StateReconstructionController::processAndRender()
     {
         if (referenceData[currentCameraPosIdx].valid)
         {
-            renderer::GenericGpuPrograms::instance().showTextureOnScreen(
+            renderer::GenericGpuPrograms::instance().copyTextureToFramebuffer(
                 referenceData[currentCameraPosIdx].colorTexture,
-                referenceData[currentCameraPosIdx].colorTexture->getSize());
+                referenceData[currentCameraPosIdx].colorTexture->getSize(), canvas);
         }
         else
         {
@@ -199,7 +180,7 @@ void StateReconstructionController::processAndRender()
 
     if (windowMode == 2)
     {
-        for (int i = 0; i < referenceData.size(); i++)
+        for (int i = 0; i < (int) referenceData.size(); i++)
         {
             if (!referenceData[i].valid)
             {
@@ -218,7 +199,7 @@ void StateReconstructionController::processAndRender()
                     operationState = OperationState::START_GRAD_ESTIMATION;
                     break;
                 case OperationState::START_GRAD_ESTIMATION:
-                    gradientEstimation->startGradientEstimation(particleData, referenceData, viewFramebuffer,
+                    gradientEstimation->startGradientEstimation(particleData, referenceData, canvas,
                                                                 currentCameraPosIdx);
                     operationState = OperationState::GRAD_ESTIMATION;
                     break;
@@ -240,12 +221,10 @@ void StateReconstructionController::processAndRender()
                     operationState = OperationState::START_GRAD_ESTIMATION;
                     break;
             }
-            renderer::GenericGpuPrograms::instance().showTextureOnScreen(viewFramebuffer->getColorAttachments()[0],
-                                                                         viewFramebuffer->getSize());
         }
         else
         {
-            visuals3D->render(particleData, true);
+            visuals3D->render(canvas->getSize(), particleData, canvas);
         }
     }
 }

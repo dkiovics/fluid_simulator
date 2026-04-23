@@ -1,9 +1,7 @@
 #pragma once
-#include "engine/windowManager.h"
+#include "3D/visuals3D.h"
 #include "engine/framebuffer.h"
 #include "manager/simulationManager.h"
-#include "3D/visuals3D.h"
-
 
 namespace diffrender
 {
@@ -15,58 +13,54 @@ class MiscDataUtils;
 
 struct ReferenceData
 {
-	renderer::render_target_ptr colorTexture;
-	renderer::render_target_ptr depthTexture;
-	renderer::Camera3D::CameraData cameraData;
+    renderer::render_target_ptr colorTexture;
+    renderer::render_target_ptr depthTexture;
+    renderer::Camera3D::CameraData cameraData;
 
-	bool valid = false;
+    bool valid = false;
 };
 
 class StateReconstructionController
 {
 private:
-	renderer::WindowManager& windowManager;
+    renderer::fb_ptr canvas;
 
-	std::shared_ptr<genericfsim::manager::SimulationManager> simManager;
-	std::shared_ptr<visual::Visuals3D> visuals3D;
-	std::shared_ptr<DensityControl> densityControl;
-	std::shared_ptr<GradientEstimation> gradientEstimation;
+    std::shared_ptr<genericfsim::manager::SimulationManager> simManager;
+    std::shared_ptr<visual::Visuals3D> visuals3D;
+    std::shared_ptr<DensityControl> densityControl;
+    std::shared_ptr<GradientEstimation> gradientEstimation;
     std::shared_ptr<MiscDataUtils> miscDataUtils;
-	std::shared_ptr<AdamOptimizer> adamOptimizer;
+    std::shared_ptr<AdamOptimizer> adamOptimizer;
 
-	renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData;
+    renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData;
 
-	renderer::fb_ptr referenceFramebuffer;
-	renderer::fb_ptr viewFramebuffer;
+    renderer::fb_ptr referenceFramebuffer;
 
-	glm::ivec2 resolution;
-	unsigned int screenResolutionChangedCbId = 0;
-	void screenResolutionChanged(int width, int height);
+    std::vector<ReferenceData> referenceData;
 
-	std::vector<ReferenceData> referenceData;
+    void initStateReconstruction();
+    void handleSpecChanges(int viewCount);
 
-	void initStateReconstruction();
-	void handleSpecChanges(int viewCount);
-
-	enum class OperationState
-	{
+    enum class OperationState
+    {
         IDLE,
         START_GRAD_ESTIMATION,
         GRAD_ESTIMATION,
         PARAM_OPTIMIZATION
-	};
+    };
 
-	OperationState operationState = OperationState::IDLE;
+    OperationState operationState = OperationState::IDLE;
+
+    void handleCanvasSizeChanged();
 
 public:
-	StateReconstructionController(renderer::WindowManager& windowManager, std::shared_ptr<genericfsim::manager::SimulationManager> simManager,
-		std::shared_ptr<visual::Visuals3D> visuals3D);
+    StateReconstructionController(
+        renderer::fb_ptr canvas, std::shared_ptr<genericfsim::manager::SimulationManager> simManager,
+                                  std::shared_ptr<visual::Visuals3D> visuals3D);
 
-	void processAndRender();
+    void processAndRender();
 
-	~StateReconstructionController();
-
+    ~StateReconstructionController();
 };
 
 } // namespace diffrender
-

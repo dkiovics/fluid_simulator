@@ -28,8 +28,6 @@ public:
 
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> getGradientEstimationResult() const;
 
-    virtual void resolutionChanged(uint32_t width, uint32_t height);
-
     void setFluidBoxBounds(glm::vec3 lowerCorner, glm::vec3 upperCorner)
     {
         fluidBoxbounds = { lowerCorner, upperCorner };
@@ -37,6 +35,8 @@ public:
 
 protected:
     std::shared_ptr<visual::Visuals3D> visuals3D;
+
+    renderer::fb_ptr offscreenFb;
 
     std::pair<glm::vec3, glm::vec3> fluidBoxbounds;
 
@@ -76,6 +76,8 @@ protected:
     void bindPerturbedRenderedSceneTextures(uint32_t index) const;
 
     void initPerViewData(int num);
+
+    virtual void handleResolutionChanged(glm::ivec2 size);
 };
 
 } // namespace diffrender
