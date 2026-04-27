@@ -95,7 +95,7 @@ void main(void) {
 
 	for (int p = 0; p < referenceImageNum; p++)
 	{
-		vec3 referenceColor = texelFetch(referenceImage[p], pos, 0).xyz;
+		vec3 referenceColor = texture(referenceImage[p], (vec2(pos) + vec2(0.5)) / vec2(screenSize)).xyz;
 		vec3 plusPertColor = texelFetch(plusPertImage[p], pos, 0).xyz;
 		vec3 minusPertColor = texelFetch(minusPertImage[p], pos, 0).xyz;
 

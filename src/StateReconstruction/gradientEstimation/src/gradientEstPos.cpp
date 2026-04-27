@@ -130,9 +130,8 @@ bool diffrender::GradientEstPos::executeGradientEstimationStep()
         }
         (*stochaisticColorGradientProgram)["referenceImage"] = colorImages;
         (*stochaisticColorGradientProgram)["referenceImageNum"] = (int) referenceData.size();
-        (*stochaisticColorGradientProgram)["screenSize"] = referenceData[0].colorTexture->getSize();
-        stochaisticColorGradientProgram->dispatchCompute(referenceData[0].colorTexture->getSize().x,
-                                                         referenceData[0].colorTexture->getSize().y, 1);
+        (*stochaisticColorGradientProgram)["screenSize"] = screenResolution;
+        stochaisticColorGradientProgram->dispatchCompute(screenResolution.x, screenResolution.y, 1);
     }
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
