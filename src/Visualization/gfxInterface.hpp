@@ -65,6 +65,7 @@ struct Obstacle
 
 struct PixelParamData
 {
+    int uncappedParamNum;
 	int paramNum;
 	int paramIndexes[40];
 };

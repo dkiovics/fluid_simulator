@@ -9,6 +9,13 @@
 
 using namespace diffrender;
 
+glm::ivec2 StateReconstructionController::getGradientResolution() const
+{
+    auto& registry = controls::ControlRegistry::getInstance();
+    const int divider = std::max(1, (int) registry["state.resolution_divider"]);
+    return glm::max(canvas->getSize() / divider, glm::ivec2(1, 1));
+}
+
 StateReconstructionController::StateReconstructionController(
     renderer::fb_ptr canvas,
     std::shared_ptr<genericfsim::manager::SimulationManager> simManager,
@@ -25,11 +32,15 @@ StateReconstructionController::StateReconstructionController(
 
     glm::ivec2 resolution = canvas->getSize();
     referenceData.push_back(ReferenceData());
-    referenceData[0].colorTexture = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
-                                                                 GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
-    referenceData[0].depthTexture = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
-                                                                 GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+    referenceData[0].colorTexture = renderer::make_render_target(resolution.x, resolution.y, GL_LINEAR_MIPMAP_LINEAR,
+                                                                 GL_LINEAR, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    referenceData[0].depthTexture =
+        renderer::make_render_target(resolution.x, resolution.y, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR,
+                                     GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
     referenceFramebuffer = renderer::make_fb({ referenceData[0].colorTexture }, referenceData[0].depthTexture, false);
+
+    // Sync gradient estimation to initial resolution
+    gradientEstimation->handleResolutionChanged(getGradientResolution());
 }
 
 void StateReconstructionController::handleCanvasSizeChanged()
@@ -43,6 +54,8 @@ void StateReconstructionController::handleCanvasSizeChanged()
         ref.valid = false;
     }
     referenceFramebuffer->setSize(canvas->getSize());
+    gradientEstimation->handleResolutionChanged(getGradientResolution());
+    lastResolutionDivider = std::max(1, (int) controls::ControlRegistry::getInstance()["state.resolution_divider"]);
     operationState = OperationState::IDLE;
 }
 
@@ -70,6 +83,16 @@ void StateReconstructionController::handleSpecChanges(int viewCount)
     gradientEstimation->setFluidBoxBounds(lowerBound, upperBound);
     adamOptimizer->setFluidBoxBounds(lowerBound, upperBound);
 
+    // Check if the resolution divider changed
+    const int currentDivider = std::max(1, (int) registry["state.resolution_divider"]);
+    if (currentDivider != lastResolutionDivider)
+    {
+        lastResolutionDivider = currentDivider;
+        gradientEstimation->handleResolutionChanged(getGradientResolution());
+        if (operationState != OperationState::IDLE)
+            operationState = OperationState::START_GRAD_ESTIMATION;
+    }
+
     if (referenceData.size() != viewCount)
     {
         referenceData.resize(viewCount);
@@ -80,15 +103,16 @@ void StateReconstructionController::handleSpecChanges(int viewCount)
         bool valid = true;
         if (!referenceData[i].colorTexture)
         {
-            referenceData[i].colorTexture = renderer::make_render_target(
-                canvas->getSize().x, canvas->getSize().y, GL_NEAREST, GL_NEAREST, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+            referenceData[i].colorTexture =
+                renderer::make_render_target(canvas->getSize().x, canvas->getSize().y, GL_LINEAR_MIPMAP_LINEAR,
+                                             GL_LINEAR, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
             valid = false;
         }
         if (!referenceData[i].depthTexture)
         {
             referenceData[i].depthTexture =
-                renderer::make_render_target(canvas->getSize().x, canvas->getSize().y, GL_NEAREST, GL_NEAREST,
-                                             GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+                renderer::make_render_target(canvas->getSize().x, canvas->getSize().y, GL_LINEAR_MIPMAP_LINEAR,
+                                             GL_LINEAR, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
             valid = false;
         }
         referenceData[i].valid = referenceData[i].valid && valid;
@@ -154,6 +178,7 @@ void StateReconstructionController::processAndRender()
             visuals3D->render(canvas->getSize(), simManager->getParticleData(), referenceFramebuffer);
             referenceData[currentCameraPosIdx].cameraData = visuals3D->getCamera()->getCameraData();
             referenceData[currentCameraPosIdx].valid = true;
+            referenceData[currentCameraPosIdx].colorTexture->generateMipmaps();
         }
 
         visuals3D->render(canvas->getSize(), simManager->getParticleData(), canvas);
@@ -199,8 +224,7 @@ void StateReconstructionController::processAndRender()
                     operationState = OperationState::START_GRAD_ESTIMATION;
                     break;
                 case OperationState::START_GRAD_ESTIMATION:
-                    gradientEstimation->startGradientEstimation(particleData, referenceData, canvas,
-                                                                currentCameraPosIdx);
+                    gradientEstimation->startGradientEstimation(particleData, referenceData);
                     operationState = OperationState::GRAD_ESTIMATION;
                     break;
                 case OperationState::GRAD_ESTIMATION:
@@ -218,6 +242,7 @@ void StateReconstructionController::processAndRender()
                             densityControl->updatePositions(particleData);
                         }
                     }
+                    visuals3D->render(canvas->getSize(), particleData, canvas);
                     operationState = OperationState::START_GRAD_ESTIMATION;
                     break;
             }

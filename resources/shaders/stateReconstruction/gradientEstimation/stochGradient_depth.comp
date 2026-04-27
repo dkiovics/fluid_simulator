@@ -18,6 +18,7 @@ struct ParticleData {
 };
 
 struct FragmentParam {
+	int uncappedParamNum;
 	int paramNum;
 	int paramIndexes[40];
 };

@@ -40,6 +40,10 @@ private:
 
     void initStateReconstruction();
     void handleSpecChanges(int viewCount);
+    void handleCanvasSizeChanged();
+
+    glm::ivec2 getGradientResolution() const;
+    int lastResolutionDivider = 0;
 
     enum class OperationState
     {
@@ -50,8 +54,6 @@ private:
     };
 
     OperationState operationState = OperationState::IDLE;
-
-    void handleCanvasSizeChanged();
 
 public:
     StateReconstructionController(

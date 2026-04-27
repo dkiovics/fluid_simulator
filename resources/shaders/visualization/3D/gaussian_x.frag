@@ -17,6 +17,7 @@ uniform struct CameraStruct {
 #define PARAM_NUM 10
 
 struct FragmentParam {
+	int uncappedParamNum;
 	int paramNum;
 	int paramIndexes[PARAM_NUM];
 };
@@ -46,6 +47,7 @@ void main() {
 	
 	FragmentParam param;
 	param.paramNum = 0;
+	param.uncappedParamNum = 0;
 
 	if(texture(depthTexture, texCoord).x == 1.0){
 		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
@@ -77,6 +79,7 @@ void main() {
 			if(calculateParams) {
 				int paramIndex = texture(paramTexture, coord).x;
 				if(paramIndex >= 0){
+					param.uncappedParamNum++;
 					bool found = false;
 					for(int j = 0; j < param.paramNum; j++){
 						if(paramIndex == param.paramIndexes[j]){

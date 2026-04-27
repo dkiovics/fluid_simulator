@@ -35,6 +35,7 @@ private:
 	static constexpr int PARAM_NUM_X = 10;
 	struct PixelParamDataX
 	{
+        int uncappedParamNum;
 		int paramNum;
 		int paramIndexes[PARAM_NUM_X];
 	};

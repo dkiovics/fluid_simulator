@@ -155,7 +155,6 @@ void renderer::GpuProgram::activate() const
 renderer::GpuProgram::~GpuProgram()
 {
 	glDeleteProgram(programId);
-	spdlog::debug("GPU program deleted with id: {}", programId);
 }
 
 renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName)

@@ -18,11 +18,9 @@ diffrender::GradientEstPos::GradientEstPos(glm::ivec2 resolution, std::shared_pt
 
 void diffrender::GradientEstPos::startGradientEstimation(
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData,
-    std::vector<ReferenceData> referenceData,
-    renderer::fb_ptr currentStateFb,
-    int currentCameraPosIdx)
+    std::vector<ReferenceData> referenceData)
 {
-    GradientEstimation::startGradientEstimation(particleData, referenceData, currentStateFb, currentCameraPosIdx);
+    GradientEstimation::startGradientEstimation(particleData, referenceData);
 
     auto& registry = controls::ControlRegistry::getInstance();
     const float posPerturbation = registry["state.pos_perturbation_amount"];

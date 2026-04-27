@@ -113,6 +113,7 @@ struct _StateReconstructionControl
 	SliderInt referenceViewCount{ "state.reference_view_count", "Reference view count", 1, 8, 1 };
 	RadioButton viewSelection{ "state.view_selection", { "View 1" } };
 	Button useViewCamera{ "state.use_view_camera", "Use view's camera" };
+    CheckBox logPerPixelParamStats{ "state.log_per_pixel_param_stats", "Log per-pixel param stats" };
     CheckBox showStateReconstructionSettings{ "state.show_settings",
                                               "Show settings", true };
 };
@@ -120,6 +121,7 @@ struct _StateReconstructionControl
 struct _StateReconstructionSettings
 {
 	SliderInt gradientSampleCount{ "state.gradient_sample_count", "Gradient sample count", 1, 100, 10 };
+	SliderInt resolutionDivider{ "state.resolution_divider", "Resolution divider (1/N)", 1, 8, 1 };
 	SliderFloat posPerturbationAmount{ "state.pos_perturbation_amount", "Pos perturbation amount", 0.0f, 0.5f, 0.05f };
 	SliderFloat depthErrorScale{ "state.depth_error_scale", "Depth error scale", 0.0f, 20.0f, 1.0f };
 	SliderInt densitySampleCount{ "state.density_sample_count", "Density sample count", 1, 100, 40 };
@@ -332,6 +334,7 @@ void _ControlCollectionPrivate::drawStateReconstructionControls()
 	stateReconstructionControl.referenceViewCount.draw();
 	ImGui::SameLine();
     stateReconstructionControl.useViewCamera.draw();
+    stateReconstructionControl.logPerPixelParamStats.draw();
     // Update view selection options based on reference view count
 	if (registry.get<int>("state.reference_view_count") != stateReconstructionControl.viewSelection.options.size())
 	{
@@ -349,6 +352,7 @@ void _ControlCollectionPrivate::drawStateReconstructionSettings()
 {
 	ImGui::Begin("State reconstruction settings");
 	stateReconstructionSettings.gradientSampleCount.draw();
+	stateReconstructionSettings.resolutionDivider.draw();
 	stateReconstructionSettings.posPerturbationAmount.draw();
 	stateReconstructionSettings.depthErrorScale.draw();
 	stateReconstructionSettings.densitySampleCount.draw();

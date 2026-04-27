@@ -11,9 +11,7 @@ public:
     GradientEstPos(glm::ivec2 resolution, std::shared_ptr<visual::Visuals3D> visuals3D);
 
     void startGradientEstimation(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData,
-                                 std::vector<ReferenceData> referenceData,
-                                 renderer::fb_ptr currentStateFb,
-                                 int currentCameraPosIdx) override;
+                                 std::vector<ReferenceData> referenceData) override;
 
     bool executeGradientEstimationStep() override;
 

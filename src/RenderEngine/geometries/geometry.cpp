@@ -82,7 +82,6 @@ renderer::Geometry::~Geometry()
 		glDeleteBuffers(1, &indexBufferId.value());
 	}
 	glDeleteVertexArrays(1, &vaoId);
-	spdlog::debug("Geometry deleted with id: {}", vaoId);
 }
 
 void renderer::BasicGeometryArray::updateActiveInstanceParams()

@@ -19,11 +19,13 @@ uniform struct CameraStruct {
 #define PARAM_NUM_Y 40
 
 struct FragmentParamX {
+	int uncappedParamNum;
 	int paramNum;
 	int paramIndexes[PARAM_NUM_X];
 };
 
 struct FragmentParamY {
+	int uncappedParamNum;
 	int paramNum;
 	int paramIndexes[PARAM_NUM_Y];
 };
@@ -58,10 +60,12 @@ void main() {
 	
 	FragmentParamY param;
 	param.paramNum = 0;
+	param.uncappedParamNum = 0;
 
 	if(curDepth == 1.0){
 		if(calculateParams){
 			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
+			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].uncappedParamNum = 0;
 		}
 		discard;
 		return;
@@ -97,6 +101,7 @@ void main() {
 
 			int pixelIndex = (int(gl_FragCoord.y) + int(x + 0.1)) * int(textSize.x) + int(gl_FragCoord.x);
 			FragmentParamX paramIn = pixelParamsIn[pixelIndex];
+			param.uncappedParamNum += paramIn.uncappedParamNum;
 			for(int p = 0; p < paramIn.paramNum; p++){
 				bool found = false;
 				for(int j = 0; j < param.paramNum; j++){
@@ -106,12 +111,12 @@ void main() {
 					}
 				}
 				if(!found && param.paramNum < PARAM_NUM_Y){
-					param.paramIndexes[param.paramNum] = paramIn.paramIndexes[p];
-					param.paramNum++;
+						param.paramIndexes[param.paramNum] = paramIn.paramIndexes[p];
+						param.paramNum++;
+					}
 				}
 			}
 		}
-	}
 	
 	if(weightSum == 0.0){
 		if(calculateParams){

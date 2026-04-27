@@ -6,6 +6,7 @@ uniform isampler2D paramTexture;
 uniform ivec2 screenSize;
 
 struct FragmentParam {
+	int uncappedParamNum;
 	int paramNum;
 	int paramIndexes[40];
 };
@@ -23,8 +24,10 @@ void main() {
 	int index = pos.y * screenSize.x + pos.x;
 	if(id == -1) {
 		pixelParams[index].paramNum = 0;
+		pixelParams[index].uncappedParamNum = 0;
 		return;
 	}
 	pixelParams[index].paramNum = 1;
+	pixelParams[index].uncappedParamNum = 1;
 	pixelParams[index].paramIndexes[0] = id;
 }

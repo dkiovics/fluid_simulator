@@ -18,9 +18,7 @@ public:
     GradientEstimation(glm::ivec2 resolution, std::shared_ptr<visual::Visuals3D> visuals3D);
 
     virtual void startGradientEstimation(renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData,
-                                        std::vector<ReferenceData> referenceData,
-                                        renderer::fb_ptr currentStateFb,
-                                        int currentCameraPosIdx);
+                                         std::vector<ReferenceData> referenceData);
 
     bool isGradientEstimationInProgress() const;
 
@@ -33,10 +31,10 @@ public:
         fluidBoxbounds = { lowerCorner, upperCorner };
     }
 
+    void handleResolutionChanged(glm::ivec2 size);
+
 protected:
     std::shared_ptr<visual::Visuals3D> visuals3D;
-
-    renderer::fb_ptr offscreenFb;
 
     std::pair<glm::vec3, glm::vec3> fluidBoxbounds;
 
@@ -75,9 +73,9 @@ protected:
 
     void bindPerturbedRenderedSceneTextures(uint32_t index) const;
 
-    void initPerViewData(int num);
+    void logPerPixelParamStats() const;
 
-    virtual void handleResolutionChanged(glm::ivec2 size);
+    void initPerViewData(int num);
 };
 
 } // namespace diffrender
