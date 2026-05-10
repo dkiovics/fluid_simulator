@@ -10,52 +10,16 @@ uniform sampler2D referenceImage;
 uniform sampler2D plusPertImage;
 uniform sampler2D minusPertImage;
 
-struct ParticleData {
-    vec4 posAndDensity;
-	vec4 velocity;
-};
-
-layout(std430, binding = 0) restrict readonly buffer paramNegativeOffsetsSSBO {
-	ParticleData paramNegativeOffsets[];
-};
-
-layout(std430, binding = 1) restrict readonly buffer paramPositiveOffsetsSSBO {
-	ParticleData paramPositiveOffsets[];
-};
-
-layout(std430, binding = 2) restrict buffer gradientSSBO {
-	ParticleData gradient[];
+// Scalar (positiveError - negativeError) accumulator, one float per particle.
+// Converted to gradient[] increments by errorToGradient.comp after all views' dispatches.
+layout(std430, binding = 2) restrict buffer ErrorSumSSBO {
+	float errorSum[];
 };
 
 layout(std430, binding = 20) restrict readonly buffer XCountBuffer { uint xCount[]; };
 layout(std430, binding = 21) restrict readonly buffer XOffsetBuffer { uint xOffset[]; };
 layout(std430, binding = 22) restrict readonly buffer XIndexBuffer { int xIndex[]; };
 layout(std430, binding = 23) restrict readonly buffer YRadiusBuffer { int yRadius[]; };
-
-
-void accumulateGradient(int particleId, float positiveError, float negativeError) {
-	vec4 signedPerturbation = paramPositiveOffsets[particleId].posAndDensity - paramNegativeOffsets[particleId].posAndDensity;
-
-	if(signedPerturbation.x != 0.0)
-		atomicAdd(gradient[particleId].posAndDensity.x, (positiveError - negativeError) / signedPerturbation.x);
-	if(signedPerturbation.y != 0.0)
-		atomicAdd(gradient[particleId].posAndDensity.y, (positiveError - negativeError) / signedPerturbation.y);
-	if(signedPerturbation.z != 0.0)
-		atomicAdd(gradient[particleId].posAndDensity.z, (positiveError - negativeError) / signedPerturbation.z);
-	if(signedPerturbation.w != 0.0)
-		atomicAdd(gradient[particleId].posAndDensity.w, (positiveError - negativeError) / signedPerturbation.w);
-
-	signedPerturbation = paramPositiveOffsets[particleId].velocity - paramNegativeOffsets[particleId].velocity;
-
-	if(signedPerturbation.x != 0.0)
-		atomicAdd(gradient[particleId].velocity.x, (positiveError - negativeError) / signedPerturbation.x);
-	if(signedPerturbation.y != 0.0)
-		atomicAdd(gradient[particleId].velocity.y, (positiveError - negativeError) / signedPerturbation.y);
-	if(signedPerturbation.z != 0.0)
-		atomicAdd(gradient[particleId].velocity.z, (positiveError - negativeError) / signedPerturbation.z);
-	if(signedPerturbation.w != 0.0)
-		atomicAdd(gradient[particleId].velocity.w, (positiveError - negativeError) / signedPerturbation.w);
-}
 
 
 void main(void) {
@@ -77,21 +41,20 @@ void main(void) {
 
 	float positiveError = dot(referenceColor - plusPertColor, referenceColor - plusPertColor);
 	float negativeError = dot(referenceColor - minusPertColor, referenceColor - minusPertColor);
+	float diff = positiveError - negativeError;
 
-	// Slot 0 of each pixel is the spray sentinel: -1 if non-spray, sprayID if spray.
-	// If center is spray, use only that single ID; otherwise walk the Y-kernel and
-	// read slots 1..xc-1 of each neighbor (skipping their slot 0 to avoid spray
-	// contamination of surface pixels' walks).
+	// Center spray fast path: if the pixel itself is a spray pixel, only that one id contributes.
 	if(centerCount > 0u){
-		uint centerInclusive = xOffset[index];
-		uint centerStart = centerInclusive - centerCount;
+		uint centerStart = xOffset[index] - centerCount;
 		int centerFirst = xIndex[centerStart];
 		if(centerFirst >= 0){
-			accumulateGradient(centerFirst, positiveError, negativeError);
+			atomicAdd(errorSum[centerFirst], diff);
 			return;
 		}
 	}
 
+	// Non-spray surface: walk the Y-kernel; for each neighbour skip slot 0 (spray sentinel)
+	// and accumulate into errorSum for every surface particle id we encounter.
 	for(int p = -r; p <= r; p++){
 		int neighborY = pos.y + p;
 		if(neighborY < 0 || neighborY >= screenSize.y)
@@ -102,13 +65,11 @@ void main(void) {
 			continue;
 		uint inclusive = xOffset[npx];
 		uint start = inclusive - xc;
-		// Skip slot 0 (spray sentinel). If neighbor is spray, slot 0 is sprayID and
-		// slots 1..xc-1 is empty (xc=1) � neighbor contributes nothing to a non-spray walk.
 		for(uint q = 1u; q < xc; q++){
 			int particleId = xIndex[start + q];
 			if(particleId < 0)
 				continue;
-			accumulateGradient(particleId, positiveError, negativeError);
+			atomicAdd(errorSum[particleId], diff);
 		}
 	}
 }

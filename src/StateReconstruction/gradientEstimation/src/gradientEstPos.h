@@ -18,9 +18,16 @@ public:
 private:
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> perturbationPresetSSBO;
 
+    // Per-step scalar (positiveError - negativeError) sum, one float per particle.
+    // Filled by stochGradient_*.comp across all views, then folded into the long-lived
+    // gradient buffer by errorToGradientProgram once per step. Halves to one-eighth the
+    // atomicAdds of writing into gradient[] directly.
+    renderer::ssbo_ptr<float> errorSumSSBO;
+
     renderer::compute_ptr perturbationProgram;
     renderer::compute_ptr stochaisticColorGradientProgram;
     renderer::compute_ptr stochaisticDepthGradientProgram;
+    renderer::compute_ptr errorToGradientProgram;
 };
 
 } // namespace diffrender

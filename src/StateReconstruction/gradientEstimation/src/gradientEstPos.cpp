@@ -10,6 +10,10 @@ diffrender::GradientEstPos::GradientEstPos(glm::ivec2 resolution, std::shared_pt
         renderer::make_compute("shaders/stateReconstruction/gradientEstimation/stochGradient_color.comp");
     stochaisticDepthGradientProgram =
         renderer::make_compute("shaders/stateReconstruction/gradientEstimation/stochGradient_depth.comp");
+    errorToGradientProgram =
+        renderer::make_compute("shaders/stateReconstruction/gradientEstimation/errorToGradient.comp");
+
+    errorSumSSBO = renderer::make_ssbo<float>(1, GL_DYNAMIC_COPY);
 
     auto camera = visuals3D->getCamera();
     camera->addProgram({ stochaisticDepthGradientProgram });
@@ -36,6 +40,10 @@ void diffrender::GradientEstPos::startGradientEstimation(
     {
         perturbationPresetSSBO->setSize(particleData->getSize());
         updateSSBO = true;
+    }
+    if (errorSumSSBO->getSize() != particleData->getSize())
+    {
+        errorSumSSBO->setSize(particleData->getSize());
     }
     if (updateSSBO)
     {
@@ -86,9 +94,11 @@ bool diffrender::GradientEstPos::executeGradientEstimationStep()
         visuals3D->render(pertMinusFramebuffer->getSize(), paramNegativeOffsetSSBO, pertMinusFramebuffer);
     }
 
-    paramNegativeOffsetSSBO->bindBuffer(0);
-    paramPositiveOffsetSSBO->bindBuffer(1);
-    stochaisticGradientSSBO->bindBuffer(2);
+    // Reset the per-step scalar accumulator before any view writes into it.
+    errorSumSSBO->fillWithZeros();
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    errorSumSSBO->bindBuffer(2);
 
     auto& gradientProgram = useDepthImage ? stochaisticDepthGradientProgram : stochaisticColorGradientProgram;
     if (useDepthImage)
@@ -124,6 +134,16 @@ bool diffrender::GradientEstPos::executeGradientEstimationStep()
             1);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
+
+    // Fold the per-step errorSum into the long-lived gradient accumulator. One thread
+    // per particle — no atomics needed, since each particle is touched by exactly one
+    // thread here.
+    paramNegativeOffsetSSBO->bindBuffer(0);
+    paramPositiveOffsetSSBO->bindBuffer(1);
+    errorSumSSBO->bindBuffer(2);
+    stochaisticGradientSSBO->bindBuffer(3);
+    errorToGradientProgram->dispatchCompute(errorSumSSBO->getSize() / 64 + 1, 1, 1);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     gradientSampleCount++;
     if (gradientSampleCount == gradientSampleNum)
