@@ -199,7 +199,6 @@ void StateReconstructionController::processAndRender()
             spdlog::warn("StateReconstructionController::processAndRender: Invalid reference data");
             registry["state.window_mode"] = 0;
         }
-        registry["state.run_state_reconstruction"] = false;
         return;
     }
 
@@ -242,6 +241,7 @@ void StateReconstructionController::processAndRender()
                             densityControl->updatePositions(particleData);
                         }
                     }
+                    visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
                     visuals3D->render(canvas->getSize(), particleData, canvas);
                     operationState = OperationState::START_GRAD_ESTIMATION;
                     break;
@@ -249,6 +249,7 @@ void StateReconstructionController::processAndRender()
         }
         else
         {
+            visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
             visuals3D->render(canvas->getSize(), particleData, canvas);
         }
     }
