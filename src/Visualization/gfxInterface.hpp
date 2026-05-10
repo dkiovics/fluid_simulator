@@ -9,6 +9,49 @@
 namespace visual
 {
 
+class PixelParamBuffers
+{
+public:
+    // Worst-case slots per pixel in `xIndex`. X filter radius is clamped to <=35
+    // in bilateral/gaussian, so up to 71 samples per pixel. 80 leaves headroom.
+    static constexpr unsigned int INDEX_BUFFER_MULTIPLIER = 25;
+
+    PixelParamBuffers(glm::ivec2 screenSize)
+        : screenSize(0, 0)
+    {
+        xCount = renderer::make_ssbo<uint32_t>(1, GL_DYNAMIC_COPY);
+        xOffset = renderer::make_ssbo<uint32_t>(1, GL_DYNAMIC_COPY);
+        xIndex = renderer::make_ssbo<int32_t>(1, GL_DYNAMIC_COPY);
+        yRadius = renderer::make_ssbo<int32_t>(1, GL_DYNAMIC_COPY);
+        resize(screenSize);
+    }
+
+    void resize(glm::ivec2 newSize)
+    {
+        if (newSize == screenSize)
+            return;
+        screenSize = newSize;
+        const unsigned int pixels = (unsigned int) (screenSize.x * screenSize.y);
+        xCount->setSize(pixels);
+        xOffset->setSize(pixels);
+        xIndex->setSize(pixels * INDEX_BUFFER_MULTIPLIER);
+        yRadius->setSize(pixels);
+    }
+
+    glm::ivec2 getScreenSize() const { return screenSize; }
+    unsigned int getPixelCount() const { return (unsigned int) (screenSize.x * screenSize.y); }
+
+    renderer::ssbo_ptr<uint32_t> xCount;
+    renderer::ssbo_ptr<uint32_t> xOffset;
+    renderer::ssbo_ptr<int32_t>  xIndex;
+    renderer::ssbo_ptr<int32_t>  yRadius;
+
+private:
+    glm::ivec2 screenSize;
+};
+
+using pixel_params_ptr = std::shared_ptr<PixelParamBuffers>;
+
 struct SceneConfig
 {
 	glm::vec3 simSize;
@@ -63,13 +106,6 @@ struct Obstacle
 	}
 };
 
-struct PixelParamData
-{
-    int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[40];
-};
-
 class GfxInterface
 {
 public:
@@ -86,8 +122,8 @@ public:
 
 	virtual void handleUserInteractions() { }
 
-	virtual void render(glm::ivec2 resolution, renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData, 
-		renderer::fb_ptr canvas = nullptr, renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) = 0;
+	virtual void render(glm::ivec2 resolution, renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData,
+		renderer::fb_ptr canvas = nullptr, pixel_params_ptr pixelParamBuffers = nullptr) = 0;
 
 	const std::vector<Obstacle>& getObstacles() const
 	{

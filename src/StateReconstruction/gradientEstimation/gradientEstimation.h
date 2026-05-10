@@ -60,7 +60,7 @@ protected:
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> optimizedParamsSSBO;
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> stochaisticGradientSSBO;
 
-    std::vector<renderer::ssbo_ptr<visual::PixelParamData>> pixelParamsPerView;
+    std::vector<visual::pixel_params_ptr> pixelParamsPerView;
 
     renderer::compute_ptr gradientMultCompute;
 

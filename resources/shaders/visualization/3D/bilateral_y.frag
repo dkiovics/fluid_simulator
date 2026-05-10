@@ -15,27 +15,8 @@ uniform struct CameraStruct {
     vec4 position;
 } camera;
 
-#define PARAM_NUM_X 10
-#define PARAM_NUM_Y 40
-
-struct FragmentParamX {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[PARAM_NUM_X];
-};
-
-struct FragmentParamY {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[PARAM_NUM_Y];
-};
-
-layout(std430, binding = 20) restrict readonly buffer pixelParamsInSSBO {
-	FragmentParamX pixelParamsIn[];
-};
-
-layout(std430, binding = 30) restrict writeonly buffer pixelParamsOutSSBO {
-	FragmentParamY pixelParamsOut[];
+layout(std430, binding = 23) restrict writeonly buffer YRadiusBuffer {
+	int yRadius[];
 };
 
 uniform bool calculateParams;
@@ -57,15 +38,13 @@ void main() {
 	float depth = 0.0;
 	float weightSum = 0.0;
 	const float curDepth = texture(depthTexture, texCoord).x;
-	
-	FragmentParamY param;
-	param.paramNum = 0;
-	param.uncappedParamNum = 0;
+
+	// Column-major: see bilateral_x.frag for the rationale.
+	int pixIdx = int(gl_FragCoord.x) * int(textSize.y) + int(gl_FragCoord.y);
 
 	if(curDepth == 1.0){
 		if(calculateParams){
-			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
-			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].uncappedParamNum = 0;
+			yRadius[pixIdx] = 0;
 		}
 		discard;
 		return;
@@ -81,8 +60,12 @@ void main() {
 	if(filterRadius < 1)
 		filterRadius = 1;
 
+	if(calculateParams){
+		yRadius[pixIdx] = filterRadius;
+	}
+
 	float blurScaleCorrected = blurScale / float(filterRadius) * 35.0;
-			
+
 	for(float x=-filterRadius; x<=filterRadius; x+=1.0) {
 		vec2 coord = texCoord + vec2(0.0, texelSize) * x;
 		float sampleDepth = texture(depthTexture, coord).x;
@@ -95,39 +78,13 @@ void main() {
 			float g = exp(-r2*r2);
 			depth += sampleDepth * w * g;
 			weightSum += w * g;
-
-			if(!calculateParams)
-			continue;
-
-			int pixelIndex = (int(gl_FragCoord.y) + int(x + 0.1)) * int(textSize.x) + int(gl_FragCoord.x);
-			FragmentParamX paramIn = pixelParamsIn[pixelIndex];
-			param.uncappedParamNum += paramIn.uncappedParamNum;
-			for(int p = 0; p < paramIn.paramNum; p++){
-				bool found = false;
-				for(int j = 0; j < param.paramNum; j++){
-					if(paramIn.paramIndexes[p] == param.paramIndexes[j]){
-						found = true;
-						break;
-					}
-				}
-				if(!found && param.paramNum < PARAM_NUM_Y){
-						param.paramIndexes[param.paramNum] = paramIn.paramIndexes[p];
-						param.paramNum++;
-					}
-				}
-			}
 		}
-	
+	}
+
 	if(weightSum == 0.0){
-		if(calculateParams){
-			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
-		}
 		discard;
 		return;
 	}
-    
-	if(calculateParams){
-		pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
-	}
+
     gl_FragDepth = depth / weightSum;
 }

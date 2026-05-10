@@ -63,30 +63,33 @@ void GradientEstimation::startGradientEstimation(
 void GradientEstimation::logPerPixelParamStats() const
 {
     spdlog::info("Per-pixel param stats:");
-    for (const auto& params : pixelParamsPerView)
+    for (size_t v = 0; v < pixelParamsPerView.size(); v++)
     {
-        uint64_t totalUncappedParamSum = 0;
-        uint64_t pixelsWithAtLeastOneUncappedParam = 0;
-        uint64_t maxUncappedParamNum = 0;
-        params->mapBuffer(0, -1, GL_MAP_READ_BIT);
-        for (int j = 0; j < params->getSize(); j++)
+        const auto& params = pixelParamsPerView[v];
+        const unsigned int pixelCount = params->getPixelCount();
+
+        uint64_t totalCount = 0;
+        uint64_t pixelsWithFluid = 0;
+        uint32_t maxCount = 0;
+        params->xCount->mapBuffer(0, -1, GL_MAP_READ_BIT);
+        for (unsigned int j = 0; j < pixelCount; j++)
         {
-            const auto& paramData = (*params)[j];
-            totalUncappedParamSum += paramData.uncappedParamNum;
-            if (paramData.uncappedParamNum > maxUncappedParamNum)
-                maxUncappedParamNum = paramData.uncappedParamNum;
-            if (paramData.uncappedParamNum > 0)
-                pixelsWithAtLeastOneUncappedParam++;
+            const uint32_t c = (*params->xCount)[j];
+            totalCount += c;
+            if (c > maxCount)
+                maxCount = c;
+            if (c > 0)
+                pixelsWithFluid++;
         }
-        params->unmapBuffer();
+        params->xCount->unmapBuffer();
         spdlog::info(
-            "View {}:\n" 
-            "   average uncapped param num = {}\n"
-            "   pixels with at least one uncapped param = {}\n"
-            "   max uncapped param num = {}\n"
-            "   total uncapped param num = {}",
-            &params - &pixelParamsPerView[0], (double) totalUncappedParamSum / params->getSize(),
-            pixelsWithAtLeastOneUncappedParam, maxUncappedParamNum, totalUncappedParamSum);
+            "View {}:\n"
+            "   average xCount = {}\n"
+            "   pixels with at least one X-sample = {}\n"
+            "   max xCount = {}\n"
+            "   total xCount = {}",
+            v, (double) totalCount / pixelCount,
+            pixelsWithFluid, maxCount, totalCount);
     }
 }
 
@@ -115,7 +118,7 @@ void GradientEstimation::handleResolutionChanged(glm::ivec2 size)
 
     for (auto& params : pixelParamsPerView)
     {
-        params->setSize(size.x * size.y);
+        params->resize(size);
     }
 
     pertPlusFramebuffer->setSize(size);
@@ -174,8 +177,7 @@ void GradientEstimation::initPerViewData(int num)
 
     while (pixelParamsPerView.size() < num)
     {
-        pixelParamsPerView.push_back(
-            renderer::make_ssbo<visual::PixelParamData>(screenResolution.x * screenResolution.y, GL_DYNAMIC_COPY));
+        pixelParamsPerView.push_back(std::make_shared<visual::PixelParamBuffers>(screenResolution));
     }
     while (pixelParamsPerView.size() > num)
     {

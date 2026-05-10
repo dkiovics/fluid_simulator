@@ -21,8 +21,8 @@ public:
 	FluidRenderer(std::shared_ptr<renderer::Camera3D> camera, std::shared_ptr<renderer::Lights> lights)
 		: camera(camera), lights(lights) {}
 
-	virtual void renderFluid(float dt, renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data, 
-		renderer::fb_ptr fb, renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) = 0;
+	virtual void renderFluid(float dt, renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data,
+		renderer::fb_ptr fb, pixel_params_ptr pixelParamBuffers = nullptr) = 0;
 
 	virtual void setScreenResolution(glm::ivec2 resolution) { }
 	

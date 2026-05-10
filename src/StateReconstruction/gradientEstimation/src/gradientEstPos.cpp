@@ -51,22 +51,8 @@ void diffrender::GradientEstPos::startGradientEstimation(
         perturbationPresetSSBO->unmapBuffer();
     }
 
-    std::vector<std::shared_ptr<renderer::Texture>> plusColor;
-    std::vector<std::shared_ptr<renderer::Texture>> minusColor;
-    std::vector<std::shared_ptr<renderer::Texture>> plusDepth;
-    std::vector<std::shared_ptr<renderer::Texture>> minusDepth;
-    for (size_t i = 0; i < referenceData.size(); i++)
-    {
-        plusColor.push_back(perturbedRenderedScenes[i].first.color);
-        minusColor.push_back(perturbedRenderedScenes[i].second.color);
-        plusDepth.push_back(perturbedRenderedScenes[i].first.depth);
-        minusDepth.push_back(perturbedRenderedScenes[i].second.depth);
-    }
-
-    (*stochaisticColorGradientProgram)["plusPertImage"] = plusColor;
-    (*stochaisticColorGradientProgram)["minusPertImage"] = minusColor;
-    (*stochaisticDepthGradientProgram)["plusPertImage"] = plusDepth;
-    (*stochaisticDepthGradientProgram)["minusPertImage"] = minusDepth;
+    // Per-view texture sampler bindings are set inside executeGradientEstimationStep,
+    // since we now dispatch the gradient compute once per view.
 }
 
 bool diffrender::GradientEstPos::executeGradientEstimationStep()
@@ -103,37 +89,41 @@ bool diffrender::GradientEstPos::executeGradientEstimationStep()
     paramNegativeOffsetSSBO->bindBuffer(0);
     paramPositiveOffsetSSBO->bindBuffer(1);
     stochaisticGradientSSBO->bindBuffer(2);
-    for (int p = 0; p < (int) referenceData.size(); p++)
-    {
-        pixelParamsPerView[p]->bindBuffer(3 + p);
-    }
+
+    auto& gradientProgram = useDepthImage ? stochaisticDepthGradientProgram : stochaisticColorGradientProgram;
     if (useDepthImage)
+        (*gradientProgram)["depthErrorScale"] = depthErrorScale;
+    (*gradientProgram)["screenSize"] = screenResolution;
+
+    for (size_t p = 0; p < referenceData.size(); p++)
     {
-        std::vector<std::shared_ptr<renderer::Texture>> depthImages;
-        for (size_t i = 0; i < referenceData.size(); i++)
+        const auto& params = pixelParamsPerView[p];
+        params->xCount->bindBuffer(20);
+        params->xOffset->bindBuffer(21);
+        params->xIndex->bindBuffer(22);
+        params->yRadius->bindBuffer(23);
+
+        if (useDepthImage)
         {
-            depthImages.push_back(referenceData[i].depthTexture);
+            (*gradientProgram)["referenceImage"] = *referenceData[p].depthTexture;
+            (*gradientProgram)["plusPertImage"] = *perturbedRenderedScenes[p].first.depth;
+            (*gradientProgram)["minusPertImage"] = *perturbedRenderedScenes[p].second.depth;
         }
-        (*stochaisticDepthGradientProgram)["referenceImage"] = depthImages;
-        (*stochaisticDepthGradientProgram)["referenceImageNum"] = (int) referenceData.size();
-        (*stochaisticDepthGradientProgram)["screenSize"] = screenResolution;
-        (*stochaisticDepthGradientProgram)["depthErrorScale"] = depthErrorScale;
-        stochaisticDepthGradientProgram->dispatchCompute(referenceData[0].colorTexture->getSize().x,
-                                                         referenceData[0].colorTexture->getSize().y, 1);
-    }
-    else
-    {
-        std::vector<std::shared_ptr<renderer::Texture>> colorImages;
-        for (size_t i = 0; i < referenceData.size(); i++)
+        else
         {
-            colorImages.push_back(referenceData[i].colorTexture);
+            (*gradientProgram)["referenceImage"] = *referenceData[p].colorTexture;
+            (*gradientProgram)["plusPertImage"] = *perturbedRenderedScenes[p].first.color;
+            (*gradientProgram)["minusPertImage"] = *perturbedRenderedScenes[p].second.color;
         }
-        (*stochaisticColorGradientProgram)["referenceImage"] = colorImages;
-        (*stochaisticColorGradientProgram)["referenceImageNum"] = (int) referenceData.size();
-        (*stochaisticColorGradientProgram)["screenSize"] = screenResolution;
-        stochaisticColorGradientProgram->dispatchCompute(screenResolution.x, screenResolution.y, 1);
+
+        // stochGradient_{color,depth}.comp uses local_size 16x16 — round up the dispatch
+        // to cover the full screen; the shaders early-return on out-of-bounds threads.
+        gradientProgram->dispatchCompute(
+            (screenResolution.x + 15) / 16,
+            (screenResolution.y + 15) / 16,
+            1);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     gradientSampleCount++;
     if (gradientSampleCount == gradientSampleNum)

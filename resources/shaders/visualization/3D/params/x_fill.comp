@@ -1,0 +1,74 @@
+#version 460 compatibility
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+uniform isampler2D paramTexture;	// surface particle IDs (per-pixel closest)
+uniform int filterRadiusCap;		// upper bound on bilateral/gaussian X kernel radius
+uniform ivec2 screenSize;
+
+layout(std430, binding = 20) restrict readonly buffer XCountBuffer {
+	uint xCount[];
+};
+layout(std430, binding = 21) restrict readonly buffer XOffsetBuffer {
+	uint xOffset[];
+};
+layout(std430, binding = 22) restrict writeonly buffer XIndexBuffer {
+	int xIndex[];
+};
+
+
+void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	if(pos.x >= screenSize.x || pos.y >= screenSize.y)
+		return;
+
+	// Column-major: see bilateral_x.frag for the rationale.
+	int pixIdx = pos.x * screenSize.y + pos.y;
+	uint count = xCount[pixIdx];
+	if(count == 0u)
+		return;
+
+	uint inclusive = xOffset[pixIdx];
+	uint start = inclusive - count;
+
+	// Slot 0: spray sentinel; sprayOverride later overwrites this for spray pixels.
+	xIndex[start] = -1;
+
+	// count == 1: sky pixel (or surface pixel with no valid kernel samples).
+	// Only the sentinel slot was reserved, nothing more to fill.
+	if(count == 1u)
+		return;
+
+	// Walk outward from x = 0, writing every valid surface id encountered until we have
+	// exactly count - 1 entries in slots 1..count-1. bilateral_x / gaussian_x counted
+	// `count - 1` valid samples in the same kernel, so we are guaranteed to find them
+	// within filterRadiusCap. No need to recompute the per-pixel filterRadius — its
+	// effect is implicitly captured by the value of count.
+	vec2 texCoord = (vec2(pos) + 0.5) / vec2(screenSize);
+	float texelSize = 1.0 / float(screenSize.x);
+	uint cursor = 1u;
+
+	// Center sample (always valid for surface pixels — count >= 2 implies it).
+	int centerId = texture(paramTexture, texCoord).x;
+	if(centerId >= 0){
+		xIndex[start + cursor] = centerId;
+		cursor++;
+	}
+
+	for(int radius = 1; radius <= filterRadiusCap && cursor < count; radius++){
+		int idPlus = texture(paramTexture, texCoord + vec2(texelSize * float(radius), 0.0)).x;
+		if(idPlus >= 0){
+			xIndex[start + cursor] = idPlus;
+			cursor++;
+			if(cursor >= count)
+				break;
+		}
+		int idMinus = texture(paramTexture, texCoord - vec2(texelSize * float(radius), 0.0)).x;
+		if(idMinus >= 0){
+			xIndex[start + cursor] = idMinus;
+			cursor++;
+			if(cursor >= count)
+				break;
+		}
+	}
+}

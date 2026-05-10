@@ -13,27 +13,8 @@ uniform struct CameraStruct {
     vec4 position;
 } camera;
 
-#define PARAM_NUM_X 10
-#define PARAM_NUM_Y 40
-
-struct FragmentParamX {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[PARAM_NUM_X];
-};
-
-struct FragmentParamY {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[PARAM_NUM_Y];
-};
-
-layout(std430, binding = 20) restrict readonly buffer pixelParamsInSSBO {
-	FragmentParamX pixelParamsIn[];
-};
-
-layout(std430, binding = 30) restrict writeonly buffer pixelParamsOutSSBO {
-	FragmentParamY pixelParamsOut[];
+layout(std430, binding = 23) restrict writeonly buffer YRadiusBuffer {
+	int yRadius[];
 };
 
 uniform bool calculateParams;
@@ -53,19 +34,18 @@ void main() {
 	const vec2 textSize = textureSize(depthTexture, 0);
 	float depth = 0.0;
 	float weightSum = 0.0;
-	
-	FragmentParamY param;
-	param.paramNum = 0;
-	param.uncappedParamNum = 0;
+
+	// Column-major: see bilateral_x.frag for the rationale.
+	int pixIdx = int(gl_FragCoord.x) * int(textSize.y) + int(gl_FragCoord.y);
 
 	if(texture(depthTexture, texCoord).x == 1.0){
 		if(calculateParams){
-			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
-			pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].uncappedParamNum = 0;
+			yRadius[pixIdx] = 0;
 		}
 		discard;
 		return;
 	}
+
 	const vec4 offsetOnScreen = camera.projectionMatrix * vec4(eyeSpacePos + vec3(0, smoothingKernelSize * 0.5, 0), 1.0);
 	const float offsetOnScreenSize = offsetOnScreen.y / offsetOnScreen.w * 0.5 + 0.5 - texCoord.y;
 
@@ -75,10 +55,14 @@ void main() {
 		kernelSize = 51;
 	if(kernelSize < 3)
 		kernelSize = 3;
-		
+
 	const float standardDev = (kernelSize - 1) / 6.0;
 	const float standardDev2 = standardDev * standardDev;
 	const int r = kernelSize / 2;
+
+	if(calculateParams){
+		yRadius[pixIdx] = r;
+	}
 
 	for(int p = -r; p <= r; p++){
 		vec2 coord = texCoord + vec2(0.0, texelSize) * p;
@@ -87,32 +71,8 @@ void main() {
 			float w = exp(-p*p / standardDev2 * 0.5);
 			weightSum += w;
 			depth += d * w;
-
-			if(!calculateParams)
-			continue;
-
-			int pixelIndex = (int(gl_FragCoord.y) + p) * int(textSize.x) + int(gl_FragCoord.x);
-			FragmentParamX paramIn = pixelParamsIn[pixelIndex];
-			param.uncappedParamNum += paramIn.uncappedParamNum;
-			for(int p = 0; p < paramIn.paramNum; p++){
-				bool found = false;
-				for(int j = 0; j < param.paramNum; j++){
-					if(paramIn.paramIndexes[p] == param.paramIndexes[j]){
-						found = true;
-						break;
-					}
-				}
-				if(!found && param.paramNum < PARAM_NUM_Y){
-					param.paramIndexes[param.paramNum] = paramIn.paramIndexes[p];
-					param.paramNum++;
-				}
-			}
 		}
 	}
 
-	if(calculateParams){
-		pixelParamsOut[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
-	}
-    
     gl_FragDepth = depth / weightSum;
 }

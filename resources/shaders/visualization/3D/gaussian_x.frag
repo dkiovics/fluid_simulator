@@ -14,16 +14,11 @@ uniform struct CameraStruct {
     vec4 position;
 } camera;
 
-#define PARAM_NUM 10
-
-struct FragmentParam {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[PARAM_NUM];
+layout(std430, binding = 20) restrict writeonly buffer XCountBuffer {
+	uint xCount[];
 };
-
-layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
-	FragmentParam pixelParams[];
+layout(std430, binding = 21) restrict writeonly buffer XOffsetBuffer {
+	uint xOffset[];
 };
 
 uniform bool calculateParams;
@@ -44,16 +39,20 @@ void main() {
 	const vec2 textSize = textureSize(depthTexture, 0);
 	float depth = 0.0;
 	float weightSum = 0.0;
-	
-	FragmentParam param;
-	param.paramNum = 0;
-	param.uncappedParamNum = 0;
+
+	// Column-major: see bilateral_x.frag for the rationale.
+	int pixIdx = int(gl_FragCoord.x) * int(textSize.y) + int(gl_FragCoord.y);
 
 	if(texture(depthTexture, texCoord).x == 1.0){
-		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
+		if(calculateParams){
+			// Sky pixel: still reserve 1 slot for the spray sentinel.
+			xCount[pixIdx] = 1u;
+			xOffset[pixIdx] = 1u;
+		}
 		discard;
 		return;
 	}
+
 	const vec4 offsetOnScreen = camera.projectionMatrix * vec4(eyeSpacePos + vec3(smoothingKernelSize * 0.5, 0, 0), 1.0);
 	const float offsetOnScreenSize = offsetOnScreen.x / offsetOnScreen.w * 0.5 + 0.5 - texCoord.x;
 
@@ -63,10 +62,12 @@ void main() {
 		kernelSize = 51;
 	if(kernelSize < 3)
 		kernelSize = 3;
-		
+
 	const float standardDev = (kernelSize - 1) / 6.0;
 	const float standardDev2 = standardDev * standardDev;
 	const int r = kernelSize  / 2;
+
+	uint count = 0u;
 
 	for(int p = -r; p <= r; p++){
 		vec2 coord = texCoord + vec2(texelSize, 0.0) * float(p);
@@ -76,27 +77,20 @@ void main() {
 			weightSum += w;
 			depth += d * w;
 
-			if(calculateParams) {
+			if(calculateParams){
 				int paramIndex = texture(paramTexture, coord).x;
 				if(paramIndex >= 0){
-					param.uncappedParamNum++;
-					bool found = false;
-					for(int j = 0; j < param.paramNum; j++){
-						if(paramIndex == param.paramIndexes[j]){
-							found = true;
-							break;
-						}
-					}
-					if(!found && param.paramNum < PARAM_NUM){
-						param.paramIndexes[param.paramNum] = paramIndex;
-						param.paramNum++;
-					}
+					count++;
 				}
 			}
 		}
 	}
 
-	pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
-    
+	if(calculateParams){
+		// Reserve slot 0 as the spray sentinel: total slots = surfaceCount + 1.
+		xCount[pixIdx] = count + 1u;
+		xOffset[pixIdx] = count + 1u;
+	}
+
     gl_FragDepth = depth / weightSum;
 }

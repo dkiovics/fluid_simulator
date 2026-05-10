@@ -1,0 +1,47 @@
+#version 460 compatibility
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+uniform isampler2D paramTexture;
+uniform ivec2 screenSize;
+uniform int phase;	// 0 = count (writes xCount/xOffset/yRadius), 1 = fill (writes xIndex)
+
+layout(std430, binding = 20) restrict buffer XCountBuffer {
+	uint xCount[];
+};
+layout(std430, binding = 21) restrict buffer XOffsetBuffer {
+	uint xOffset[];
+};
+layout(std430, binding = 22) restrict writeonly buffer XIndexBuffer {
+	int xIndex[];
+};
+layout(std430, binding = 23) restrict writeonly buffer YRadiusBuffer {
+	int yRadius[];
+};
+
+
+void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	if(pos.x >= screenSize.x || pos.y >= screenSize.y)
+		return;
+
+	// Column-major: see bilateral_x.frag for the rationale.
+	int index = pos.x * screenSize.y + pos.y;
+	int id = texelFetch(paramTexture, pos, 0).r;
+
+	if(phase == 0){
+		// Always reserve slot 0 (per-pixel sentinel — same convention as FluidSurface).
+		xCount[index] = 1u;
+		xOffset[index] = 1u;
+		yRadius[index] = 0;
+	}
+	else {
+		// Phase 1: write the particle id (or -1 for sky pixels) into slot 0. The gradient
+		// compute reads slot 0 first: id >= 0 triggers the spray fast-path (use only that
+		// id); id == -1 with yRadius == 0 marks a sky pixel and is skipped.
+		uint inclusive = xOffset[index];
+		uint count = xCount[index];
+		uint start = inclusive - count;
+		xIndex[start] = id;
+	}
+}

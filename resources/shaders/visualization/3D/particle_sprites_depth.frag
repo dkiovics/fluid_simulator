@@ -19,15 +19,6 @@ uniform struct{
     vec4 position;
 } camera;
 
-struct FragmentParam {
-	int paramNum;
-	int paramIndexes[30];
-};
-
-layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
-	FragmentParam pixelParams[];
-};
-
 uniform float particleRadius;
 uniform float sprayThreashold;
 uniform int drawMode;

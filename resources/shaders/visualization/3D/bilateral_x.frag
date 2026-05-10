@@ -16,16 +16,11 @@ uniform struct CameraStruct {
     vec4 position;
 } camera;
 
-#define PARAM_NUM 10
-
-struct FragmentParam {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[PARAM_NUM];
+layout(std430, binding = 20) restrict writeonly buffer XCountBuffer {
+	uint xCount[];
 };
-
-layout(std430, binding = 20) restrict writeonly buffer pixelParamsSSBO {
-	FragmentParam pixelParams[];
+layout(std430, binding = 21) restrict writeonly buffer XOffsetBuffer {
+	uint xOffset[];
 };
 
 uniform bool calculateParams;
@@ -47,13 +42,18 @@ void main() {
 	float depth = 0.0;
 	float weightSum = 0.0;
 	const float curDepth = texture(depthTexture, texCoord).x;
-	
-	FragmentParam param;
-	param.paramNum = 0;
-	param.uncappedParamNum = 0;
+
+	// Column-major: stores neighbouring Y-pixels at consecutive pixIdx values so the
+	// gradient compute's Y-walk reads xCount/xOffset/xIndex contiguously.
+	int pixIdx = int(gl_FragCoord.x) * int(textSize.y) + int(gl_FragCoord.y);
 
 	if(curDepth == 1.0){
-		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
+		if(calculateParams){
+			// Sky pixel: still reserve 1 slot for the spray sentinel so the gradient
+			// compute and sprayOverride can find a slot 0 to write to.
+			xCount[pixIdx] = 1u;
+			xOffset[pixIdx] = 1u;
+		}
 		discard;
 		return;
 	}
@@ -69,7 +69,9 @@ void main() {
 		filterRadius = 1;
 
 	float blurScaleCorrected = blurScale / float(filterRadius) * 35.0;
-			
+
+	uint count = 0u;
+
 	for(float x=-filterRadius; x<=filterRadius; x+=1.0) {
 		vec2 coord = texCoord + vec2(texelSize, 0.0) * float(x);
 		float sampleDepth = texture(depthTexture, coord).x;
@@ -83,32 +85,27 @@ void main() {
 			depth += sampleDepth * w * g;
 			weightSum += w * g;
 
-			if(calculateParams) {
+			if(calculateParams){
 				int paramIndex = texture(paramTexture, coord).x;
 				if(paramIndex >= 0){
-					param.uncappedParamNum++;
-					bool found = false;
-					for(int j = 0; j < param.paramNum; j++){
-						if(paramIndex == param.paramIndexes[j]){
-							found = true;
-							break;
-						}
-					}
-					if(!found && param.paramNum < PARAM_NUM){
-						param.paramIndexes[param.paramNum] = paramIndex;
-						param.paramNum++;
-					}
+					count++;
 				}
 			}
 		}
 	}
-	
+
+	if(calculateParams){
+		// Reserve slot 0 as the spray sentinel: total slots = surfaceCount + 1.
+		// Slot 0 stays -1 for non-spray pixels (gradient walks slots 1..count-1);
+		// sprayOverride / x_fill replace it with sprayID for spray pixels (with count=1).
+		xCount[pixIdx] = count + 1u;
+		xOffset[pixIdx] = count + 1u;
+	}
+
 	if(weightSum == 0.0){
-		pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)].paramNum = 0;
 		discard;
 		return;
 	}
-    
-	pixelParams[int(gl_FragCoord.y) * int(textSize.x) + int(gl_FragCoord.x)] = param;
-    gl_FragDepth = depth / weightSum;
+
+	gl_FragDepth = depth / weightSum;
 }

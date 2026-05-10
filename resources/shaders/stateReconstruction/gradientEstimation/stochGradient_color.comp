@@ -2,24 +2,17 @@
 #extension GL_NV_shader_atomic_float : enable
 precision highp float;
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 uniform ivec2 screenSize;
 
-uniform sampler2D referenceImage[10];
-uniform sampler2D plusPertImage[10];
-uniform sampler2D minusPertImage[10];
-uniform int referenceImageNum;
+uniform sampler2D referenceImage;
+uniform sampler2D plusPertImage;
+uniform sampler2D minusPertImage;
 
 struct ParticleData {
     vec4 posAndDensity;
 	vec4 velocity;
-};
-
-struct FragmentParam {
-	int uncappedParamNum;
-	int paramNum;
-	int paramIndexes[40];
 };
 
 layout(std430, binding = 0) restrict readonly buffer paramNegativeOffsetsSSBO {
@@ -34,100 +27,88 @@ layout(std430, binding = 2) restrict buffer gradientSSBO {
 	ParticleData gradient[];
 };
 
-layout(std430, binding = 3) restrict readonly buffer pixelParamsSSBO0 {
-	FragmentParam pixelParams0[];
-};
-layout(std430, binding = 4) restrict readonly buffer pixelParamsSSBO1 {
-	FragmentParam pixelParams1[];
-};
-layout(std430, binding = 5) restrict readonly buffer pixelParamsSSBO2 {
-	FragmentParam pixelParams2[];
-};
-layout(std430, binding = 6) restrict readonly buffer pixelParamsSSBO3 {
-	FragmentParam pixelParams3[];
-};
-layout(std430, binding = 7) restrict readonly buffer pixelParamsSSBO4 {
-	FragmentParam pixelParams4[];
-};
-layout(std430, binding = 8) restrict readonly buffer pixelParamsSSBO5 {
-	FragmentParam pixelParams5[];
-};
-layout(std430, binding = 9) restrict readonly buffer pixelParamsSSBO6 {
-	FragmentParam pixelParams6[];
-};
-layout(std430, binding = 10) restrict readonly buffer pixelParamsSSBO7 {
-	FragmentParam pixelParams7[];
-};
-layout(std430, binding = 11) restrict readonly buffer pixelParamsSSBO8 {
-	FragmentParam pixelParams8[];
-};
-layout(std430, binding = 12) restrict readonly buffer pixelParamsSSBO9 {
-	FragmentParam pixelParams9[];
-};
+layout(std430, binding = 20) restrict readonly buffer XCountBuffer { uint xCount[]; };
+layout(std430, binding = 21) restrict readonly buffer XOffsetBuffer { uint xOffset[]; };
+layout(std430, binding = 22) restrict readonly buffer XIndexBuffer { int xIndex[]; };
+layout(std430, binding = 23) restrict readonly buffer YRadiusBuffer { int yRadius[]; };
 
-FragmentParam getPixelParamFromBuffer(int bufferIndex, int pixelIndex)
-{
-	if(bufferIndex == 1)
-		return pixelParams1[pixelIndex];
-	if(bufferIndex == 2)
-		return pixelParams2[pixelIndex];
-	if(bufferIndex == 3)
-		return pixelParams3[pixelIndex];
-	if(bufferIndex == 4)
-		return pixelParams4[pixelIndex];
-	if(bufferIndex == 5)
-		return pixelParams5[pixelIndex];
-	if(bufferIndex == 6)
-		return pixelParams6[pixelIndex];
-	if(bufferIndex == 7)
-		return pixelParams7[pixelIndex];
-	if(bufferIndex == 8)
-		return pixelParams8[pixelIndex];
-	if(bufferIndex == 9)
-		return pixelParams9[pixelIndex];
-	return pixelParams0[pixelIndex];
+
+void accumulateGradient(int particleId, float positiveError, float negativeError) {
+	vec4 signedPerturbation = paramPositiveOffsets[particleId].posAndDensity - paramNegativeOffsets[particleId].posAndDensity;
+
+	if(signedPerturbation.x != 0.0)
+		atomicAdd(gradient[particleId].posAndDensity.x, (positiveError - negativeError) / signedPerturbation.x);
+	if(signedPerturbation.y != 0.0)
+		atomicAdd(gradient[particleId].posAndDensity.y, (positiveError - negativeError) / signedPerturbation.y);
+	if(signedPerturbation.z != 0.0)
+		atomicAdd(gradient[particleId].posAndDensity.z, (positiveError - negativeError) / signedPerturbation.z);
+	if(signedPerturbation.w != 0.0)
+		atomicAdd(gradient[particleId].posAndDensity.w, (positiveError - negativeError) / signedPerturbation.w);
+
+	signedPerturbation = paramPositiveOffsets[particleId].velocity - paramNegativeOffsets[particleId].velocity;
+
+	if(signedPerturbation.x != 0.0)
+		atomicAdd(gradient[particleId].velocity.x, (positiveError - negativeError) / signedPerturbation.x);
+	if(signedPerturbation.y != 0.0)
+		atomicAdd(gradient[particleId].velocity.y, (positiveError - negativeError) / signedPerturbation.y);
+	if(signedPerturbation.z != 0.0)
+		atomicAdd(gradient[particleId].velocity.z, (positiveError - negativeError) / signedPerturbation.z);
+	if(signedPerturbation.w != 0.0)
+		atomicAdd(gradient[particleId].velocity.w, (positiveError - negativeError) / signedPerturbation.w);
 }
 
 
 void main(void) {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-	int index = pos.y * screenSize.x + pos.x;
+	if(pos.x >= screenSize.x || pos.y >= screenSize.y)
+		return;
+	// Column-major pixel layout (see bilateral_x.frag): Y-neighbours have consecutive
+	// pixIdx values, so the Y-walk below reads xCount/xOffset/xIndex contiguously.
+	int index = pos.x * screenSize.y + pos.y;
 
-	for (int p = 0; p < referenceImageNum; p++)
-	{
-		vec3 referenceColor = texture(referenceImage[p], (vec2(pos) + vec2(0.5)) / vec2(screenSize)).xyz;
-		vec3 plusPertColor = texelFetch(plusPertImage[p], pos, 0).xyz;
-		vec3 minusPertColor = texelFetch(minusPertImage[p], pos, 0).xyz;
+	int r = yRadius[index];
+	uint centerCount = xCount[index];
+	if(r == 0 && centerCount == 0u)
+		return;
 
-		float positiveError = dot(referenceColor - plusPertColor, referenceColor - plusPertColor);
-		float negativeError = dot(referenceColor - minusPertColor, referenceColor - minusPertColor);
+	vec3 referenceColor = texture(referenceImage, (vec2(pos) + vec2(0.5)) / vec2(screenSize)).xyz;
+	vec3 plusPertColor = texelFetch(plusPertImage, pos, 0).xyz;
+	vec3 minusPertColor = texelFetch(minusPertImage, pos, 0).xyz;
 
-		FragmentParam contributingParam = getPixelParamFromBuffer(p, index);
+	float positiveError = dot(referenceColor - plusPertColor, referenceColor - plusPertColor);
+	float negativeError = dot(referenceColor - minusPertColor, referenceColor - minusPertColor);
 
-		for(int q = 0; q < contributingParam.paramNum; q++)
-		{
-			int contributingParamIndex = contributingParam.paramIndexes[q];
-			vec4 signedPerturbation = paramPositiveOffsets[contributingParamIndex].posAndDensity - paramNegativeOffsets[contributingParamIndex].posAndDensity;
+	// Slot 0 of each pixel is the spray sentinel: -1 if non-spray, sprayID if spray.
+	// If center is spray, use only that single ID; otherwise walk the Y-kernel and
+	// read slots 1..xc-1 of each neighbor (skipping their slot 0 to avoid spray
+	// contamination of surface pixels' walks).
+	if(centerCount > 0u){
+		uint centerInclusive = xOffset[index];
+		uint centerStart = centerInclusive - centerCount;
+		int centerFirst = xIndex[centerStart];
+		if(centerFirst >= 0){
+			accumulateGradient(centerFirst, positiveError, negativeError);
+			return;
+		}
+	}
 
-			if(signedPerturbation.x != 0.0)
-				atomicAdd(gradient[contributingParamIndex].posAndDensity.x, (positiveError - negativeError) / signedPerturbation.x);
-			if(signedPerturbation.y != 0.0)
-				atomicAdd(gradient[contributingParamIndex].posAndDensity.y, (positiveError - negativeError) / signedPerturbation.y);
-			if(signedPerturbation.z != 0.0)
-				atomicAdd(gradient[contributingParamIndex].posAndDensity.z, (positiveError - negativeError) / signedPerturbation.z);
-			if(signedPerturbation.w != 0.0)
-				atomicAdd(gradient[contributingParamIndex].posAndDensity.w, (positiveError - negativeError) / signedPerturbation.w);
-
-			signedPerturbation = paramPositiveOffsets[contributingParamIndex].velocity - paramNegativeOffsets[contributingParamIndex].velocity;
-
-			if(signedPerturbation.x != 0.0)
-				atomicAdd(gradient[contributingParamIndex].velocity.x, (positiveError - negativeError) / signedPerturbation.x);
-			if(signedPerturbation.y != 0.0)
-				atomicAdd(gradient[contributingParamIndex].velocity.y, (positiveError - negativeError) / signedPerturbation.y);
-			if(signedPerturbation.z != 0.0)
-				atomicAdd(gradient[contributingParamIndex].velocity.z, (positiveError - negativeError) / signedPerturbation.z);
-			if(signedPerturbation.w != 0.0)
-				atomicAdd(gradient[contributingParamIndex].velocity.w, (positiveError - negativeError) / signedPerturbation.w);
+	for(int p = -r; p <= r; p++){
+		int neighborY = pos.y + p;
+		if(neighborY < 0 || neighborY >= screenSize.y)
+			continue;
+		int npx = pos.x * screenSize.y + neighborY;
+		uint xc = xCount[npx];
+		if(xc == 0u)
+			continue;
+		uint inclusive = xOffset[npx];
+		uint start = inclusive - xc;
+		// Skip slot 0 (spray sentinel). If neighbor is spray, slot 0 is sprayID and
+		// slots 1..xc-1 is empty (xc=1) � neighbor contributes nothing to a non-spray walk.
+		for(uint q = 1u; q < xc; q++){
+			int particleId = xIndex[start + q];
+			if(particleId < 0)
+				continue;
+			accumulateGradient(particleId, positiveError, negativeError);
 		}
 	}
 }

@@ -66,7 +66,7 @@ public:
     void render(glm::ivec2 resolution,
         renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data,
                 renderer::fb_ptr fb = nullptr,
-                renderer::ssbo_ptr<PixelParamData> pixelParamData = nullptr) override;
+                pixel_params_ptr pixelParamBuffers = nullptr) override;
 
     void handleUserInteractions() override;
 

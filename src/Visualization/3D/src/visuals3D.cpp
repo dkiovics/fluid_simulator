@@ -410,9 +410,9 @@ void Visuals3D::screenResolutionChanged(int width, int height)
 void Visuals3D::render(glm::ivec2 resolution,
                        renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> data,
                        renderer::fb_ptr fb,
-                       renderer::ssbo_ptr<PixelParamData> pixelParamData)
+                       pixel_params_ptr pixelParamBuffers)
 {
-    if (!fb && !pixelParamData)
+    if (!fb && !pixelParamBuffers)
         throw std::runtime_error("No framebuffer to render to");
 
     if (fb && resolution != fb->getSize())
@@ -424,8 +424,8 @@ void Visuals3D::render(glm::ivec2 resolution,
         screenResolutionChanged(resolution.x, resolution.y);
     }
 
-    if (pixelParamData != nullptr && pixelParamData->getSize() != resolution.x * resolution.y)
-        throw std::runtime_error("PixelParamData size does not match screen size");
+    if (pixelParamBuffers != nullptr && pixelParamBuffers->getScreenSize() != resolution)
+        throw std::runtime_error("PixelParamBuffers size does not match screen size");
 
     if ((int) registry["render.fluid_render_mode"] == 1 && !dynamic_cast<FluidParticles*>(fluidRenderer.get()))
     {
@@ -476,7 +476,7 @@ void Visuals3D::render(glm::ivec2 resolution,
         transparentBox->draw(sceneConfig.simCenter, sceneConfig.simSize, true, false);
     }
 
-    fluidRenderer->renderFluid(subWindowManager->getLastFrameTime(), data, renderTargetFramebuffer, pixelParamData);
+    fluidRenderer->renderFluid(subWindowManager->getLastFrameTime(), data, renderTargetFramebuffer, pixelParamBuffers);
 
     renderTargetFramebuffer->bind();
 

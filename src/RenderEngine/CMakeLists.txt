@@ -33,6 +33,8 @@ set(COMPUTE_SOURCES
     compute/computeTexture.cpp
     compute/storageBuffer.h
     compute/storageBuffer.cpp
+    compute/prefixSum.h
+    compute/prefixSum.cpp
 )
 
 add_subdirectory(glad)
