@@ -44,6 +44,7 @@ private:
 
     glm::ivec2 getGradientResolution() const;
     int lastResolutionDivider = 0;
+    int prevSelectedVeiwIdx = -1;
 
     enum class OperationState
     {

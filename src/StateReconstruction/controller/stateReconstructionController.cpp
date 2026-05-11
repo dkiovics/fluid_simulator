@@ -249,7 +249,11 @@ void StateReconstructionController::processAndRender()
         }
         else
         {
-            visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
+            if (prevSelectedVeiwIdx != currentCameraPosIdx)
+            {
+                prevSelectedVeiwIdx = currentCameraPosIdx;
+                visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
+            }
             visuals3D->render(canvas->getSize(), particleData, canvas);
         }
     }
