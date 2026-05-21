@@ -73,7 +73,7 @@ bool diffrender::GradientEstPos::executeGradientEstimationStep()
     const bool useDepthImage = registry["state.use_depth_image"];
     const float depthErrorScale = registry["state.depth_error_scale"];
 
-    (*perturbationProgram)["seed"] = std::rand() % 10000;
+    (*perturbationProgram)["seed"] = std::rand() % 1000000;
     (*perturbationProgram)["boxLowerBound"] = fluidBoxbounds.first;
     (*perturbationProgram)["boxUpperBound"] = fluidBoxbounds.second;
     (*perturbationProgram)["posClampEnabled"] = true;
