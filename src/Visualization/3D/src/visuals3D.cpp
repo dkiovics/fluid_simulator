@@ -449,7 +449,15 @@ void Visuals3D::render(glm::ivec2 resolution,
     {
         for (auto& o : obstacles)
         {
-            if (o.type == Obstacle::ObstacleType::BOX)
+            // Mesh obstacles are constructed with the float (SPHERE) Obstacle ctor, so
+            // meshIndex must be checked before the obstacle type — otherwise a mesh
+            // obstacle would fall into the SPHERE branch and render as a sphere.
+            if (o.meshIndex != -1)
+            {
+                meshes[o.meshIndex]->setPosition(glm::vec4(o.position, 1));
+                meshes[o.meshIndex]->draw();
+            }
+            else if (o.type == Obstacle::ObstacleType::BOX)
             {
                 boxGfx->setPosition(glm::vec4(o.position, 1));
                 boxGfx->setScale(o.size);
@@ -462,11 +470,6 @@ void Visuals3D::render(glm::ivec2 resolution,
                 sphereGfx->setScale(glm::vec3(o.size.x * 0.5f, o.size.x * 0.5f, o.size.x * 0.5f));
                 sphereGfx->diffuseColor = glm::vec4(o.color, 1);
                 sphereGfx->draw();
-            }
-            else if (o.meshIndex != -1)
-            {
-                meshes[o.meshIndex]->setPosition(glm::vec4(o.position, 1));
-                meshes[o.meshIndex]->draw();
             }
         }
     }
@@ -554,16 +557,26 @@ void Visuals3D::handleUserInteractions()
     }
     if (registry["obs.remove"])
     {
+        int meshIndexToRemove = -1;
         if (lastSelectedObstacle != -1)
         {
+            if (obstacles[lastSelectedObstacle].meshIndex != -1)
+            {
+                meshIndexToRemove = obstacles[lastSelectedObstacle].meshIndex;
+            }
             obstacles.erase(obstacles.begin() + lastSelectedObstacle);
             lastSelectedObstacle = -1;
         }
         else if (obstacles.size() > 0)
         {
+            if (obstacles.back().meshIndex != -1)
+            {
+                meshIndexToRemove = obstacles.back().meshIndex;
+            }
             obstacles.pop_back();
         }
         registry["obs.remove"] = false;
+        meshes.erase(meshes.begin() + meshIndexToRemove);
     }
 
     for (auto& o : obstacles)
