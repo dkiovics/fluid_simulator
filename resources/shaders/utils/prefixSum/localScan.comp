@@ -35,13 +35,13 @@ void main()
         barrier();
     }
 
-    if (gid >= data.length())
-		return;
-
-    data[gid] = temp[lid];
-
     if (lid == groupSize - 1) 
     {
         partialSums[groupID] = temp[lid];
     }
+
+    if (gid >= data.length())
+        return;
+
+    data[gid] = temp[lid];
 }
