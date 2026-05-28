@@ -313,7 +313,7 @@ Cube::Cube() : Geometry(GL_TRIANGLES)
 	};
 
 	createVbo(vertexes, attributes);
-	setVertexNum(vertexes.size());
+	setVertexNum((GLsizei)vertexes.size());
 }
 
 Sphere::Sphere(int vertexNum) : Geometry(GL_TRIANGLES)
@@ -342,7 +342,7 @@ Sphere::Sphere(int vertexNum) : Geometry(GL_TRIANGLES)
 	}
 	vertexes.push_back({ {0,1,0,1}, {0,1,0,0}, {0.0,0.0} });
 
-	int num = vertexes.size() - 1;
+	int num = (int)vertexes.size() - 1;
 
 	for (int p = 0; p < circleNum; p++)
 	{
@@ -636,6 +636,24 @@ renderer::Arrow4::Arrow4(float width, float baseHeight, float tipHeight) : Geome
 	};
 
 	createVbo(vertexes, attributes);
-	setVertexNum(vertexes.size());
+	setVertexNum((int)vertexes.size());
 
+}
+
+renderer::Line::Line(glm::vec3 p1, glm::vec3 p2, float lineWidth) : Geometry(GL_LINES, 2), lineWidth(lineWidth)
+{
+	std::vector<glm::vec4> vertexes;
+	vertexes.push_back(glm::vec4(p1, 1.0));
+	vertexes.push_back(glm::vec4(p2, 1.0));
+	
+	std::vector<ArrayAttribute> attributes = {
+		ArrayAttribute{0, 4, GL_FLOAT, 0}
+	};
+	createVbo(vertexes, attributes);
+}
+
+void renderer::Line::draw() const
+{
+	glLineWidth(lineWidth);
+	Geometry::draw();
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../engine/renderEngine.h"
+#include "../engine/windowManager.h"
 #include <mutex>
 #include <map>
 #include <set>
@@ -26,7 +26,7 @@ public:
 	 *	READ means that the data will be set by the GPU and read by the CPU.
 	 *	COPY means that the data will be set by the GPU and read by the GPU.
 	 */
-	StorageBuffer(unsigned int size, GLenum usage) : usage(usage), size(size), renderEngine(RenderEngine::getInstance())
+	StorageBuffer(unsigned int size, GLenum usage) : usage(usage), size(size), renderEngine(WindowManager::getInstance())
 	{
 		glGenBuffers(1, &bufferId);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferId);
@@ -117,6 +117,28 @@ public:
 	}
 
 	/**
+	 * \brief Fills the buffer with the given data. The buffer must be mapped before calling this function.
+	 * 
+	 * \param data - The data to fill the buffer with.
+	 * \param start - The start index of the buffer to fill.
+	 * \param size - The size of the buffer to fill in sizeof(T) units.
+	 */
+	void setData(const T* data, unsigned int start, unsigned int size)
+	{
+		if (mappedData == nullptr)
+		{
+			throw std::runtime_error("Buffer must be mapped before setting data.");
+		}
+
+		if (start < mappingStart || start + size > mappingStart + mappingSize)
+		{
+			throw std::runtime_error("Buffer filling is out of bounds.");
+		}
+
+		std::memcpy(mappedData + start, data, size * sizeof(T));
+	}
+
+	/**
 	 * \brief Unmaps the buffer from the CPU. This also updates the buffer on the GPU.
 	 */
 	void unmapBuffer()
@@ -178,6 +200,15 @@ public:
 		return mappedData[index - mappingStart];
 	}
 
+	T* getMappedData()
+	{
+		if (mappedData == nullptr)
+		{
+			throw std::runtime_error("Buffer must be mapped before accessing it.");
+		}
+		return mappedData;
+    }
+
 	GLuint getBufferId() const
 	{
 		return bufferId;
@@ -226,7 +257,7 @@ private:
 	unsigned int mappingStart = 0;
 	unsigned int mappingSize = 0;
 	const GLenum usage = 0;
-	RenderEngine& renderEngine;
+	WindowManager& renderEngine;
 };
 
 template <typename T>

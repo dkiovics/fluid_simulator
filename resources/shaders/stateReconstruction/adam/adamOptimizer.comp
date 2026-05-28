@@ -1,0 +1,77 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleData {
+    vec4 posAndDensity;
+	vec4 velocity;
+};
+
+layout(std430, binding = 19) restrict readonly buffer gradientArraySSBO {
+	ParticleData gradientArray[];
+};
+
+layout(std430, binding = 12) restrict buffer optimizedParticleDataSSBO {
+	ParticleData optimizedParticleData[];
+};
+
+layout(std430, binding = 13) restrict buffer mVecSSBO {
+	ParticleData mVecParticleData[];
+};
+
+layout(std430, binding = 14) restrict buffer vVecSSBO {
+	ParticleData vVecParticleData[];
+};
+
+layout(std430, binding = 2) restrict writeonly buffer particleMovementAbsSSBO {
+	float particleMovementAbs[];
+};
+
+uniform float alpha;
+uniform float beta1;
+uniform float beta2;
+uniform float epsilon;
+uniform float t;
+uniform vec3 lowerBound;
+uniform vec3 upperBound;
+
+void applyAdam(in float g, inout float m, inout float v, inout float value)
+{
+	m = beta1 * m + (1.0 - beta1) * g;
+	v = beta2 * v + (1.0 - beta2) * g * g;
+	float mHat = m / (1.0 - pow(beta1, t));
+	float vHat = v / (1.0 - pow(beta2, t));
+	value -= alpha * mHat / (sqrt(vHat) + epsilon);
+}
+
+void main() {
+	unsigned int particleIndex = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+	if (particleIndex >= optimizedParticleData.length()) {
+		return;
+	}
+
+	// Update each parameter of the particle using Adam optimizer
+	ParticleData param = optimizedParticleData[particleIndex];
+	ParticleData mVec = mVecParticleData[particleIndex];
+	ParticleData vVec = vVecParticleData[particleIndex];
+	ParticleData grad = gradientArray[particleIndex];
+
+	applyAdam(grad.posAndDensity.x, mVec.posAndDensity.x, vVec.posAndDensity.x, param.posAndDensity.x);
+	applyAdam(grad.posAndDensity.y, mVec.posAndDensity.y, vVec.posAndDensity.y, param.posAndDensity.y);
+	applyAdam(grad.posAndDensity.z, mVec.posAndDensity.z, vVec.posAndDensity.z, param.posAndDensity.z);
+	applyAdam(grad.posAndDensity.w, mVec.posAndDensity.w, vVec.posAndDensity.w, param.posAndDensity.w);
+	applyAdam(grad.velocity.x, mVec.velocity.x, vVec.velocity.x, param.velocity.x);
+	applyAdam(grad.velocity.y, mVec.velocity.y, vVec.velocity.y, param.velocity.y);
+	applyAdam(grad.velocity.z, mVec.velocity.z, vVec.velocity.z, param.velocity.z);
+	applyAdam(grad.velocity.w, mVec.velocity.w, vVec.velocity.w, param.velocity.w);
+
+	// Clamp updated pos to specified bounds
+	param.posAndDensity.xyz = clamp(param.posAndDensity.xyz, lowerBound, upperBound);
+
+	particleMovementAbs[particleIndex] = length(param.posAndDensity.xyz - optimizedParticleData[particleIndex].posAndDensity.xyz);
+
+	optimizedParticleData[particleIndex] = param;
+	mVecParticleData[particleIndex] = mVec;
+	vVecParticleData[particleIndex] = vVec;
+}

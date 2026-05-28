@@ -10,7 +10,7 @@
 namespace renderer
 {
 
-class RenderEngine;
+class WindowManager;
 
 class GpuProgram
 {
@@ -21,6 +21,7 @@ public:
 	public:
 		bool operator=(const float value) const;
 		bool operator=(const int value) const;
+        bool operator=(const unsigned int value) const;
 		bool operator=(const glm::vec2& value) const;
 		bool operator=(const glm::ivec2& value) const;
 		bool operator=(const glm::vec3& value) const;
@@ -30,6 +31,7 @@ public:
 		bool operator=(const glm::mat3& value) const;
 		bool operator=(const glm::mat4& value) const;
 		bool operator=(const Texture& texture) const;
+		bool operator=(const std::vector<std::shared_ptr<Texture>>& textures) const;
 
 		bool setImageUnit(const ComputeTexture& texture) const;
 
@@ -62,7 +64,7 @@ public:
 	virtual ~GpuProgram();
 
 protected:
-	RenderEngine& renderEngine;
+	WindowManager& renderEngine;
 	GLuint programId;
 };
 

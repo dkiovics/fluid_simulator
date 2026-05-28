@@ -1,0 +1,41 @@
+#version 460 compatibility
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+uniform isampler2D sprayParamTexture;
+uniform ivec2 screenSize;
+
+layout(std430, binding = 20) restrict readonly buffer XCountBuffer {
+	uint xCount[];
+};
+layout(std430, binding = 21) restrict readonly buffer XOffsetBuffer {
+	uint xOffset[];
+};
+layout(std430, binding = 22) restrict writeonly buffer XIndexBuffer {
+	int xIndex[];
+};
+
+
+void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	if(pos.x >= screenSize.x || pos.y >= screenSize.y)
+		return;
+
+	int id = texelFetch(sprayParamTexture, pos, 0).r;
+	if(id == -1)
+		return;
+
+	// Column-major: see bilateral_x.frag for the rationale.
+	int index = pos.x * screenSize.y + pos.y;
+	uint count = xCount[index];
+	if(count == 0u)
+		return;
+	uint inclusive = xOffset[index];
+	uint start = inclusive - count;
+
+	// Overwrite slot 0 (was -1 from x_fill) with the spray id. xCount/xOffset/yRadius
+	// are left alone so any surface IDs at slots 1..count-1 stay intact — they are
+	// still readable by the gradient compute when neighbouring non-spray surface
+	// pixels walk this pixel during their Y-kernel pass.
+	xIndex[start] = id;
+}

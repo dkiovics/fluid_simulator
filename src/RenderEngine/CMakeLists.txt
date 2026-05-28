@@ -3,15 +3,16 @@ set(ENGINE_SOURCES
     engine/framebuffer.h
     engine/texture.h
     engine/uniforms.hpp
-    engine/renderEngine.h
+    engine/windowManager.h
     engine/shaderProgram.h
     engine/framebuffer.cpp
-    engine/renderEngine.cpp
+    engine/windowManager.cpp
     engine/shaderProgram.cpp
     engine/texture.cpp
 )
 
 set(ENGINE_UTILS_SOURCES
+    engineUtils/src/genericGpuPrograms.cpp
     engineUtils/object.h
     engineUtils/lights.hpp
     engineUtils/camera2D.hpp
@@ -32,6 +33,8 @@ set(COMPUTE_SOURCES
     compute/computeTexture.cpp
     compute/storageBuffer.h
     compute/storageBuffer.cpp
+    compute/prefixSum.h
+    compute/prefixSum.cpp
 )
 
 add_subdirectory(glad)
@@ -52,8 +55,8 @@ target_link_libraries(render_engine
         app_compiler_flags
         glfw
         glm::glm
-    PRIVATE 
         glad
+    PRIVATE 
         spdlog
         stb_image
         tiny_obj_loader

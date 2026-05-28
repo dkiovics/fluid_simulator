@@ -52,7 +52,7 @@ void renderer::Geometry::createIndexBuffer(const std::vector<unsigned int>& indi
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 	unbindVao();
 	indexBufferId = vboId;
-	vertexNum = indices.size();
+	vertexNum = (int)indices.size();
 	spdlog::debug("Index buffer created with id: {} for geometry with id: {}", vboId, vaoId);
 }
 
@@ -82,7 +82,6 @@ renderer::Geometry::~Geometry()
 		glDeleteBuffers(1, &indexBufferId.value());
 	}
 	glDeleteVertexArrays(1, &vaoId);
-	spdlog::debug("Geometry deleted with id: {}", vaoId);
 }
 
 void renderer::BasicGeometryArray::updateActiveInstanceParams()
@@ -142,7 +141,7 @@ void renderer::BasicGeometryArray::setMaxInstanceNum(size_t instanceNum)
 		}
 		offsets = std::move(newPositions);
 
-		instancesToDraw = instanceNum;
+		instancesToDraw = (int)instanceNum;
 
 		reuploadRequired = true;
 	}
@@ -154,7 +153,7 @@ void renderer::BasicGeometryArray::setMaxInstanceNum(size_t instanceNum, std::ve
 	{
 		throw std::runtime_error("Instance number is not equal to colors or positions size");
 	}
-	instancesToDraw = instanceNum;
+	instancesToDraw = (int)instanceNum;
 	reuploadRequired = true;
 	this->colors = std::move(colors);
 	this->offsets = std::move(positions);
@@ -171,7 +170,7 @@ void renderer::BasicGeometryArray::setActiveInstanceNum(size_t instanceNum)
 		colorsNeedUpdate = true;
 		offsetsNeedUpdate = true;
 	}
-	instancesToDraw = instanceNum;
+	instancesToDraw = (int)instanceNum;
 }
 
 void renderer::BasicGeometryArray::setColor(size_t instanceId, const glm::vec4& color)
@@ -250,7 +249,7 @@ void renderer::BasicPosGeometryArray::setMaxInstanceNum(size_t instanceNum)
 		}
 		offsets = std::move(newPositions);
 
-		instancesToDraw = instanceNum;
+		instancesToDraw = (int)instanceNum;
 
 		reuploadRequired = true;
 	}
@@ -262,7 +261,7 @@ void renderer::BasicPosGeometryArray::setMaxInstanceNum(size_t instanceNum, std:
 	{
 		throw std::runtime_error("Instance number is not equal to colors or positions size");
 	}
-	instancesToDraw = instanceNum;
+	instancesToDraw = (int)instanceNum;
 	reuploadRequired = true;
 	this->offsets = std::move(positions);
 }
@@ -277,7 +276,7 @@ void renderer::BasicPosGeometryArray::setActiveInstanceNum(size_t instanceNum)
 	{
 		offsetsNeedUpdate = true;
 	}
-	instancesToDraw = instanceNum;
+	instancesToDraw = (int)instanceNum;
 }
 
 void renderer::BasicPosGeometryArray::setOffset(size_t instanceId, const glm::vec4& offset)
@@ -378,7 +377,7 @@ void renderer::ParticleGeometryArray::setMaxInstanceNum(size_t instanceNum)
 		}
 		speeds = std::move(newSpeeds);
 
-		instancesToDraw = instanceNum;
+		instancesToDraw = (int)instanceNum;
 
 		reuploadRequired = true;
 	}
@@ -396,7 +395,7 @@ void renderer::ParticleGeometryArray::setActiveInstanceNum(size_t instanceNum)
 		idsNeedUpdate = true;
 		speedsNeedUpdate = true;
 	}
-	instancesToDraw = instanceNum;
+	instancesToDraw = (int)instanceNum;
 }
 
 void renderer::ParticleGeometryArray::setOffset(size_t instanceId, const glm::vec4& offset)
@@ -485,11 +484,11 @@ void renderer::GeometryArray::draw() const
 
 void renderer::InstancedGeometry::setInstanceNum(size_t instanceNum)
 {
-	this->instancesToDraw = instanceNum;
+	this->instancesToDraw = (int)instanceNum;
 }
 
 renderer::MeshGeometry::MeshGeometry(GLenum drawType, const std::vector<BasicVertex>& vertices, const std::vector<unsigned int>& indices)
-	: Geometry(drawType, indices.size())
+	: Geometry(drawType, (int)indices.size())
 {
 	createVbo(vertices, { {0, 4, GL_FLOAT, offsetof(BasicVertex, position)},
 								  {1, 4, GL_FLOAT, offsetof(BasicVertex, normal)},

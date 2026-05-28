@@ -6,21 +6,21 @@
 using namespace renderer;
 
 bool ComputeProgram::computeShaderInfoCollected = false;
-GLint ComputeProgram::maxComputeWorkGroupCount[3] = { 0, 0, 0 };
+GLuint ComputeProgram::maxComputeWorkGroupCount[3] = { 0, 0, 0 };
 
 renderer::ComputeProgram::ComputeProgram(const std::string& computeShaderPath)
 {
     if (!computeShaderInfoCollected)
     {
-        GLint maxComputeWorkGroupSize[3];
-        GLint maxComputeWorkGroupInvocations;
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxComputeWorkGroupCount[0]);
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &maxComputeWorkGroupCount[1]);
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &maxComputeWorkGroupCount[2]);
-        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &maxComputeWorkGroupInvocations);
-        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &maxComputeWorkGroupSize[0]);
-        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &maxComputeWorkGroupSize[1]);
-        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &maxComputeWorkGroupSize[2]);
+        GLuint maxComputeWorkGroupSize[3] = { 0 };
+        GLuint maxComputeWorkGroupInvocations = 0;
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, (GLint*)&maxComputeWorkGroupCount[0]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, (GLint*)&maxComputeWorkGroupCount[1]);
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, (GLint*)&maxComputeWorkGroupCount[2]);
+        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, (GLint*)&maxComputeWorkGroupInvocations);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, (GLint*)&maxComputeWorkGroupSize[0]);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, (GLint*)&maxComputeWorkGroupSize[1]);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, (GLint*)&maxComputeWorkGroupSize[2]);
 		computeShaderInfoCollected = true;
 
         spdlog::info("Compute shader info: \n" + 
@@ -67,9 +67,9 @@ renderer::ComputeProgram::ComputeProgram(const std::string& computeShaderPath)
         glGetShaderInfoLog(compute, 512, NULL, infoLog);
         spdlog::error("Compute shader source: {} compilation failed with error: {}", computeShaderPath, infoLog);
         throw std::runtime_error(std::string("ERROR::SHADER::COMPUTE::COMPILATION_FAILED\n") + infoLog);
-    }
+    } 
 
-    // shader Program
+    // shader Program 
     programId = glCreateProgram();
     glAttachShader(programId, compute);
     glLinkProgram(programId);

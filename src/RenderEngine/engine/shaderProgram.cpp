@@ -2,7 +2,7 @@
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 #include "shaderProgram.h"
-#include "renderEngine.h"
+#include "windowManager.h"
 #include <spdlog/spdlog.h>
 
 using namespace renderer;
@@ -33,6 +33,15 @@ bool renderer::GpuProgram::UniformProxy::operator=(const int value) const
 		return false;
 	glUniform1i(val, value);
 	return true;
+}
+
+bool renderer::GpuProgram::UniformProxy::operator=(const unsigned int value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform1ui(val, value);
+    return true;
 }
 
 bool renderer::GpuProgram::UniformProxy::operator=(const glm::vec2& value) const
@@ -116,6 +125,18 @@ bool renderer::GpuProgram::UniformProxy::operator=(const Texture& value) const
 	return true;
 }
 
+bool renderer::GpuProgram::UniformProxy::operator=(const std::vector<std::shared_ptr<Texture>>& textures) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	std::vector<int> samplers;
+	for (const auto& texture : textures)
+		samplers.push_back(texture->getTexSampler());
+	glUniform1iv(val, (GLsizei)textures.size(), samplers.data());
+	return true;
+}
+
 bool renderer::GpuProgram::UniformProxy::setImageUnit(const ComputeTexture& texture) const
 {
 	int val = uniformWarning(programId, name.c_str());
@@ -133,7 +154,7 @@ renderer::GpuProgram::UniformProxy renderer::GpuProgram::operator[](const std::s
 	return UniformProxy(programId, name);
 }
 
-renderer::GpuProgram::GpuProgram() : renderEngine(RenderEngine::getInstance()) {}
+renderer::GpuProgram::GpuProgram() : renderEngine(WindowManager::getInstance()) {}
 
 void renderer::GpuProgram::activate() const
 {
@@ -143,7 +164,6 @@ void renderer::GpuProgram::activate() const
 renderer::GpuProgram::~GpuProgram()
 {
 	glDeleteProgram(programId);
-	spdlog::debug("GPU program deleted with id: {}", programId);
 }
 
 renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName)

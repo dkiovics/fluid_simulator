@@ -33,6 +33,8 @@ target_link_libraries(simulator
     PUBLIC 
         app_compiler_flags
         glm::glm
+        control_ui
+        render_engine
     PRIVATE
         spdlog
 )

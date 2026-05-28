@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <initializer_list>
+#include "shaderProgram.h"
 
 namespace renderer
 {

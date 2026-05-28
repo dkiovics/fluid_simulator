@@ -1,0 +1,89 @@
+#version 460 core
+#extension GL_NV_shader_atomic_float : enable
+precision highp float;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+uniform ivec2 screenSize;
+uniform float depthErrorScale;
+
+uniform sampler2D referenceImage;
+uniform sampler2D plusPertImage;
+uniform sampler2D minusPertImage;
+
+// Scalar (positiveError - negativeError) accumulator. See errorToGradient.comp.
+layout(std430, binding = 2) restrict buffer ErrorSumSSBO {
+	float errorSum[];
+};
+
+layout(std430, binding = 20) restrict readonly buffer XCountBuffer { uint xCount[]; };
+layout(std430, binding = 21) restrict readonly buffer XOffsetBuffer { uint xOffset[]; };
+layout(std430, binding = 22) restrict readonly buffer XIndexBuffer { int xIndex[]; };
+layout(std430, binding = 23) restrict readonly buffer YRadiusBuffer { int yRadius[]; };
+
+uniform struct{
+    mat4 viewMatrix;
+	mat4 viewMatrixInverse;
+	mat4 projectionMatrix;
+	mat4 projectionMatrixInverse;
+    vec4 position;
+} camera;
+
+
+vec3 uvToEye(vec2 texCoord, float depth) {
+	vec4 ndc = vec4(texCoord * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+	vec4 eyeSpacePos = camera.projectionMatrixInverse * ndc;
+	return eyeSpacePos.xyz / eyeSpacePos.w;
+}
+
+
+void main(void) {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	if(pos.x >= screenSize.x || pos.y >= screenSize.y)
+		return;
+	// Column-major pixel layout — see stochGradient_color.comp for the rationale.
+	int index = pos.x * screenSize.y + pos.y;
+
+	int r = yRadius[index];
+	uint centerCount = xCount[index];
+	if(r == 0 && centerCount == 0u)
+		return;
+
+	vec2 texCoord = vec2(pos) / vec2(screenSize) + 0.5 / vec2(screenSize);
+	float referenceDepth = texelFetch(referenceImage, pos, 0).r;
+	float plusPertDepth = texelFetch(plusPertImage, pos, 0).r;
+	float minusPertDepth = texelFetch(minusPertImage, pos, 0).r;
+
+	float positiveError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, plusPertDepth).z) * depthErrorScale;
+	float negativeError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, minusPertDepth).z) * depthErrorScale;
+	positiveError = positiveError * positiveError;
+	negativeError = negativeError * negativeError;
+	float diff = positiveError - negativeError;
+
+	if(centerCount > 0u){
+		uint centerStart = xOffset[index] - centerCount;
+		int centerFirst = xIndex[centerStart];
+		if(centerFirst >= 0){
+			atomicAdd(errorSum[centerFirst], diff);
+			return;
+		}
+	}
+
+	for(int p = -r; p <= r; p++){
+		int neighborY = pos.y + p;
+		if(neighborY < 0 || neighborY >= screenSize.y)
+			continue;
+		int npx = pos.x * screenSize.y + neighborY;
+		uint xc = xCount[npx];
+		if(xc == 0u)
+			continue;
+		uint inclusive = xOffset[npx];
+		uint start = inclusive - xc;
+		for(uint q = 1u; q < xc; q++){
+			int particleId = xIndex[start + q];
+			if(particleId < 0)
+				continue;
+			atomicAdd(errorSum[particleId], diff);
+		}
+	}
+}

@@ -1,0 +1,75 @@
+#version 460 core
+#extension GL_NV_shader_atomic_float : enable
+precision highp float;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+uniform ivec2 screenSize;
+
+uniform sampler2D referenceImage;
+uniform sampler2D plusPertImage;
+uniform sampler2D minusPertImage;
+
+// Scalar (positiveError - negativeError) accumulator, one float per particle.
+// Converted to gradient[] increments by errorToGradient.comp after all views' dispatches.
+layout(std430, binding = 2) restrict buffer ErrorSumSSBO {
+	float errorSum[];
+};
+
+layout(std430, binding = 20) restrict readonly buffer XCountBuffer { uint xCount[]; };
+layout(std430, binding = 21) restrict readonly buffer XOffsetBuffer { uint xOffset[]; };
+layout(std430, binding = 22) restrict readonly buffer XIndexBuffer { int xIndex[]; };
+layout(std430, binding = 23) restrict readonly buffer YRadiusBuffer { int yRadius[]; };
+
+
+void main(void) {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	if(pos.x >= screenSize.x || pos.y >= screenSize.y)
+		return;
+	// Column-major pixel layout (see bilateral_x.frag): Y-neighbours have consecutive
+	// pixIdx values, so the Y-walk below reads xCount/xOffset/xIndex contiguously.
+	int index = pos.x * screenSize.y + pos.y;
+
+	int r = yRadius[index];
+	uint centerCount = xCount[index];
+	if(r == 0 && centerCount == 0u)
+		return;
+
+	vec3 referenceColor = texture(referenceImage, (vec2(pos) + vec2(0.5)) / vec2(screenSize)).xyz;
+	vec3 plusPertColor = texelFetch(plusPertImage, pos, 0).xyz;
+	vec3 minusPertColor = texelFetch(minusPertImage, pos, 0).xyz;
+
+	float positiveError = dot(referenceColor - plusPertColor, referenceColor - plusPertColor);
+	float negativeError = dot(referenceColor - minusPertColor, referenceColor - minusPertColor);
+	float diff = positiveError - negativeError;
+
+	// Center spray fast path: if the pixel itself is a spray pixel, only that one id contributes.
+	if(centerCount > 0u){
+		uint centerStart = xOffset[index] - centerCount;
+		int centerFirst = xIndex[centerStart];
+		if(centerFirst >= 0){
+			atomicAdd(errorSum[centerFirst], diff);
+			return;
+		}
+	}
+
+	// Non-spray surface: walk the Y-kernel; for each neighbour skip slot 0 (spray sentinel)
+	// and accumulate into errorSum for every surface particle id we encounter.
+	for(int p = -r; p <= r; p++){
+		int neighborY = pos.y + p;
+		if(neighborY < 0 || neighborY >= screenSize.y)
+			continue;
+		int npx = pos.x * screenSize.y + neighborY;
+		uint xc = xCount[npx];
+		if(xc == 0u)
+			continue;
+		uint inclusive = xOffset[npx];
+		uint start = inclusive - xc;
+		for(uint q = 1u; q < xc; q++){
+			int particleId = xIndex[start + q];
+			if(particleId < 0)
+				continue;
+			atomicAdd(errorSum[particleId], diff);
+		}
+	}
+}

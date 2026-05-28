@@ -11,7 +11,7 @@ MacGrid::MacGrid(glm::dvec3 targetDimensions, double resolution, bool twoD)
 	: cellD(1 / resolution, 1 / resolution, twoD ? targetDimensions.z / 3 : 1 / resolution), cellDInv(1.0 / cellD),
 	gridSize(targetDimensions.x / cellD.x, targetDimensions.y / cellD.y, twoD ? 3 : targetDimensions.z / cellD.z),
 	dimensions(gridSize.x * cellD.x, gridSize.y * cellD.y, twoD ? targetDimensions.z : gridSize.z * cellD.z), twoD(twoD), 
-	yzMultiplier(gridSize.y * gridSize.z), cellCount(gridSize.x * gridSize.y * gridSize.z) {
+	yzMultiplier(gridSize.y * gridSize.z), cellCount(gridSize.x * gridSize.y * gridSize.z), resolution(resolution) {
 
 	initNewGrid();
 	restoreBorderingSolidCellsAndSpeeds(true);
@@ -233,7 +233,7 @@ void MacGrid::postP2GUpdate(bool parallel, double gravityIncrement) {
 	forEachCell(false, false, [&](glm::ivec3 pos, MacGridCell& c) {
 		if (c.type == MacGridCell::CellType::WATER) {
 			fluidCellPositions.push_back(pos);
-			c.id = fluidCellPositions.size() - 1;
+			c.id = (int)fluidCellPositions.size() - 1;
 		}
 	});
 }

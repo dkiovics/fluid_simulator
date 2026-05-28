@@ -242,7 +242,7 @@ void multSelfAndAdd(bool parallel, std::vector<double>& vec, const std::vector<d
 }
 
 int BridsonSolverGrid::solveIncompressibility(bool parallel, double dt) {
-	fluidCellCount = fluidCellPositions.size();
+	fluidCellCount = (int)fluidCellPositions.size();
 	aMatrix.resize(fluidCellCount);
 	preconditioner.resize(fluidCellCount);
 

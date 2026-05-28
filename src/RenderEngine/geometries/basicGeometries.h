@@ -60,5 +60,21 @@ public:
 	Arrow4(float width, float baseHeight, float tipHeight);
 };
 
+class Line : public Geometry
+{
+public:
+	/**
+	 * \brief Creates a line between two points in 3D space.
+	 * \param p1 The first point of the line
+	 * \param p2 The second point of the line
+	 * \param lineWidth The width of the line
+	 */
+	Line(glm::vec3 p1, glm::vec3 p2, float lineWidth);
+
+	void draw() const override;
+
+	float lineWidth;
+};
+
 } // namespace renderer
 

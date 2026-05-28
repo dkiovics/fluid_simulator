@@ -76,7 +76,7 @@ public:
 		this->modelMatrixInverse = glm::inverse(M);
 	}
 
-	void draw() const
+	virtual void draw() const
 	{
 		if(!shaderProgram)
 		{
