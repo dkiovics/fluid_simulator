@@ -1,0 +1,53 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleSSBOData
+{
+	vec4 posAndDensity;
+	vec4 velocity;
+};
+
+#define MAX_INDICES 200
+
+struct ParticleIndexList
+{
+	int indexCount;
+	int indices[MAX_INDICES];
+};
+
+layout(std430, binding = 0) restrict readonly buffer ParticlesSSBO {
+	ParticleSSBOData particles[];
+};
+
+layout(std430, binding = 1) restrict buffer IndexListSSBO {
+	ParticleIndexList lists[];
+};
+
+uniform float smoothingSphereR;
+uniform ivec3 particleCellCount;
+
+
+void main() {
+	uint pIdx = gl_GlobalInvocationID.x;
+	if (pIdx >= particles.length()) return;
+
+	vec3 pos = particles[pIdx].posAndDensity.xyz;
+	ivec3 cell = clamp(ivec3(pos / smoothingSphereR), ivec3(0), particleCellCount - 1);
+	int cellLinear = cell.x + cell.y * particleCellCount.x + cell.z * particleCellCount.x * particleCellCount.y;
+
+	// Claim a slot via atomicAdd. The slot is the OLD indexCount value.
+	// If too many particles map to the same cell, indexCount overshoots
+	// MAX_INDICES — that's fine because:
+	//   (a) we only write to `indices[]` when slot < MAX_INDICES, so there is no
+	//       out-of-bounds write here;
+	//   (b) the consumer (smoothGradient.comp) clamps its iteration to
+	//       min(indexCount, MAX_INDICES), so the overshoot is invisible.
+	// Using a CAS loop instead would cap indexCount exactly but cost more atomic
+	// ops per particle and contend more under load.
+	int slot = atomicAdd(lists[cellLinear].indexCount, 1);
+	if (slot < MAX_INDICES) {
+		lists[cellLinear].indices[slot] = int(pIdx);
+	}
+}

@@ -4,6 +4,8 @@ set(SOURCES
     dataUtils/src/dataUtils.cpp
     adam/src/adam.cpp
     controller/stateReconstructionController.cpp
+    gradientSmoothing/src/gradientSmoothing.cpp
+    gradientVisualization/src/gradientVisualization.cpp
 )
 
 add_library(state_reconstruction STATIC

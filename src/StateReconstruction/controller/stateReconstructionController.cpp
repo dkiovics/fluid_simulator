@@ -6,6 +6,8 @@
 #include "engine/glUtils.hpp"
 #include "engineUtils/genericGpuPrograms.h"
 #include "gradientEstimation/src/gradientEstPos.h"
+#include "gradientSmoothing/gradientSmoothing.h"
+#include "gradientVisualization/gradientVisualization.h"
 
 using namespace diffrender;
 
@@ -26,6 +28,8 @@ StateReconstructionController::StateReconstructionController(
     gradientEstimation = std::make_shared<GradientEstPos>(canvas->getSize(), visuals3D);
     miscDataUtils = std::make_shared<MiscDataUtils>();
     adamOptimizer = std::make_shared<AdamOptimizer>();
+    gradientVisualization =
+        std::make_unique<GradientVisualization>(visuals3D->getCamera(), visuals3D->getLights());
 
     particleData =
         renderer::make_ssbo<genericfsim::manager::ParticleSSBOData>(simManager->getParticleNum(), GL_DYNAMIC_COPY);
@@ -214,6 +218,23 @@ void StateReconstructionController::processAndRender()
                 return;
             }
         }
+        const bool enableGradientSmoothing = (bool) registry["state.enable_gradient_smoothing"];
+        const float gradientSmoothingSphereR = (float) registry["state.gradient_smoothing_sphere_r"];
+        const bool gradientVisualizationEnabled = (bool) registry["state.gradient_visualization"];
+        const float arrowDensityThreshold = (float) registry["state.arrow_density_threshold"];
+
+        // Lazily (re)create the smoother whenever the sim box or the smoothing
+        // radius changes — both are inputs to the spatial-hash cell grid size.
+        const glm::vec3 simBox = simManager->getDimensions();
+        if (enableGradientSmoothing
+            && (!gradientSmoothing
+                || gradientSmoothing->particleBox != simBox
+                || gradientSmoothing->smoothingSphereR != gradientSmoothingSphereR))
+        {
+            gradientSmoothing =
+                std::make_unique<GradientSmoothing>(gradientSmoothingSphereR, simBox);
+        }
+
         if (stateReconstructionEnabled)
         {
             switch (operationState)
@@ -233,7 +254,20 @@ void StateReconstructionController::processAndRender()
                     }
                     break;
                 case OperationState::PARAM_OPTIMIZATION:
-                    adamOptimizer->optimize(particleData, gradientEstimation->getGradientEstimationResult());
+                {
+                    auto gradient = gradientEstimation->getGradientEstimationResult();
+                    // Smoothing mutates the gradient in-place so Adam sees the smoothed
+                    // values; visualization snapshots after smoothing so the rendered
+                    // arrows reflect what was actually applied to the parameters.
+                    if (enableGradientSmoothing && gradient)
+                    {
+                        gradientSmoothing->smoothGradient(particleData, gradient);
+                    }
+                    if (gradient)
+                    {
+                        gradientVisualization->snapshotGradient(gradient);
+                    }
+                    adamOptimizer->optimize(particleData, gradient);
                     if (densityControlEnabled)
                     {
                         if (densityControl->updateAvgMovement(adamOptimizer->getLastParticleMovementAbs()))
@@ -243,8 +277,14 @@ void StateReconstructionController::processAndRender()
                     }
                     visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
                     visuals3D->render(canvas->getSize(), particleData, canvas);
+                    if (gradientVisualizationEnabled)
+                    {
+                        simManager->computeParticleDensities(particleData);
+                        gradientVisualization->render(particleData, canvas, arrowDensityThreshold);
+                    }
                     operationState = OperationState::START_GRAD_ESTIMATION;
                     break;
+                }
             }
         }
         else
@@ -255,6 +295,10 @@ void StateReconstructionController::processAndRender()
                 visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
             }
             visuals3D->render(canvas->getSize(), particleData, canvas);
+            if (gradientVisualizationEnabled)
+            {
+                gradientVisualization->render(particleData, canvas, arrowDensityThreshold);
+            }
         }
     }
 }

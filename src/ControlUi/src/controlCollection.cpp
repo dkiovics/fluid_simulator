@@ -114,6 +114,10 @@ struct _StateReconstructionControl
 	RadioButton viewSelection{ "state.view_selection", { "View 1" } };
 	Button useViewCamera{ "state.use_view_camera", "Use view's camera" };
     CheckBox logPerPixelParamStats{ "state.log_per_pixel_param_stats", "Log per-pixel param stats" };
+    CheckBox gradientVisualization{ "state.gradient_visualization", "Gradient visualization", false };
+    SliderFloat arrowDensityThreshold{ "state.arrow_density_threshold", "Arrow density threshold", 0.5f, 5.0f, 0.8f };
+    CheckBox enableGradientSmoothing{ "state.enable_gradient_smoothing", "Enable gradient smoothing", false };
+    SliderFloat gradientSmoothingSphereR{ "state.gradient_smoothing_sphere_r", "Gradient smoothing sphere R", 0.8f, 5.0f, 1.5f };
     CheckBox showStateReconstructionSettings{ "state.show_settings",
                                               "Show settings", true };
 };
@@ -335,6 +339,17 @@ void _ControlCollectionPrivate::drawStateReconstructionControls()
 	ImGui::SameLine();
     stateReconstructionControl.useViewCamera.draw();
     stateReconstructionControl.logPerPixelParamStats.draw();
+    stateReconstructionControl.gradientVisualization.draw();
+    ImGui::SameLine();
+    stateReconstructionControl.enableGradientSmoothing.draw();
+    if (registry.get<bool>("state.gradient_visualization"))
+    {
+        stateReconstructionControl.arrowDensityThreshold.draw();
+    }
+    if (registry.get<bool>("state.enable_gradient_smoothing"))
+    {
+        stateReconstructionControl.gradientSmoothingSphereR.draw();
+    }
     // Update view selection options based on reference view count
 	if (registry.get<int>("state.reference_view_count") != stateReconstructionControl.viewSelection.options.size())
 	{

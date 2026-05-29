@@ -90,6 +90,7 @@ public:
     bool renderBoxFrontEnabled = true;
 
     std::shared_ptr<renderer::Camera3D> getCamera() const { return camera; }
+    std::shared_ptr<renderer::Lights> getLights() const { return lights; }
 
     ~Visuals3D() override;
 };

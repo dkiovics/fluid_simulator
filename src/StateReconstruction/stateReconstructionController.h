@@ -10,6 +10,8 @@ class DensityControl;
 class GradientEstimation;
 class AdamOptimizer;
 class MiscDataUtils;
+class GradientSmoothing;
+class GradientVisualization;
 
 struct ReferenceData
 {
@@ -31,6 +33,8 @@ private:
     std::shared_ptr<GradientEstimation> gradientEstimation;
     std::shared_ptr<MiscDataUtils> miscDataUtils;
     std::shared_ptr<AdamOptimizer> adamOptimizer;
+    std::unique_ptr<GradientSmoothing> gradientSmoothing;
+    std::unique_ptr<GradientVisualization> gradientVisualization;
 
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData;
 
