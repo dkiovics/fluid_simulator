@@ -31,6 +31,9 @@ StateReconstructionController::StateReconstructionController(
     gradientVisualization =
         std::make_unique<GradientVisualization>(visuals3D->getCamera(), visuals3D->getLights());
 
+    copyToSimulatorProgram =
+        renderer::make_compute("shaders/stateReconstruction/copyParticlesZeroVelocity.comp");
+
     particleData =
         renderer::make_ssbo<genericfsim::manager::ParticleSSBOData>(simManager->getParticleNum(), GL_DYNAMIC_COPY);
 
@@ -157,9 +160,37 @@ void StateReconstructionController::processAndRender()
     const bool useViewCamera = (bool) registry["state.use_view_camera"];
     if (useViewCamera)
         registry["state.use_view_camera"] = false;
+    const bool updateSimulator = (bool) registry["state.update_simulator"];
+    if (updateSimulator)
+        registry["state.update_simulator"] = false;
 
     handleCanvasSizeChanged();
     handleSpecChanges(viewCount);
+
+    // Copy the reconstructed state back into the actual simulator, zeroing
+    // velocities so the simulator restarts from rest. Requires matching SSBO
+    // sizes; if the user changed the particle count after the last
+    // reconstruction step, we skip rather than risking a corrupt copy.
+    if (updateSimulator)
+    {
+        auto simParticleData = simManager->getParticleData();
+        if (simParticleData && particleData->getSize() == simParticleData->getSize())
+        {
+            particleData->bindBuffer(0);
+            simParticleData->bindBuffer(1);
+            copyToSimulatorProgram->dispatchCompute(particleData->getSize() / 64 + 1, 1, 1);
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            simManager->setParticleData(particleData);
+        }
+        else
+        {
+            spdlog::warn(
+                "StateReconstructionController: 'update simulator state' skipped — "
+                "particle count mismatch (reconstructed={}, simulator={})",
+                particleData ? particleData->getSize() : 0,
+                simParticleData ? simParticleData->getSize() : 0);
+        }
+    }
 
     if (useViewCamera && referenceData[currentCameraPosIdx].valid)
     {

@@ -114,6 +114,7 @@ struct _StateReconstructionControl
 	RadioButton viewSelection{ "state.view_selection", { "View 1" } };
 	Button useViewCamera{ "state.use_view_camera", "Use view's camera" };
     CheckBox logPerPixelParamStats{ "state.log_per_pixel_param_stats", "Log per-pixel param stats" };
+    Button updateSimulator{ "state.update_simulator", "Update simulator state" };
     CheckBox gradientVisualization{ "state.gradient_visualization", "Gradient visualization", false };
     SliderFloat arrowDensityThreshold{ "state.arrow_density_threshold", "Arrow density threshold", 0.5f, 5.0f, 0.8f };
     CheckBox enableGradientSmoothing{ "state.enable_gradient_smoothing", "Enable gradient smoothing", false };
@@ -339,6 +340,8 @@ void _ControlCollectionPrivate::drawStateReconstructionControls()
 	ImGui::SameLine();
     stateReconstructionControl.useViewCamera.draw();
     stateReconstructionControl.logPerPixelParamStats.draw();
+    ImGui::SameLine();
+    stateReconstructionControl.updateSimulator.draw();
     stateReconstructionControl.gradientVisualization.draw();
     ImGui::SameLine();
     stateReconstructionControl.enableGradientSmoothing.draw();

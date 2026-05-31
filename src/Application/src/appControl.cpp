@@ -13,6 +13,7 @@
 #include "manager/simulationManager.h"
 #include "prefixTest.h"
 #include "stateReconstructionController.h"
+#include "engine/glUtils.hpp"
 
 using namespace genericfsim;
 
@@ -159,6 +160,9 @@ void runApplication()
         updateSimulationObstacles();
 
         simulationManager->stepSimulation(dt);
+
+        renderer::bindDefaultFramebuffer();
+        renderer::clearViewport(glm::vec4(0), 1.0f);
 
         if (stateReconstructionController)
             stateReconstructionController->processAndRender();

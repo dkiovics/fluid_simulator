@@ -1,5 +1,6 @@
 #pragma once
 #include "3D/visuals3D.h"
+#include "compute/computeProgram.h"
 #include "engine/framebuffer.h"
 #include "manager/simulationManager.h"
 
@@ -35,6 +36,9 @@ private:
     std::shared_ptr<AdamOptimizer> adamOptimizer;
     std::unique_ptr<GradientSmoothing> gradientSmoothing;
     std::unique_ptr<GradientVisualization> gradientVisualization;
+
+    // Copies the reconstructed state into the simulator, zeroing velocities.
+    renderer::compute_ptr copyToSimulatorProgram;
 
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData;
 
