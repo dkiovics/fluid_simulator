@@ -56,8 +56,6 @@ void main(void) {
 
 	float positiveError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, plusPertDepth).z) * depthErrorScale;
 	float negativeError = (uvToEye(texCoord, referenceDepth).z - uvToEye(texCoord, minusPertDepth).z) * depthErrorScale;
-	positiveError = positiveError * positiveError;
-	negativeError = negativeError * negativeError;
 	float diff = positiveError - negativeError;
 
 	if(centerCount > 0u){

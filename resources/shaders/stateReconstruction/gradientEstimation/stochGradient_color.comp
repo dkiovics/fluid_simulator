@@ -39,8 +39,8 @@ void main(void) {
 	vec3 plusPertColor = texelFetch(plusPertImage, pos, 0).xyz;
 	vec3 minusPertColor = texelFetch(minusPertImage, pos, 0).xyz;
 
-	float positiveError = dot(referenceColor - plusPertColor, referenceColor - plusPertColor);
-	float negativeError = dot(referenceColor - minusPertColor, referenceColor - minusPertColor);
+	float positiveError = length(referenceColor - plusPertColor);
+	float negativeError = length(referenceColor - minusPertColor);
 	float diff = positiveError - negativeError;
 
 	// Center spray fast path: if the pixel itself is a spray pixel, only that one id contributes.
