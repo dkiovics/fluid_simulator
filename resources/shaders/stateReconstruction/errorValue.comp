@@ -1,0 +1,29 @@
+#version 460 core
+#extension GL_NV_shader_atomic_float : enable
+precision highp float;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+uniform sampler2D referenceImage;
+uniform sampler2D currentImage;
+uniform ivec2 screenSize;
+
+// One float, atomically summed across all pixels. Same per-pixel metric as
+// stochGradient_color.comp's positiveError / negativeError: the L2 norm of
+// the RGB difference. Summing this gives a value monotonically tracking what
+// gradient estimation is trying to minimise.
+layout(std430, binding = 0) restrict buffer ErrorSSBO {
+	float errorValue;
+};
+
+
+void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+	if (pos.x >= screenSize.x || pos.y >= screenSize.y) return;
+
+	vec2 texCoord = (vec2(pos) + vec2(0.5)) / vec2(screenSize);
+	vec3 refColor = texture(referenceImage, texCoord).xyz;
+	vec3 curColor = texelFetch(currentImage, pos, 0).xyz;
+
+	atomicAdd(errorValue, length(refColor - curColor));
+}

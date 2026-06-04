@@ -544,8 +544,13 @@ void Visuals3D::handleUserInteractions()
                 renderer::loadGeometry(registry["obs.mesh_file"].operator std::string()), shaderProgramNotTextured);
             obj->setScale(glm::vec3(scale));
             obj->diffuseColor = glm::vec4((glm::vec3) registry["obs.color"], 1);
+            // Match boxGfx / sphereGfx — without these, the mesh leaves the shader's
+            // shininess/specularColor uniforms at whatever was last written (e.g. the
+            // TransparentBox's shininess=10), and that state persists across frames.
+            obj->shininess = 80.0f;
+            obj->specularColor = glm::vec4(1.2f, 1.2f, 1.2f, 1.0f);
 
-            obstacles.push_back(Obstacle(scale, sceneConfig.simCenter, (glm::vec3) registry["obs.color"]));
+            obstacles.push_back(Obstacle(scale < 5.0f ? 5.0f : scale, sceneConfig.simCenter, (glm::vec3) registry["obs.color"]));
             obstacles[obstacles.size() - 1].meshIndex = (int) meshes.size();
             meshes.push_back(std::move(obj));
         }

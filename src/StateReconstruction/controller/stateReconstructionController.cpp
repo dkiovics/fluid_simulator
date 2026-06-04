@@ -1,5 +1,8 @@
 #include "stateReconstructionController.h"
 #include <spdlog/spdlog.h>
+#include <iostream>
+#include <sstream>
+#include <limits>
 #include "adam/adam.h"
 #include "controlRegistry.h"
 #include "dataUtils/dataUtils.h"
@@ -28,16 +31,24 @@ StateReconstructionController::StateReconstructionController(
     gradientEstimation = std::make_shared<GradientEstPos>(canvas->getSize(), visuals3D);
     miscDataUtils = std::make_shared<MiscDataUtils>();
     adamOptimizer = std::make_shared<AdamOptimizer>();
-    gradientVisualization =
-        std::make_unique<GradientVisualization>(visuals3D->getCamera(), visuals3D->getLights());
+    gradientVisualization = std::make_unique<GradientVisualization>(visuals3D->getCamera(), visuals3D->getLights());
 
-    copyToSimulatorProgram =
-        renderer::make_compute("shaders/stateReconstruction/copyParticlesZeroVelocity.comp");
+    copyToSimulatorProgram = renderer::make_compute("shaders/stateReconstruction/copyParticlesZeroVelocity.comp");
+
+    errorValueProgram = renderer::make_compute("shaders/stateReconstruction/errorValue.comp");
+    errorValueSSBO = renderer::make_ssbo<float>(1, GL_DYNAMIC_READ);
 
     particleData =
         renderer::make_ssbo<genericfsim::manager::ParticleSSBOData>(simManager->getParticleNum(), GL_DYNAMIC_COPY);
 
     glm::ivec2 resolution = canvas->getSize();
+    {
+        auto color = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
+                                                  GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+        auto depth = renderer::make_render_target(resolution.x, resolution.y, GL_NEAREST, GL_NEAREST,
+                                                  GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+        errorRenderFramebuffer = renderer::make_fb({ color }, depth, false);
+    }
     referenceData.push_back(ReferenceData());
     referenceData[0].colorTexture = renderer::make_render_target(resolution.x, resolution.y, GL_LINEAR_MIPMAP_LINEAR,
                                                                  GL_LINEAR, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -45,6 +56,15 @@ StateReconstructionController::StateReconstructionController(
         renderer::make_render_target(resolution.x, resolution.y, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR,
                                      GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
     referenceFramebuffer = renderer::make_fb({ referenceData[0].colorTexture }, referenceData[0].depthTexture, false);
+
+    // Held-out evaluation view — same texture shapes as the optimization views,
+    // but lives outside `referenceData` so gradient estimation never sees it.
+    evaluationData.colorTexture = renderer::make_render_target(resolution.x, resolution.y, GL_LINEAR_MIPMAP_LINEAR,
+                                                               GL_LINEAR, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    evaluationData.depthTexture =
+        renderer::make_render_target(resolution.x, resolution.y, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR,
+                                     GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
+    evaluationData.valid = false;
 
     // Sync gradient estimation to initial resolution
     gradientEstimation->handleResolutionChanged(getGradientResolution());
@@ -60,7 +80,14 @@ void StateReconstructionController::handleCanvasSizeChanged()
         ref.depthTexture->resizeTexture(canvas->getSize().x, canvas->getSize().y);
         ref.valid = false;
     }
+    if (evaluationData.colorTexture)
+        evaluationData.colorTexture->resizeTexture(canvas->getSize().x, canvas->getSize().y);
+    if (evaluationData.depthTexture)
+        evaluationData.depthTexture->resizeTexture(canvas->getSize().x, canvas->getSize().y);
+    evaluationData.valid = false;
     referenceFramebuffer->setSize(canvas->getSize());
+    if (errorRenderFramebuffer)
+        errorRenderFramebuffer->setSize(canvas->getSize());
     gradientEstimation->handleResolutionChanged(getGradientResolution());
     lastResolutionDivider = std::max(1, (int) controls::ControlRegistry::getInstance()["state.resolution_divider"]);
     operationState = OperationState::IDLE;
@@ -78,6 +105,84 @@ void StateReconstructionController::initStateReconstruction()
 }
 
 StateReconstructionController::~StateReconstructionController() {}
+
+ReferenceData* StateReconstructionController::getSelectedReferenceView(int viewIdx)
+{
+    if (viewIdx >= 0 && viewIdx < (int) referenceData.size())
+        return &referenceData[viewIdx];
+    if (viewIdx == (int) referenceData.size())
+        return &evaluationData;
+    return nullptr;
+}
+
+void StateReconstructionController::logErrorValueIfEnabled()
+{
+    auto& registry = controls::ControlRegistry::getInstance();
+    if (!(bool) registry["state.log_error_value"])
+        return;
+    if (!errorRenderFramebuffer)
+        return;
+
+    errorValueLogPrescaler++;
+    if (errorValueLogPrescaler < 5)
+    {
+        return;
+    }
+    errorValueLogPrescaler = 0;
+
+    // Computes the per-pixel L2-error sum between errorRenderFramebuffer's
+    // color attachment (filled by the caller via visuals3D->render) and
+    // `referenceTexture`. Same metric as stochGradient_color.comp.
+    auto computeError = [&](const std::shared_ptr<renderer::RenderTargetTexture>& referenceTexture) -> float
+    {
+        errorValueSSBO->fillWithZeros();
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+
+        (*errorValueProgram)["referenceImage"] = *referenceTexture;
+        (*errorValueProgram)["currentImage"] = *errorRenderFramebuffer->getColorAttachments()[0];
+        (*errorValueProgram)["screenSize"] = errorRenderFramebuffer->getSize();
+
+        errorValueSSBO->bindBuffer(0);
+        const glm::ivec2 sz = errorRenderFramebuffer->getSize();
+        errorValueProgram->dispatchCompute((sz.x + 15) / 16, (sz.y + 15) / 16, 1);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        errorValueSSBO->mapBuffer(0, 1, GL_MAP_READ_BIT);
+        const float v = (*errorValueSSBO)[0];
+        errorValueSSBO->unmapBuffer();
+        return v;
+    };
+
+    // Render `particleData` from `view`'s camera into errorRenderFramebuffer,
+    // then compute error against the view's stored reference image. Returns
+    // NaN if the view has no captured reference yet.
+    auto evaluateView = [&](const ReferenceData& view) -> float
+    {
+        if (!view.valid || !view.colorTexture)
+            return std::numeric_limits<float>::quiet_NaN();
+        visuals3D->getCamera()->setCameraData(view.cameraData);
+        visuals3D->render(errorRenderFramebuffer->getSize(), particleData, errorRenderFramebuffer);
+        return computeError(view.colorTexture);
+    };
+
+    // Save the camera so downstream consumers of canvas (e.g. arrow overlay)
+    // see the original view-selection camera state, not whatever the last
+    // evaluated view set it to.
+    const auto savedCamera = visuals3D->getCamera()->getCameraData();
+
+    std::ostringstream oss;
+    for (size_t i = 0; i < referenceData.size(); i++)
+    {
+        if (i > 0)
+            oss << ';';
+        oss << evaluateView(referenceData[i]);
+    }
+    oss << ';' << evaluateView(evaluationData);
+
+    visuals3D->getCamera()->setCameraData(savedCamera);
+
+    std::cout << oss.str() << std::endl;
+}
 
 void StateReconstructionController::handleSpecChanges(int viewCount)
 {
@@ -167,6 +272,11 @@ void StateReconstructionController::processAndRender()
     handleCanvasSizeChanged();
     handleSpecChanges(viewCount);
 
+    if (viewCount < currentCameraPosIdx)
+    {
+        registry["state.view_selection"] = viewCount;
+    }
+
     // Copy the reconstructed state back into the actual simulator, zeroing
     // velocities so the simulator restarts from rest. Requires matching SSBO
     // sizes; if the user changed the particle count after the last
@@ -187,20 +297,24 @@ void StateReconstructionController::processAndRender()
             spdlog::warn(
                 "StateReconstructionController: 'update simulator state' skipped — "
                 "particle count mismatch (reconstructed={}, simulator={})",
-                particleData ? particleData->getSize() : 0,
-                simParticleData ? simParticleData->getSize() : 0);
+                particleData ? particleData->getSize() : 0, simParticleData ? simParticleData->getSize() : 0);
         }
     }
 
-    if (useViewCamera && referenceData[currentCameraPosIdx].valid)
+    if (useViewCamera)
     {
-        visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
+        if (auto* view = getSelectedReferenceView(currentCameraPosIdx); view && view->valid)
+        {
+            visuals3D->getCamera()->setCameraData(view->cameraData);
+        }
     }
 
     if (resetStateReconstruction)
     {
         operationState = OperationState::IDLE;
         registry["state.run_state_reconstruction"] = false;
+        spdlog::info("State reconstruction reset");
+        errorValueLogPrescaler = 0;
     }
 
     // If we only want to view the simulator, we can skip the state reconstruction and just render the simulator
@@ -208,12 +322,15 @@ void StateReconstructionController::processAndRender()
     {
         if (updateReferenceImage)
         {
-            referenceFramebuffer->setColorAttachments({ referenceData[currentCameraPosIdx].colorTexture });
-            referenceFramebuffer->setDepthAttachment(referenceData[currentCameraPosIdx].depthTexture);
-            visuals3D->render(canvas->getSize(), simManager->getParticleData(), referenceFramebuffer);
-            referenceData[currentCameraPosIdx].cameraData = visuals3D->getCamera()->getCameraData();
-            referenceData[currentCameraPosIdx].valid = true;
-            referenceData[currentCameraPosIdx].colorTexture->generateMipmaps();
+            if (auto* view = getSelectedReferenceView(currentCameraPosIdx))
+            {
+                referenceFramebuffer->setColorAttachments({ view->colorTexture });
+                referenceFramebuffer->setDepthAttachment(view->depthTexture);
+                visuals3D->render(canvas->getSize(), simManager->getParticleData(), referenceFramebuffer);
+                view->cameraData = visuals3D->getCamera()->getCameraData();
+                view->valid = true;
+                view->colorTexture->generateMipmaps();
+            }
         }
 
         visuals3D->render(canvas->getSize(), simManager->getParticleData(), canvas);
@@ -223,11 +340,11 @@ void StateReconstructionController::processAndRender()
 
     if (windowMode == 1)
     {
-        if (referenceData[currentCameraPosIdx].valid)
+        auto* view = getSelectedReferenceView(currentCameraPosIdx);
+        if (view && view->valid && view->colorTexture)
         {
-            renderer::GenericGpuPrograms::instance().copyTextureToFramebuffer(
-                referenceData[currentCameraPosIdx].colorTexture,
-                referenceData[currentCameraPosIdx].colorTexture->getSize(), canvas);
+            renderer::GenericGpuPrograms::instance().copyTextureToFramebuffer(view->colorTexture,
+                                                                              view->colorTexture->getSize(), canvas);
         }
         else
         {
@@ -257,13 +374,10 @@ void StateReconstructionController::processAndRender()
         // Lazily (re)create the smoother whenever the sim box or the smoothing
         // radius changes — both are inputs to the spatial-hash cell grid size.
         const glm::vec3 simBox = simManager->getDimensions();
-        if (enableGradientSmoothing
-            && (!gradientSmoothing
-                || gradientSmoothing->particleBox != simBox
-                || gradientSmoothing->smoothingSphereR != gradientSmoothingSphereR))
+        if (enableGradientSmoothing && (!gradientSmoothing || gradientSmoothing->particleBox != simBox ||
+                                        gradientSmoothing->smoothingSphereR != gradientSmoothingSphereR))
         {
-            gradientSmoothing =
-                std::make_unique<GradientSmoothing>(gradientSmoothingSphereR, simBox);
+            gradientSmoothing = std::make_unique<GradientSmoothing>(gradientSmoothingSphereR, simBox);
         }
 
         if (stateReconstructionEnabled)
@@ -306,8 +420,14 @@ void StateReconstructionController::processAndRender()
                             densityControl->updatePositions(particleData);
                         }
                     }
-                    visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
+                    if (auto* view = getSelectedReferenceView(currentCameraPosIdx); view && view->valid)
+                    {
+                        visuals3D->getCamera()->setCameraData(view->cameraData);
+                    }
                     visuals3D->render(canvas->getSize(), particleData, canvas);
+                    // Log error BEFORE arrow overlay so the comparison is against the
+                    // clean rendered scene rather than scene + arrow pixels.
+                    logErrorValueIfEnabled();
                     if (gradientVisualizationEnabled)
                     {
                         simManager->computeParticleDensities(particleData);
@@ -323,7 +443,10 @@ void StateReconstructionController::processAndRender()
             if (prevSelectedVeiwIdx != currentCameraPosIdx)
             {
                 prevSelectedVeiwIdx = currentCameraPosIdx;
-                visuals3D->getCamera()->setCameraData(referenceData[currentCameraPosIdx].cameraData);
+                if (auto* view = getSelectedReferenceView(currentCameraPosIdx); view && view->valid)
+                {
+                    visuals3D->getCamera()->setCameraData(view->cameraData);
+                }
             }
             visuals3D->render(canvas->getSize(), particleData, canvas);
             if (gradientVisualizationEnabled)

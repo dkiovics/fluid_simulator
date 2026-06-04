@@ -61,7 +61,7 @@ struct _SimulationObstacleControl
 	SliderFloat obstacleX{ "obs.obstacle_x", "Obstacle X", 1.0f, 40.0f, 6.0f };
 	SliderFloat obstacleY{ "obs.obstacle_y", "Obstacle Y", 1.0f, 40.0f, 6.0f };
 	SliderFloat obstacleZ{ "obs.obstacle_z", "Obstacle Z", 1.0f, 40.0f, 6.0f };
-	SliderFloat meshScale{ "obs.mesh_scale", "Mesh scale", 0.5f, 20.0f, 6.0f };
+	SliderFloat meshScale{ "obs.mesh_scale", "Mesh scale", 0.01f, 3.0f, 1.5f };
 	/*SliderFloat spawnRate{ "obs.spawn_rate", "Spawn rate", 1.0f, 5000.0f, 1600.0f };
 	SliderFloat spawnSpeed{ "obs.spawn_speed", "Spawn speed", 0.1f, 10.0f, 4.0f };
 	CheckBox enableSpawn{ "obs.enable_spawn", "Enable spawn" };
@@ -104,7 +104,8 @@ struct _SurfaceRenderingSettings
 
 struct _StateReconstructionControl
 {
-	RadioButton windowMode{ "state.window_mode", { "View simulator", "View reference data", "View reconstructed state" } };
+	RadioButton windowMode{ "state.window_mode",
+	    { "View simulator", "View reference data", "View reconstructed state" } };
 	CheckBox runStateReconstruction{ "state.run_state_reconstruction", "Run state reconstruction" };
 	Button resetStateReconstruction{ "state.reset_state_reconstruction", "Reset state reconstruction" };
 	CheckBox densityControlEnabled{ "state.density_control_enabled", "Density control" };
@@ -114,6 +115,7 @@ struct _StateReconstructionControl
 	RadioButton viewSelection{ "state.view_selection", { "View 1" } };
 	Button useViewCamera{ "state.use_view_camera", "Use view's camera" };
     CheckBox logPerPixelParamStats{ "state.log_per_pixel_param_stats", "Log per-pixel param stats" };
+    CheckBox logErrorValue{ "state.log_error_value", "Log error value", false };
     Button updateSimulator{ "state.update_simulator", "Update simulator state" };
     CheckBox gradientVisualization{ "state.gradient_visualization", "Gradient visualization", false };
     SliderFloat arrowDensityThreshold{ "state.arrow_density_threshold", "Arrow density threshold", 0.5f, 5.0f, 0.8f };
@@ -341,6 +343,8 @@ void _ControlCollectionPrivate::drawStateReconstructionControls()
     stateReconstructionControl.useViewCamera.draw();
     stateReconstructionControl.logPerPixelParamStats.draw();
     ImGui::SameLine();
+    stateReconstructionControl.logErrorValue.draw();
+    ImGui::SameLine();
     stateReconstructionControl.updateSimulator.draw();
     stateReconstructionControl.gradientVisualization.draw();
     ImGui::SameLine();
@@ -353,14 +357,18 @@ void _ControlCollectionPrivate::drawStateReconstructionControls()
     {
         stateReconstructionControl.gradientSmoothingSphereR.draw();
     }
-    // Update view selection options based on reference view count
-	if (registry.get<int>("state.reference_view_count") != stateReconstructionControl.viewSelection.options.size())
+    // Update view selection options based on reference view count. The last
+    // entry is always the evaluation view, so the user can select it as the
+    // "current view" (e.g., for error logging) just like any optimization view.
+	const int refViewCount = registry.get<int>("state.reference_view_count");
+	if (refViewCount + 1 != (int) stateReconstructionControl.viewSelection.options.size())
 	{
 		stateReconstructionControl.viewSelection.options.clear();
-		for (int i = 0; i < registry.get<int>("state.reference_view_count"); i++)
+		for (int i = 0; i < refViewCount; i++)
 		{
 			stateReconstructionControl.viewSelection.options.push_back("View " + std::to_string(i + 1));
 		}
+		stateReconstructionControl.viewSelection.options.push_back("Evaluation");
     }
 	stateReconstructionControl.viewSelection.draw();
     ImGui::End();

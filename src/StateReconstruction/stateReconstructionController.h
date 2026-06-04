@@ -40,15 +40,35 @@ private:
     // Copies the reconstructed state into the simulator, zeroing velocities.
     renderer::compute_ptr copyToSimulatorProgram;
 
+    // Sums per-pixel |refColor - curColor| into a single float (matches the
+    // gradient compute's error metric).
+    renderer::compute_ptr errorValueProgram;
+    renderer::ssbo_ptr<float> errorValueSSBO;
+    // Off-screen target used by logErrorValueIfEnabled to render each view's
+    // camera without disturbing the canvas. Sized to match canvas.
+    renderer::fb_ptr errorRenderFramebuffer;
+
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData;
 
     renderer::fb_ptr referenceFramebuffer;
 
     std::vector<ReferenceData> referenceData;
 
+    int errorValueLogPrescaler = 0;
+
+    // Held-out reference view used only for evaluation (not fed to gradient
+    // estimation). Same shape as the optimization views — color + depth + camera.
+    ReferenceData evaluationData;
+
     void initStateReconstruction();
     void handleSpecChanges(int viewCount);
     void handleCanvasSizeChanged();
+    void logErrorValueIfEnabled();
+
+    // Maps `state.view_selection` (extended to N+1 options: N optimization views
+    // followed by the evaluation view) to the right ReferenceData. Returns
+    // nullptr for an out-of-range index.
+    ReferenceData* getSelectedReferenceView(int viewIdx);
 
     glm::ivec2 getGradientResolution() const;
     int lastResolutionDivider = 0;
