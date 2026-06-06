@@ -40,12 +40,20 @@ private:
     // Copies the reconstructed state into the simulator, zeroing velocities.
     renderer::compute_ptr copyToSimulatorProgram;
 
-    // Sums per-pixel |refColor - curColor| into a single float (matches the
-    // gradient compute's error metric).
+    // Sums per-pixel |refColor - curColor| and dot(diff,diff) into a packed
+    // float SSBO (2 floats per view, all views in one buffer). Dispatches for
+    // each view in cycle N go in; readback happens in cycle N+1 — that way the
+    // map(GL_MAP_READ_BIT) finds the work already done and never stalls.
     renderer::compute_ptr errorValueProgram;
     renderer::ssbo_ptr<float> errorValueSSBO;
+    // Per-slot validity captured at dispatch time, so the next-cycle reader
+    // knows which entries are real numbers vs. uninitialised (NaN) outputs.
+    std::vector<bool> errorValuePendingViewValid;
+    bool errorValueHasPendingDispatch = false;
+    glm::ivec2 errorValuePendingResolution = glm::ivec2(0, 0);
     // Off-screen target used by logErrorValueIfEnabled to render each view's
-    // camera without disturbing the canvas. Sized to match canvas.
+    // camera without disturbing the canvas. Sized to gradient resolution to
+    // keep the per-view render cost down (same fidelity as the optimization).
     renderer::fb_ptr errorRenderFramebuffer;
 
     renderer::ssbo_ptr<genericfsim::manager::ParticleSSBOData> particleData;

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <limits>
+#include <cmath>
+#include <utility>
 #include "adam/adam.h"
 #include "controlRegistry.h"
 #include "dataUtils/dataUtils.h"
@@ -36,7 +38,8 @@ StateReconstructionController::StateReconstructionController(
     copyToSimulatorProgram = renderer::make_compute("shaders/stateReconstruction/copyParticlesZeroVelocity.comp");
 
     errorValueProgram = renderer::make_compute("shaders/stateReconstruction/errorValue.comp");
-    errorValueSSBO = renderer::make_ssbo<float>(1, GL_DYNAMIC_READ);
+    // 2 floats: [0]=sum of length(diff), [1]=sum of dot(diff,diff). See errorValue.comp.
+    errorValueSSBO = renderer::make_ssbo<float>(2, GL_DYNAMIC_READ);
 
     particleData =
         renderer::make_ssbo<genericfsim::manager::ParticleSSBOData>(simManager->getParticleNum(), GL_DYNAMIC_COPY);
@@ -125,63 +128,128 @@ void StateReconstructionController::logErrorValueIfEnabled()
 
     errorValueLogPrescaler++;
     if (errorValueLogPrescaler < 5)
-    {
         return;
-    }
     errorValueLogPrescaler = 0;
 
-    // Computes the per-pixel L2-error sum between errorRenderFramebuffer's
-    // color attachment (filled by the caller via visuals3D->render) and
-    // `referenceTexture`. Same metric as stochGradient_color.comp.
-    auto computeError = [&](const std::shared_ptr<renderer::RenderTargetTexture>& referenceTexture) -> float
+    // Always use the color L2 metric so the logged number remains a
+    // human-readable visual-similarity score independent of whether the
+    // optimization is driven by stochGradient_color.comp or stochGradient_depth.comp.
+    //
+    // Performance pattern: read previous cycle's results FIRST (the map-read
+    // therefore finds GPU work that finished 5+ frames ago, never stalls),
+    // then dispatch a new batch into the same SSBO with per-view output
+    // offsets. All views share one buffer and one final memory barrier.
+
+    // 1. Render at full canvas resolution (the user wants the metric computed at
+    // the resolution they actually view at).
+    const glm::ivec2 logSize = canvas->getSize();
+    if (errorRenderFramebuffer->getSize() != logSize)
     {
-        errorValueSSBO->fillWithZeros();
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+        errorRenderFramebuffer->setSize(logSize);
+        // Render size change invalidates any in-flight dispatch — both because
+        // the PSNR formula depends on pixel count and because the per-row SSBO
+        // layout depends on H.
+        errorValueHasPendingDispatch = false;
+    }
 
-        (*errorValueProgram)["referenceImage"] = *referenceTexture;
-        (*errorValueProgram)["currentImage"] = *errorRenderFramebuffer->getColorAttachments()[0];
-        (*errorValueProgram)["screenSize"] = errorRenderFramebuffer->getSize();
-
-        errorValueSSBO->bindBuffer(0);
-        const glm::ivec2 sz = errorRenderFramebuffer->getSize();
-        errorValueProgram->dispatchCompute((sz.x + 15) / 16, (sz.y + 15) / 16, 1);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-        errorValueSSBO->mapBuffer(0, 1, GL_MAP_READ_BIT);
-        const float v = (*errorValueSSBO)[0];
-        errorValueSSBO->unmapBuffer();
-        return v;
-    };
-
-    // Render `particleData` from `view`'s camera into errorRenderFramebuffer,
-    // then compute error against the view's stored reference image. Returns
-    // NaN if the view has no captured reference yet.
-    auto evaluateView = [&](const ReferenceData& view) -> float
+    // 2. Size SSBO for per-row atomic accumulators: 2 floats × H rows × (N+1) views.
+    // Spreads atomic contention from one global float (~2M pixels serialised) down
+    // to W threads per row, with H rows accumulating in parallel.
+    const size_t totalViews = referenceData.size() + 1;
+    const size_t floatsPerView = 2 * size_t(logSize.y);
+    const size_t requiredFloats = totalViews * floatsPerView;
+    if (errorValueSSBO->getSize() != requiredFloats)
     {
-        if (!view.valid || !view.colorTexture)
+        errorValueSSBO->setSize((unsigned int) requiredFloats);
+        // Slot layout changed; whatever was pending is no longer addressable.
+        errorValueHasPendingDispatch = false;
+    }
+
+    // PSNR for normalized [0,1] color: MSE = squaredSum / (W*H*3),
+    // PSNR = -10*log10(MSE). Returns +inf if MSE is 0 (perfect match).
+    auto psnrFromSquaredSum = [](float squaredSum, glm::ivec2 sz) -> float
+    {
+        const double pixelChannels = double(sz.x) * double(sz.y) * 3.0;
+        if (pixelChannels <= 0.0)
             return std::numeric_limits<float>::quiet_NaN();
-        visuals3D->getCamera()->setCameraData(view.cameraData);
-        visuals3D->render(errorRenderFramebuffer->getSize(), particleData, errorRenderFramebuffer);
-        return computeError(view.colorTexture);
+        const double mse = double(squaredSum) / pixelChannels;
+        if (mse <= 0.0)
+            return std::numeric_limits<float>::infinity();
+        return (float) (-10.0 * std::log10(mse));
     };
 
-    // Save the camera so downstream consumers of canvas (e.g. arrow overlay)
-    // see the original view-selection camera state, not whatever the last
-    // evaluated view set it to.
+    // ─── 3. Read PREVIOUS cycle's results (no GPU stall by this point) ───
+    // Sum the per-row pairs on the CPU into a single (l2Sum, squaredSum) per view.
+    if (errorValueHasPendingDispatch
+        && errorValuePendingViewValid.size() == totalViews
+        && errorValuePendingResolution == logSize)
+    {
+        errorValueSSBO->mapBuffer(0, (unsigned int) requiredFloats, GL_MAP_READ_BIT);
+        std::ostringstream oss;
+        for (size_t i = 0; i < totalViews; i++)
+        {
+            if (i > 0)
+                oss << ';';
+            if (errorValuePendingViewValid[i])
+            {
+                const size_t viewBase = i * floatsPerView;
+                double l2Sum = 0.0;
+                double squaredSum = 0.0;
+                for (int row = 0; row < logSize.y; row++)
+                {
+                    l2Sum     += (*errorValueSSBO)[viewBase + 2 * row + 0];
+                    squaredSum += (*errorValueSSBO)[viewBase + 2 * row + 1];
+                }
+                oss << (float) l2Sum << ';' << psnrFromSquaredSum((float) squaredSum, logSize);
+            }
+            else
+            {
+                oss << std::numeric_limits<float>::quiet_NaN() << ';'
+                    << std::numeric_limits<float>::quiet_NaN();
+            }
+        }
+        errorValueSSBO->unmapBuffer();
+        std::cout << oss.str() << std::endl;
+    }
+
+    // ─── 4. Dispatch a fresh batch into the (now-read) SSBO ───
+    errorValuePendingViewValid.assign(totalViews, false);
+    errorValuePendingResolution = logSize;
+
+    errorValueSSBO->fillWithZeros();
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+    errorValueSSBO->bindBuffer(0);
+
+    (*errorValueProgram)["currentImage"] = *errorRenderFramebuffer->getColorAttachments()[0];
+    (*errorValueProgram)["screenSize"] = logSize;
+
+    const glm::ivec3 dispatch = glm::ivec3((logSize.x + 15) / 16, (logSize.y + 15) / 16, 1);
     const auto savedCamera = visuals3D->getCamera()->getCameraData();
 
-    std::ostringstream oss;
-    for (size_t i = 0; i < referenceData.size(); i++)
+    auto submitView = [&](const ReferenceData& view, size_t slotIndex)
     {
-        if (i > 0)
-            oss << ';';
-        oss << evaluateView(referenceData[i]);
-    }
-    oss << ';' << evaluateView(evaluationData);
+        if (!view.valid || !view.colorTexture)
+            return;  // leave errorValuePendingViewValid[slotIndex] = false → NaN next cycle
+        visuals3D->getCamera()->setCameraData(view.cameraData);
+        visuals3D->render(logSize, particleData, errorRenderFramebuffer);
+        (*errorValueProgram)["referenceImage"] = *view.colorTexture;
+        // Each view's region starts at slotIndex * floatsPerView, where
+        // floatsPerView = 2 * H. Per-row layout inside the view region: see
+        // the shader.
+        (*errorValueProgram)["outputOffset"] = (int) (slotIndex * floatsPerView);
+        errorValueProgram->dispatchCompute(dispatch.x, dispatch.y, 1);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        errorValuePendingViewValid[slotIndex] = true;
+    };
 
+    for (size_t i = 0; i < referenceData.size(); i++)
+        submitView(referenceData[i], i);
+    submitView(evaluationData, referenceData.size());
+
+    // Restore the original camera so the canvas / arrow overlay aren't disturbed.
     visuals3D->getCamera()->setCameraData(savedCamera);
 
-    std::cout << oss.str() << std::endl;
+    errorValueHasPendingDispatch = true;
 }
 
 void StateReconstructionController::handleSpecChanges(int viewCount)

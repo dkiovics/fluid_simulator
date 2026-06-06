@@ -7,13 +7,21 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 uniform sampler2D referenceImage;
 uniform sampler2D currentImage;
 uniform ivec2 screenSize;
+// Start of this view's region in `errorValue` (2 floats per row × screenSize.y rows).
+// Lets the caller pack all views into one SSBO and read them back in one map.
+uniform int outputOffset;
 
-// One float, atomically summed across all pixels. Same per-pixel metric as
-// stochGradient_color.comp's positiveError / negativeError: the L2 norm of
-// the RGB difference. Summing this gives a value monotonically tracking what
-// gradient estimation is trying to minimise.
+// Per-row accumulators to spread atomic contention. Without this, every pixel
+// contends on the same global float — at 1920×1080 that's ~2M serialised atomic
+// adds per dispatch and dominates the cost. With per-row layout, only the W
+// threads of one row contend per slot, and all H rows accumulate in parallel.
+//
+// Slot layout for view v with H = screenSize.y rows:
+//   errorValue[outputOffset + 2*r + 0] = row r's Σ length(refColor - curColor)
+//   errorValue[outputOffset + 2*r + 1] = row r's Σ dot(diff, diff)
+// CPU then sums the H per-row pairs into the view's total.
 layout(std430, binding = 0) restrict buffer ErrorSSBO {
-	float errorValue;
+	float errorValue[];
 };
 
 
@@ -24,6 +32,9 @@ void main() {
 	vec2 texCoord = (vec2(pos) + vec2(0.5)) / vec2(screenSize);
 	vec3 refColor = texture(referenceImage, texCoord).xyz;
 	vec3 curColor = texelFetch(currentImage, pos, 0).xyz;
+	vec3 diff = refColor - curColor;
 
-	atomicAdd(errorValue, length(refColor - curColor));
+	int rowBase = outputOffset + pos.y * 2;
+	atomicAdd(errorValue[rowBase + 0], length(diff));
+	atomicAdd(errorValue[rowBase + 1], dot(diff, diff));
 }
