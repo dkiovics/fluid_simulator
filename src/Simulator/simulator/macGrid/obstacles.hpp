@@ -9,7 +9,7 @@ struct Obstacle {
 	glm::dvec3 prevPos;
 	glm::dvec3 speed = glm::dvec3(0, 0, 0);
 
-	Obstacle(const glm::dvec3& pos = glm::dvec3(0, 0, 0)) : pos(pos), prevPos(pos) { }
+	Obstacle(const glm::dvec3& pos, const glm::dvec3& prevPos) : pos(pos), prevPos(prevPos) { }
 
 	void setNewPos(const glm::dvec3& pos) {
 		prevPos = this->pos;
@@ -26,7 +26,7 @@ struct Obstacle {
 struct RectengularObstacle : public Obstacle {
 	const glm::dvec3 size;
 
-	RectengularObstacle(const glm::dvec3& size, const glm::dvec3& pos = glm::dvec3(0, 0, 0)) : Obstacle(pos), size(size) { }
+	RectengularObstacle(const glm::dvec3& size, const glm::dvec3& pos, const glm::dvec3& prevPos) : Obstacle(pos, prevPos), size(size) { }
 
 	Obstacle* clone() override {
 		return new RectengularObstacle(*this);
@@ -36,7 +36,7 @@ struct RectengularObstacle : public Obstacle {
 struct SphericalObstacle : public Obstacle {
 	const double r;
 
-	SphericalObstacle(double r, const glm::dvec3& pos = glm::dvec3(0, 0, 0)) : Obstacle(pos), r(r) { }
+	SphericalObstacle(double r, const glm::dvec3& pos, const glm::dvec3& prevPos) : Obstacle(pos, prevPos), r(r) { }
 
 	Obstacle* clone() override {
 		return new SphericalObstacle(*this);
@@ -48,8 +48,8 @@ struct SphericalParticleSource : public SphericalObstacle {
 	const double particleSpawnSpeed;
 	double lastSpawnFraction = 0;
 
-	SphericalParticleSource(double r, double particleSpawnRate, double particleSpawnSpeed, const glm::dvec3& pos = glm::dvec3(0, 0, 0)) 
-		: SphericalObstacle(r, pos), particleSpawnRate(particleSpawnRate), particleSpawnSpeed(particleSpawnSpeed) { }
+	SphericalParticleSource(double r, double particleSpawnRate, double particleSpawnSpeed, const glm::dvec3& pos, const glm::dvec3& prevPos) 
+		: SphericalObstacle(r, pos, prevPos), particleSpawnRate(particleSpawnRate), particleSpawnSpeed(particleSpawnSpeed) { }
 
 	Obstacle* clone() override {
 		return new SphericalParticleSource(*this);
@@ -57,7 +57,9 @@ struct SphericalParticleSource : public SphericalObstacle {
 };
 
 struct SphericalParticleSink : public SphericalObstacle {
-	SphericalParticleSink(double r, const glm::dvec3& pos = glm::dvec3(0, 0, 0)) : SphericalObstacle(r, pos) { }
+	SphericalParticleSink(double r, const glm::dvec3& pos, const glm::dvec3& prevPos)
+		: SphericalObstacle(r, pos, prevPos)
+	{ }
 
 	Obstacle* clone() override {
 		return new SphericalParticleSink(*this);

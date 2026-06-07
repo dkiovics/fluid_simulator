@@ -19,8 +19,8 @@ public:
 	/**
 	 * Enum for the Particle-Grid-Particle transfer type.
 	 */
-	enum class P2G2PType {
-		PIC, FLIP, APIC
+	enum class P2G2PType : uint8_t {
+		PIC = 0, FLIP, APIC
 	};
 
 
@@ -29,13 +29,14 @@ public:
 	 */
 	struct SimulatorConfig {
 		P2G2PType transferType = P2G2PType::FLIP;
-		float flipRatio = 0.99;
-		float gravity = 150.0;
+		float flipRatio = 0.99f;
+		float gravity = 150.0f;
 		bool gravityEnabled = true, pushParticlesApartEnabled = true;
 		bool pushApartEnabled = true;
 		bool particleSpawningEnabled = false;
 		bool particleDespawningEnabled = false;
 		bool stopParticles = false;
+		bool onlyMoveParticles = false;
 	};
 
 	/**
@@ -75,7 +76,7 @@ public:
 
 	/**
 	 * Returns the duration of each simulation step in the last iteration.
-	 * 
+	 *
 	 * \return - a map with step name - duration pairs
 	 */
 	std::map<std::string, long long> getStepDuration() const;

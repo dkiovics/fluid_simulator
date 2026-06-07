@@ -1,4 +1,5 @@
 #include "basicMacGrid.h"
+#include <memory>
 
 using namespace genericfsim::macgrid;
 
@@ -145,4 +146,9 @@ void BasicMacGrid::solveIncompressibilitySingleThreaded() {
 			}
 		}
 	}
+}
+
+std::shared_ptr<MacGrid> BasicMacGrid::clone() const
+{
+	return std::make_shared<BasicMacGrid>(*this);
 }

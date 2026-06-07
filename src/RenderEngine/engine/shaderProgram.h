@@ -4,13 +4,15 @@
 #include <glm/glm.hpp>
 #include <glad.h>
 #include "texture.h"
+#include "../compute/computeTexture.h"
+#include <spdlog/spdlog.h>
 
 namespace renderer
 {
 
-class RenderEngine;
+class WindowManager;
 
-class ShaderProgram
+class GpuProgram
 {
 public:
 	
@@ -19,24 +21,31 @@ public:
 	public:
 		bool operator=(const float value) const;
 		bool operator=(const int value) const;
+        bool operator=(const unsigned int value) const;
 		bool operator=(const glm::vec2& value) const;
+		bool operator=(const glm::ivec2& value) const;
 		bool operator=(const glm::vec3& value) const;
+		bool operator=(const glm::ivec3& value) const;
 		bool operator=(const glm::vec4& value) const;
+		bool operator=(const glm::ivec4& value) const;
 		bool operator=(const glm::mat3& value) const;
 		bool operator=(const glm::mat4& value) const;
 		bool operator=(const Texture& texture) const;
+		bool operator=(const std::vector<std::shared_ptr<Texture>>& textures) const;
+
+		bool setImageUnit(const ComputeTexture& texture) const;
 
 	private:
-		friend class ShaderProgram;
+		friend class GpuProgram;
 		UniformProxy(const int programId, const std::string& name);
 		const int programId;
 		const std::string name;
 	};
 
-	ShaderProgram& operator=(const ShaderProgram&) = delete;
-	ShaderProgram(const ShaderProgram&) = delete;
-	ShaderProgram& operator=(ShaderProgram&&) = delete;
-	ShaderProgram(ShaderProgram&&) = delete;
+	GpuProgram& operator=(const GpuProgram&) = delete;
+	GpuProgram(const GpuProgram&) = delete;
+	GpuProgram& operator=(GpuProgram&&) = delete;
+	GpuProgram(GpuProgram&&) = delete;
 
 	/**
 	 * Returns a proxy object that can be used to set the value of a uniform variable in the shader program.
@@ -44,21 +53,32 @@ public:
 	 * \param name - The name of the uniform variable.
 	 */
 	UniformProxy operator[](const std::string& name) const;
-	
-	ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName, std::shared_ptr<RenderEngine> engine);
+
+	GpuProgram();
 
 	/**
 	 * \brief Makes this the currently active gpu program.
 	 */
 	void activate() const;
 
-	~ShaderProgram();
+	virtual ~GpuProgram();
 
-private:
-	std::shared_ptr<RenderEngine> renderEngine;
+protected:
+	WindowManager& renderEngine;
 	GLuint programId;
 };
 
 
+class ShaderProgram : public GpuProgram
+{
+public:
+	ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName);
+};
+
+typedef std::shared_ptr<ShaderProgram> shader_ptr;
+inline shader_ptr make_shader(const std::string& vertexShaderName, const std::string& fragmentShaderName)
+{
+	return std::make_shared<ShaderProgram>(vertexShaderName, fragmentShaderName);
+}
 
 } // namespace renderer

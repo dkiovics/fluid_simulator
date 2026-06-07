@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <initializer_list>
+#include "shaderProgram.h"
 
 namespace renderer
 {
@@ -47,10 +49,37 @@ public:
 	void setSize(glm::ivec2 size);
 
 	/**
+	 * \brief Clears the color attachments of the framebuffer
+	 */
+	void clearColorAttachment(int index, glm::vec4 color) const;
+
+	/**
+	 * \brief Clears the color attachments of the framebuffer (integer version)
+	 */
+	void clearColorAttachment(int index, glm::ivec4 color) const;
+
+	/**
+	 * \brief Clears the depth attachment of the framebuffer
+	 */
+	void clearDepthAttachment(float depth) const;
+
+	/**
 	 * \brief Returns the color attachments of the framebuffer
 	 * \return The color attachments of the framebuffer
 	 */
 	std::vector<std::shared_ptr<RenderTargetTexture>> getColorAttachments() const;
+
+	/**
+	* \brief Sets the color attachments of the framebuffer
+	* \param colorAttachments - The new color attachments of the framebuffer
+	*/
+	void setColorAttachments(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments);
+
+	/**
+	* \brief Sets the depth attachment of the framebuffer
+	* \param depthAttachment - The new depth attachment of the framebuffer
+	*/
+	void setDepthAttachment(std::shared_ptr<RenderTargetTexture> depthAttachment);
 
 	/**
 	 * \brief Returns the depth attachment of the framebuffer
@@ -64,6 +93,14 @@ public:
 	 */
 	glm::ivec2 getSize() const;
 
+	/**
+	 * \brief Converts a list of textures to an array.
+	 */
+	static std::vector<std::shared_ptr<renderer::RenderTargetTexture>> toArray(std::initializer_list<std::shared_ptr<renderer::RenderTargetTexture>> texture)
+	{
+		return { texture };
+	}
+
 private:
 	GLuint framebufferId = 0;
 	std::optional<GLuint> depthStencilRenderbufferId;
@@ -72,6 +109,16 @@ private:
 	glm::ivec2 size;
 };
 
+typedef std::shared_ptr<Framebuffer> fb_ptr;
+inline fb_ptr make_fb(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments,
+	std::shared_ptr<RenderTargetTexture> depthAttachment, bool hasStencil = true)
+{
+	return std::make_shared<Framebuffer>(colorAttachments, depthAttachment, hasStencil);
+}
+inline fb_ptr make_fb(std::vector<std::shared_ptr<RenderTargetTexture>> colorAttachments)
+{
+	return std::make_shared<Framebuffer>(colorAttachments);
+}
 
 } // namespace renderer
 

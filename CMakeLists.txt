@@ -26,5 +26,6 @@ find_package(glm REQUIRED)
 find_package(glfw REQUIRED)
 find_package(stb_image REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(tiny_obj_loader)
 
 add_subdirectory(src)

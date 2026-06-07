@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../engine/renderEngine.h"
+#include "../engine/windowManager.h"
 #include <vector>
 #include <map>
 #include <stdexcept>
@@ -37,6 +37,11 @@ struct BasicVertex
 	glm::vec4 position;
 	glm::vec4 normal;
 	glm::vec2 texCoord;
+
+	bool operator==(const BasicVertex& other) const
+	{
+		return position == other.position && normal == other.normal && texCoord == other.texCoord;
+	}
 };
 
 class Drawable
@@ -201,6 +206,14 @@ private:
 
 };
 
+class MeshGeometry : public Geometry
+{
+public:
+	MeshGeometry(GLenum drawType, const std::vector<BasicVertex>& vertices, const std::vector<unsigned int>& indices);
+};
+
+std::shared_ptr<MeshGeometry> loadGeometry(const std::string& path);
+
 class GeometryArray : public Drawable
 {
 public:
@@ -245,10 +258,17 @@ protected:
 			glVertexAttribDivisor(attrib.id, 1);
 		}
 		geometry->unbindVao();
-		return vboId;
-
 		spdlog::debug("Per instance VBO created with id: {}", vboId);
+		return vboId;
 	}
+};
+
+class InstancedGeometry : public GeometryArray
+{
+public:
+	using GeometryArray::GeometryArray;
+
+	void setInstanceNum(size_t instanceNum);
 };
 
 class BasicGeometryArray : public GeometryArray

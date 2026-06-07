@@ -1,0 +1,101 @@
+#version 460 compatibility
+precision highp float;
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleSSBOData
+{
+	vec4 posAndDensity;
+	vec4 velocity;
+};
+
+#define MAX_INDICES 200
+
+struct ParticleIndexList
+{
+	int indexCount;
+	int indices[MAX_INDICES];
+};
+
+// Particle positions (read from the same `optimizedParams`-style buffer that
+// gradient estimation produced gradients for).
+layout(std430, binding = 0) restrict readonly buffer ParticlesSSBO {
+	ParticleSSBOData particles[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer IndexListSSBO {
+	ParticleIndexList lists[];
+};
+
+// Per-particle position-gradient, packed in the ParticleSSBOData layout so we
+// reuse the same struct stride.
+layout(std430, binding = 2) restrict readonly buffer GradientSSBO {
+	ParticleSSBOData gradient[];
+};
+
+// Smoothed gradient written here as a separate buffer to avoid read-after-write
+// races. gradientCopy.comp folds it back into the in-place gradient buffer.
+layout(std430, binding = 3) restrict writeonly buffer GradientTmpSSBO {
+	vec4 gradientTmp[];
+};
+
+uniform float smoothingSphereR;
+uniform ivec3 particleCellCount;
+const float epsilon = 0.00001;
+
+
+float gaussianWeight(float d, float R) {
+	return exp(-0.5 * (d * d) / (R * R));
+}
+
+
+void main() {
+	uint pIdx = gl_GlobalInvocationID.x;
+	if (pIdx >= particles.length()) return;
+
+	vec3 position = particles[pIdx].posAndDensity.xyz;
+	ivec3 cellIndex = clamp(ivec3(position / smoothingSphereR), ivec3(0), particleCellCount - 1);
+
+	vec3 smoothed = vec3(0.0);
+	float totalWeight = 0.0;
+
+	// Walk this cell + 26 neighbours (3x3x3 stencil).
+	for (int z = -1; z <= 1; z++) {
+		int nz = cellIndex.z + z;
+		if (nz < 0 || nz >= particleCellCount.z) continue;
+		for (int y = -1; y <= 1; y++) {
+			int ny = cellIndex.y + y;
+			if (ny < 0 || ny >= particleCellCount.y) continue;
+			for (int x = -1; x <= 1; x++) {
+				int nx = cellIndex.x + x;
+				if (nx < 0 || nx >= particleCellCount.x) continue;
+				int cellLinear = nx + ny * particleCellCount.x + nz * particleCellCount.x * particleCellCount.y;
+
+				ParticleIndexList list = lists[cellLinear];
+				// Clamp to MAX_INDICES because buildSpatialHash.comp may have
+				// overshot indexCount via atomicAdd (see that shader for detail).
+				int count = min(list.indexCount, MAX_INDICES);
+				for (int i = 0; i < count; i++) {
+					int neighborIdx = list.indices[i];
+					vec3 g = gradient[neighborIdx].posAndDensity.xyz;
+					vec3 gAbs = abs(g);
+					if (gAbs.x < epsilon && gAbs.y < epsilon && gAbs.z < epsilon) continue;
+					vec3 neighborPos = particles[neighborIdx].posAndDensity.xyz;
+					vec3 diff = position - neighborPos;
+					float d = length(diff);
+					if (d < smoothingSphereR) {
+						float w = gaussianWeight(d, smoothingSphereR);
+						smoothed += g * w;
+						totalWeight += w;
+					}
+				}
+			}
+		}
+	}
+
+	if (totalWeight > 0.0) {
+		smoothed /= totalWeight;
+	}
+
+	gradientTmp[pIdx] = vec4(smoothed, 0.0);
+}

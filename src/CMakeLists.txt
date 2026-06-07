@@ -1,4 +1,7 @@
 add_subdirectory(imgui)
 add_subdirectory(RenderEngine)
 add_subdirectory(Simulator)
+add_subdirectory(Visualization)
 add_subdirectory(Application)
+add_subdirectory(ControlUi)
+add_subdirectory(StateReconstruction)

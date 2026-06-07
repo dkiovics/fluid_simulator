@@ -1,6 +1,7 @@
 #include "macGrid.h"
 #include <iostream>
 #include "../util/compTimeForLoop.h"
+#include <spdlog/spdlog.h>
 
 using namespace genericfsim::macgrid;
 using namespace genericfsim::obstacle;
@@ -10,7 +11,7 @@ MacGrid::MacGrid(glm::dvec3 targetDimensions, double resolution, bool twoD)
 	: cellD(1 / resolution, 1 / resolution, twoD ? targetDimensions.z / 3 : 1 / resolution), cellDInv(1.0 / cellD),
 	gridSize(targetDimensions.x / cellD.x, targetDimensions.y / cellD.y, twoD ? 3 : targetDimensions.z / cellD.z),
 	dimensions(gridSize.x * cellD.x, gridSize.y * cellD.y, twoD ? targetDimensions.z : gridSize.z * cellD.z), twoD(twoD), 
-	yzMultiplier(gridSize.y * gridSize.z), cellCount(gridSize.x * gridSize.y * gridSize.z) {
+	yzMultiplier(gridSize.y * gridSize.z), cellCount(gridSize.x * gridSize.y * gridSize.z), resolution(resolution) {
 
 	initNewGrid();
 	restoreBorderingSolidCellsAndSpeeds(true);
@@ -54,6 +55,25 @@ void MacGrid::forEachCell(bool parallel, bool includeBorders, std::function<void
 			}
 		}
 	}
+}
+
+void MacGrid::backupGrid()
+{
+	rawCellsCopy = rawCells;
+	fluidCellPositionsCopy = fluidCellPositions;
+}
+
+void MacGrid::restoreGrid()
+{
+	if (rawCellsCopy.size() != rawCells.size())
+	{
+		spdlog::warn("MacGrid::restoreGrid() - rawCellsCopy size is different from rawCells size -> no action performed");
+		return;
+	}
+	rawCells = rawCellsCopy;
+	fluidCellPositions = fluidCellPositionsCopy;
+	rawCellsCopy.clear();
+	fluidCellPositionsCopy.clear();
 }
 
 void MacGrid::forEachFluidCell(bool parallel, std::function<void(glm::ivec3 pos, MacGridCell&)>&& lambda) {
@@ -213,7 +233,7 @@ void MacGrid::postP2GUpdate(bool parallel, double gravityIncrement) {
 	forEachCell(false, false, [&](glm::ivec3 pos, MacGridCell& c) {
 		if (c.type == MacGridCell::CellType::WATER) {
 			fluidCellPositions.push_back(pos);
-			c.id = fluidCellPositions.size() - 1;
+			c.id = (int)fluidCellPositions.size() - 1;
 		}
 	});
 }

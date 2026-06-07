@@ -242,7 +242,7 @@ void multSelfAndAdd(bool parallel, std::vector<double>& vec, const std::vector<d
 }
 
 int BridsonSolverGrid::solveIncompressibility(bool parallel, double dt) {
-	fluidCellCount = fluidCellPositions.size();
+	fluidCellCount = (int)fluidCellPositions.size();
 	aMatrix.resize(fluidCellCount);
 	preconditioner.resize(fluidCellCount);
 
@@ -324,5 +324,10 @@ void BridsonSolverGrid::applyPressureToVelocities(bool parallel, double dt, cons
 		if (auto& cellz = cell<2,-1>(pos); cellz.type == MacGridCell::CellType::AIR)
 			cellz.faces[2].v2 -= scale * pressures[index];
 	});
+}
+
+std::shared_ptr<MacGrid> BridsonSolverGrid::clone() const
+{
+	return std::make_shared<BridsonSolverGrid>(*this);
 }
 

@@ -2,7 +2,7 @@
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 #include "shaderProgram.h"
-#include "renderEngine.h"
+#include "windowManager.h"
 #include <spdlog/spdlog.h>
 
 using namespace renderer;
@@ -17,7 +17,7 @@ static inline int uniformWarning(int program, const char* name)
 	return location;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const float value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const float value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if(val == -1)
@@ -26,7 +26,7 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const float value) const
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const int value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const int value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -35,7 +35,16 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const int value) const
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const glm::vec2& value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const unsigned int value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform1ui(val, value);
+    return true;
+}
+
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::vec2& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -44,7 +53,16 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const glm::vec2& value) co
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const glm::vec3& value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::ivec2& value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform2iv(val, 1, &value[0]);
+	return true;
+}
+
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::vec3& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -53,7 +71,16 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const glm::vec3& value) co
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const glm::vec4& value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::ivec3& value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform3iv(val, 1, &value[0]);
+	return true;
+}
+
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::vec4& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -62,7 +89,16 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const glm::vec4& value) co
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const glm::mat3& value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::ivec4& value) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform4iv(val, 1, &value[0]);
+	return true;
+}
+
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::mat3& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -71,7 +107,7 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const glm::mat3& value) co
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const glm::mat4& value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const glm::mat4& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -80,7 +116,7 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const glm::mat4& value) co
 	return true;
 }
 
-bool renderer::ShaderProgram::UniformProxy::operator=(const Texture& value) const
+bool renderer::GpuProgram::UniformProxy::operator=(const Texture& value) const
 {
 	int val = uniformWarning(programId, name.c_str());
 	if (val == -1)
@@ -89,27 +125,48 @@ bool renderer::ShaderProgram::UniformProxy::operator=(const Texture& value) cons
 	return true;
 }
 
-renderer::ShaderProgram::UniformProxy::UniformProxy(const int programId, const std::string& name) : programId(programId), name(name) {}
+bool renderer::GpuProgram::UniformProxy::operator=(const std::vector<std::shared_ptr<Texture>>& textures) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	std::vector<int> samplers;
+	for (const auto& texture : textures)
+		samplers.push_back(texture->getTexSampler());
+	glUniform1iv(val, (GLsizei)textures.size(), samplers.data());
+	return true;
+}
 
-renderer::ShaderProgram::UniformProxy renderer::ShaderProgram::operator[](const std::string& name) const
+bool renderer::GpuProgram::UniformProxy::setImageUnit(const ComputeTexture& texture) const
+{
+	int val = uniformWarning(programId, name.c_str());
+	if (val == -1)
+		return false;
+	glUniform1i(val, texture.getImageSampler());
+	return true;
+}
+
+renderer::GpuProgram::UniformProxy::UniformProxy(const int programId, const std::string& name) : programId(programId), name(name) {}
+
+renderer::GpuProgram::UniformProxy renderer::GpuProgram::operator[](const std::string& name) const
 {
 	activate();
 	return UniformProxy(programId, name);
 }
 
-void renderer::ShaderProgram::activate() const
+renderer::GpuProgram::GpuProgram() : renderEngine(WindowManager::getInstance()) {}
+
+void renderer::GpuProgram::activate() const
 {
-	renderEngine->activateGPUProgram(programId);
+	renderEngine.activateGPUProgram(programId);
 }
 
-renderer::ShaderProgram::~ShaderProgram()
+renderer::GpuProgram::~GpuProgram()
 {
 	glDeleteProgram(programId);
-	spdlog::debug("Shader program deleted with id: {}", programId);
 }
 
-renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName, std::shared_ptr<RenderEngine> engine)
-	: renderEngine(engine)
+renderer::ShaderProgram::ShaderProgram(const std::string& vertexShaderName, const std::string& fragmentShaderName)
 {
 	std::ifstream vertexShaderFile(vertexShaderName);
 	if (!vertexShaderFile)

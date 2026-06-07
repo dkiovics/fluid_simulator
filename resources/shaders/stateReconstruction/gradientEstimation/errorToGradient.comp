@@ -1,0 +1,53 @@
+#version 460 core
+precision highp float;
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+struct ParticleData {
+    vec4 posAndDensity;
+	vec4 velocity;
+};
+
+layout(std430, binding = 0) restrict readonly buffer paramNegativeOffsetsSSBO {
+	ParticleData paramNegativeOffsets[];
+};
+
+layout(std430, binding = 1) restrict readonly buffer paramPositiveOffsetsSSBO {
+	ParticleData paramPositiveOffsets[];
+};
+
+layout(std430, binding = 2) restrict readonly buffer ErrorSumSSBO {
+	float errorSum[];
+};
+
+layout(std430, binding = 3) restrict buffer GradientSSBO {
+	ParticleData gradient[];
+};
+
+
+// Each thread owns one particle, so no atomics are needed. For every pixel that
+// touched this particle in stochGradient_*.comp we accumulated `posErr - negErr`
+// (a scalar) into errorSum[id]; here we factor in the per-particle perturbation
+// and add the result to the long-lived gradient accumulator.
+void main() {
+	uint id = gl_GlobalInvocationID.x;
+	if(id >= errorSum.length())
+		return;
+
+	float e = errorSum[id];
+	if(e == 0.0)
+		return;
+
+	vec4 spp = paramPositiveOffsets[id].posAndDensity - paramNegativeOffsets[id].posAndDensity;
+	vec4 spv = paramPositiveOffsets[id].velocity - paramNegativeOffsets[id].velocity;
+
+	if(spp.x != 0.0) gradient[id].posAndDensity.x += e / spp.x;
+	if(spp.y != 0.0) gradient[id].posAndDensity.y += e / spp.y;
+	if(spp.z != 0.0) gradient[id].posAndDensity.z += e / spp.z;
+	if(spp.w != 0.0) gradient[id].posAndDensity.w += e / spp.w;
+
+	if(spv.x != 0.0) gradient[id].velocity.x += e / spv.x;
+	if(spv.y != 0.0) gradient[id].velocity.y += e / spv.y;
+	if(spv.z != 0.0) gradient[id].velocity.z += e / spv.z;
+	if(spv.w != 0.0) gradient[id].velocity.w += e / spv.w;
+}
