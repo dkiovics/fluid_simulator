@@ -1,8 +1,8 @@
 # fluid_simulator
-A basic 3D PIC/FLIP/APIC fluid simulation application with a screen-space fluid surface renderer.
+This fluid simulation project include a FLIP/APIC fluid simulator paired with a screen-space fluid surface renderer. Furthermore, it functions as a development platform for researching, developing and testing fluid surface differentiable rendering and reconstruction techniques.
 
 ## Brief project description
-This is a pretty basic fluid simulation project that I've made as a part of my BSc thesis.
+TODO: update this description to reflect the current state of the project, as it has evolved quite a bit since the last update of this README.
 
 The application is able to function in either 2D or 3D, and the user can choose between PIC/FLIP/APIC simulation modes. The simulator itself can be fine tuned pretty well, and you can also play around with obstacles and particle sources/sinks.
 
